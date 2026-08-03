@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentDetailManagerMapper">
+    <select id="selectContentDetail" resultType="ContentDetailInfo">
+        SELECT
+            DETAIL_SEQ AS detailSeq, CON_SEQ AS conSeq, REG_DATE AS regDate, CON_REMARK AS conRemark, DETAIL_ORDER AS detailOrder,
+            CON_TYPE AS conType, IMAGE_SLIDTYPE AS imageSlidtype, TIME_INTERVAL AS timeInterval
+        FROM TB_CONDETAIL
+        WHERE DETAIL_SEQ = #{detailSeq}
+    </select>
+
+    <select id="selectContentDetailDidPage" resultType="ContentDetailInfo">
+        SELECT
+            A.HIS_SEQ AS hisSeq, B.SCH_CODE AS schCode, D.CON_SEQ AS conSeq, D.CON_FILE AS conFile
+        FROM TB_CONTENTSENDHISTORY A
+                 JOIN TB_SCHEDULE B ON A.SCH_CODE = B.SCH_CODE
+                 JOIN TB_DIDINFO C ON A.DID_ID = C.DID_ID
+                 JOIN TB_CONTENTMUTIL D ON D.CON_SEQ = B.CONTENT_CODE
+        WHERE TO_CHAR(NOW(), 'YYYYMMDD') >= B.SCH_STARTDAY
+          AND B.SCH_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+          AND A.CON_PAGEUPDATECHECK = 'N'
+          AND C.DID_ID = #{didId}
+          AND B.SCH_USEYN = 'Y'
+          AND B.SCH_CODE = #{schCode}
+    </select>
+
+    <select id="selectContentDetailLst" resultType="ContentDetailInfo">
+        SELECT
+            DETAIL_SEQ AS detailSeq, CON_SEQ AS conSeq, REG_DATE AS regDate, CON_REMARK AS conRemark, DETAIL_ORDER AS detailOrder,
+            CON_TYPE AS conType, IMAGE_SLIDTYPE AS imageSlidtype, TIME_INTERVAL AS timeInterval
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+        ORDER BY DETAIL_ORDER ASC
+    </select>
+
+    <select id="selectMaxDetail" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(MAX(DETAIL_SEQ), 0)
+        FROM TB_CONDETAIL
+    </select>
+
+    <select id="selectConDetailCnt" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(DETAIL_SEQ), 0)
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectConDetailCombo" resultType="ContentDetailInfo">
+        SELECT
+            DETAIL_SEQ AS detailSeq, DETAIL_ORDER AS detailOrder
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectPageSeqCheckPage01Cnt" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(DETAIL_SEQ), 0)
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+          AND DETAIL_ORDER = '1'
+    </select>
+
+    <select id="selectPageSeqCheckPage02Cnt" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(DETAIL_SEQ), 0)
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+          AND DETAIL_ORDER = '2'
+    </select>
+
+    <select id="selectPageSeqCheckPage01" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(DETAIL_SEQ, 0)
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+          AND DETAIL_ORDER = '1'
+    </select>
+
+    <select id="selectPageSeqCheckPage02" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(DETAIL_SEQ, 0)
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+          AND DETAIL_ORDER = '2'
+    </select>
+
+    <!-- DETAIL_SEQ는 DB 시퀀스 condetail_seq로 채번함(08_create_missing_sequences.sql 참고) -->
+    <insert id="insertContentDetailManage">
+        <selectKey keyProperty="detailSeq" resultType="java.lang.String" order="BEFORE">
+            SELECT NEXTVAL('condetail_seq')
+        </selectKey>
+        INSERT INTO TB_CONDETAIL
+        (
+            DETAIL_SEQ, CON_SEQ, REG_DATE, CON_REMARK, DETAIL_ORDER,
+            CON_TYPE, TIME_INTERVAL, IMAGE_SLIDTYPE
+        )
+        VALUES
+            (
+                #{detailSeq}, #{conSeq}, NOW(), #{conRemark,jdbcType=VARCHAR}, #{detailOrder,jdbcType=VARCHAR},
+                #{conType,jdbcType=VARCHAR}, #{timeInterval,jdbcType=VARCHAR}, #{imageSlidtype,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <update id="updateContentDetailManage">
+        UPDATE TB_CONDETAIL SET
+                                CON_SEQ = #{conSeq},
+                                REG_DATE = NOW(),
+                                CON_REMARK = #{conRemark,jdbcType=VARCHAR},
+                                DETAIL_ORDER = #{detailOrder,jdbcType=VARCHAR},
+                                CON_TYPE = #{conType,jdbcType=VARCHAR},
+                                TIME_INTERVAL = #{timeInterval,jdbcType=VARCHAR},
+                                IMAGE_SLIDTYPE = #{imageSlidtype,jdbcType=VARCHAR}
+        WHERE DETAIL_SEQ = #{detailSeq}
+    </update>
+
+    <update id="updateContentDetailTimeManage">
+        UPDATE TB_CONDETAIL SET
+            TIME_INTERVAL =
+                (
+                    SELECT
+                        TRUNC(COALESCE(SUM(COALESCE(CAST(TIME_INTERVAL AS INTEGER), 0)), 0))
+                    FROM TB_CONTENTFILEINFO
+                    WHERE DETAIL_SEQ = #{detailSeq}
+                )::VARCHAR
+        WHERE DETAIL_SEQ = #{detailSeq}
+    </update>
+
+    <delete id="deleteContentDetailManage">
+        DELETE FROM TB_CONDETAIL
+        WHERE DETAIL_SEQ = #{detailSeq}
+    </delete>
+
+    <delete id="deleteContentDetailConSeq">
+        DELETE FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+    </delete>
+</mapper>

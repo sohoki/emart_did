@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentInfoManagerMapper">
+    <select id="selectContentInfoManageListByPagination" resultType="ContentInfoVO">
+        SELECT * FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY A.CON_SEQ DESC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.CON_SEQ AS "conSeq",
+        B.CODE_NM AS "codeNm",
+        A.CON_NM AS "conNm",
+        A.CON_TIMEINTERVAL AS "conTimeInterval",
+        FN_DETAILCODENM(A.CON_PLAYTYPE) AS "conPlayType",
+        CASE
+        WHEN (A.CON_NEXTCONSEQ) > 0 THEN
+        (
+        SELECT CON_NM
+        FROM TB_CONTENT C
+        WHERE C.CON_SEQ = A.CON_NEXTCONSEQ
+        )
+        ELSE '컨텐츠 없음'
+        END AS "conNextConSeq"
+        FROM TB_CONTENT A
+        JOIN LETTCCMMNDETAILCODE B ON A.CON_TYPE = B.CODE
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CON_NM'">
+                    AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND CAST(A.CON_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="conType != null">
+            AND A.CON_TYPE = #{conType}
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectContentInfoManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT
+        COALESCE(COUNT(*), 0)
+        FROM TB_CONTENT A
+        JOIN LETTCCMMNDETAILCODE B ON A.CON_PLAYTYPE = B.CODE
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CON_NM'">
+                    AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND CAST(A.CON_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="conType != null">
+            AND A.CON_TYPE = #{conType}
+        </if>
+    </select>
+
+    <select id="selectNextCombo" resultType="ContentInfo">
+        SELECT
+        CON_SEQ AS conSeq, CON_NM AS conNm
+        FROM TB_CONTENTMUTIL
+        WHERE CON_USEYN = 'Y'
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND GROUP_ID IN
+                    (
+                    WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectSearcHCombo" resultType="ContentInfo">
+        SELECT
+        CON_SEQ AS conSeq, CON_NM AS conNm
+        FROM TB_CONTENTMUTIL
+        WHERE CON_USEYN = 'Y'
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND GROUP_ID IN
+                    (
+                    WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                </otherwise>
+            </choose>
+        </if>
+        AND CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+    </select>
+
+    <select id="selectContentInfoManageDetail" resultType="ContentInfoVO">
+        SELECT
+            CON_SEQ, CON_TYPE, CON_NM, CON_PLAYTYPE, CON_TIMEINTERVAL, CON_THUMBNAIL,
+            CON_USEYN, CON_WIDTH, CON_HEIGHT, CON_NEXTCONSEQ, FRST_REGIST_PNTTM,
+            FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID, CON_TEXT
+        FROM TB_CONTENT
+        WHERE CON_SEQ = #{conSeq}
+    </select>
+
+    <!-- CON_SEQ는 DB 시퀀스 content_seq로 채번함(TB_CONTENT/TB_CONTENTMUTIL이 채번 공간을
+         공유함, 08_create_missing_sequences.sql 참고) -->
+    <insert id="insertContentInfoManage">
+        <selectKey keyProperty="conSeq" resultType="java.lang.String" order="BEFORE">
+            SELECT NEXTVAL('content_seq')
+        </selectKey>
+        INSERT INTO TB_CONTENT
+        (
+            CON_SEQ, CON_TYPE, CON_NM, CON_PLAYTYPE, CON_TIMEINTERVAL,
+            CON_THUMBNAIL, CON_USEYN, CON_WIDTH, CON_HEIGHT, CON_NEXTCONSEQ,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID, CON_TEXT,
+            CON_FILE
+        )
+        VALUES
+            (
+                #{conSeq}, #{conType}, #{conNm}, #{conPlayType}, #{conTimeInterval},
+                #{conThumbnail,jdbcType=VARCHAR}, #{conUseYn}, #{conWidth,jdbcType=VARCHAR}, #{conHeight,jdbcType=VARCHAR}, #{conNextConSeq,jdbcType=VARCHAR},
+                NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{conText},
+                #{conFile,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <update id="updateContentInfoManage">
+        UPDATE TB_CONTENT SET
+        CON_TYPE = #{conType},
+        CON_NM = #{conNm},
+        CON_PLAYTYPE = #{conPlayType},
+        CON_TIMEINTERVAL = #{conTimeInterval},
+        <if test="conThumbnail != null">
+            CON_THUMBNAIL = #{conThumbnail,jdbcType=VARCHAR},
+        </if>
+        CON_USEYN = #{conUseYn},
+        CON_WIDTH = #{conWidth},
+        CON_HEIGHT = #{conHeight},
+        CON_NEXTCONSEQ = #{conNextConSeq,jdbcType=VARCHAR},
+        LAST_UPDT_PNTTM = NOW(),
+        LAST_UPDUSR_ID = #{frstRegisterId,jdbcType=VARCHAR},
+        CON_TEXT = #{conText}
+        <if test="conFile != null">
+            , CON_FILE = #{conFile}
+        </if>
+        WHERE CON_SEQ = #{conSeq}
+    </update>
+
+    <delete id="deleteContentInfoManage">
+        DELETE FROM TB_CONTENT
+        WHERE CON_SEQ = #{conSeq}
+    </delete>
+</mapper>

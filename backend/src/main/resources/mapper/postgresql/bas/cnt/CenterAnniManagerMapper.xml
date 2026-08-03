@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.cnt.mapper.CenterAnniManagerMapper">
+    <select id="selectCenterAnniManageListByPagination" resultType="CenterInfoAnniversaryVo">
+        SELECT * FROM
+            (
+                SELECT ROW_NUMBER() OVER (ORDER BY A.CENTER_ANNIDAY DESC) AS RNUM, TB.* FROM
+                    (
+                        SELECT
+                            A.CENTER_ID AS "centerId",
+                            A.CENTER_ANNIDAY AS "centerAnniday",
+                            A.CENTER_ANNISTARTDAY AS "centerAnniStartDay",
+                            A.CENTER_ANNIENDDAY AS "centerAnniEndDay",
+                            A.START_TIME AS "startTime",
+                            A.END_TIME AS "endTime",
+                            A.TIME_OVER AS "timeOver",
+                            A.BROD_CODE AS "brodCode",
+                            (
+                                SELECT BROD_NAME
+                                FROM TB_BRODSCHEDULE B
+                                WHERE A.BROD_CODE = B.BROD_CODE
+                            ) AS "brodName"
+                        FROM TB_CENTERANNIVERSARY A
+                        WHERE 1=1
+                          AND A.CENTER_ID = #{centerId}
+                    ) TB
+            ) TA
+        WHERE RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectCenterAnniManageDetail" resultType="CenterInfoAnniversaryVo">
+        SELECT
+            CENTER_ID, CENTER_ANNISTARTDAY, CENTER_ANNIENDDAY, START_TIME, END_TIME,
+            TIME_OVER, BROD_CODE
+        FROM TB_CENTERANNIVERSARY
+        WHERE CENTER_ANNIDAY = #{centerAnniday}
+    </select>
+
+    <select id="selectCenterAnniRetgCheck" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_CENTERANNIVERSARY
+        WHERE CENTER_ID = #{centerId}
+        AND
+        (
+        (
+        CENTER_ANNISTARTDAY BETWEEN #{centerAnniStartDay} AND #{centerAnniEndDay}
+        )
+        OR
+        (
+        CENTER_ANNIENDDAY BETWEEN #{centerAnniStartDay} AND #{centerAnniEndDay}
+        )
+        )
+        <if test="centerAnniday != 'null'">
+            AND CENTER_ANNIDAY != #{centerAnniday, jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="selectCenterAnniManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_CENTERANNIVERSARY
+        WHERE 1=1
+          AND CENTER_ID = #{centerId}
+    </select>
+
+    <insert id="insertCenterAnniManage">
+       <![CDATA[
+        INSERT INTO TB_CENTERANNIVERSARY
+        (
+            CENTER_ANNIDAY, CENTER_ID, CENTER_ANNISTARTDAY, CENTER_ANNIENDDAY, START_TIME,
+            END_TIME, TIME_OVER, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM,
+            LAST_UPDUSR_ID, BROD_CODE
+        )
+        VALUES
+            (
+                #{centerAnniday}, #{centerId}, #{centerAnniStartDay}, #{centerAnniEndDay}, #{startTime},
+                #{endTime}, #{timeOver, jdbcType=VARCHAR}, NOW(), #{frstRegisterId, jdbcType=VARCHAR}, NOW(),
+                #{frstRegisterId, jdbcType=VARCHAR}, #{brodCode, jdbcType=VARCHAR}
+            )
+        ]]>
+    </insert>
+
+    <update id="updateCenterAnniManage">
+        UPDATE TB_CENTERANNIVERSARY SET
+                                        CENTER_ID = #{centerId},
+                                        CENTER_ANNISTARTDAY = #{centerAnniStartDay},
+                                        CENTER_ANNIENDDAY = #{centerAnniEndDay},
+                                        START_TIME = #{startTime},
+                                        END_TIME = #{endTime},
+                                        TIME_OVER = #{timeOver, jdbcType=VARCHAR},
+                                        LAST_UPDT_PNTTM = NOW(),
+                                        LAST_UPDUSR_ID = #{lastUpdusrId, jdbcType=VARCHAR},
+                                        BROD_CODE = #{brodCode, jdbcType=VARCHAR}
+        WHERE CENTER_ANNIDAY = #{centerAnniday}
+    </update>
+
+    <delete id="deleteCenterAnniManage">
+        DELETE FROM TB_CENTERANNIVERSARY
+        WHERE CENTER_ANNIDAY = #{centerAnniday}
+    </delete>
+
+    <delete id="deleteCenterID">
+        DELETE FROM TB_CENTERANNIVERSARY
+        WHERE CENTER_ID = #{centerId}
+    </delete>
+</mapper>

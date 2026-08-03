@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentDetailFileInfoManagerMapper">
+    <select id="selectContentDetailFileLst" resultType="ContentDetailFileInfoVO">
+        SELECT
+            A.FILE_SEQ AS fileSeq, A.ATCH_FILE_ID AS atchFileId, A.TIME_INTERVAL AS timeInterval, A.FILE_ORDER AS fileOrder, B.PLAY_TIME AS playTime,
+            B.FILE_WIDTH AS fileWidth, B.FILE_HEIGHT AS fileHeight, B.ORIGNL_FILE_NM AS orignlFileNm, B.STRE_FILE_NM AS streFileNm,
+            CASE
+                WHEN LOWER(B.FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+                WHEN LOWER(B.FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+                WHEN LOWER(B.FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+                END AS mediaType,
+            B.FILE_THUMNAIL AS fileThumnail,
+            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+        FROM TB_CONTENTFILEINFO A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE A.CON_SEQ = #{conSeq}
+          AND A.DETAIL_SEQ = #{detailSeq}
+        ORDER BY CAST(A.FILE_ORDER AS INTEGER) ASC
+    </select>
+
+    <select id="selectContentDetailFileInfo" resultType="ContentDetailFileInfoVO">
+        SELECT
+            A.FILE_SEQ AS fileSeq, A.ATCH_FILE_ID AS atchFileId, A.TIME_INTERVAL AS timeInterval, A.FILE_ORDER AS fileOrder, B.PLAY_TIME AS playTime,
+            B.FILE_WIDTH AS fileWidth, B.FILE_HEIGHT AS fileHeight, B.ORIGNL_FILE_NM AS orignlFileNm, B.STRE_FILE_NM AS streFileNm,
+            CASE
+                WHEN LOWER(B.FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+                WHEN LOWER(B.FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+                WHEN LOWER(B.FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+                END AS mediaType,
+            B.FILE_EXTSN AS fileExtsn, B.FILE_THUMNAIL AS fileThumnail,
+            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+        FROM TB_CONTENTFILEINFO A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE A.ATCH_FILE_ID = #{atchFileId}
+            LIMIT 1
+    </select>
+
+    <select id="selectContentDetailFileInfoFileSeq" resultType="ContentDetailFileInfoVO">
+        SELECT
+            A.FILE_SEQ AS fileSeq, A.ATCH_FILE_ID AS atchFileId, A.TIME_INTERVAL AS timeInterval, A.FILE_ORDER AS fileOrder,
+            CEIL(B.PLAY_TIME) AS playTime, B.FILE_WIDTH AS fileWidth, B.FILE_HEIGHT AS fileHeight, B.ORIGNL_FILE_NM AS orignlFileNm, B.STRE_FILE_NM AS streFileNm,
+            CASE
+                WHEN LOWER(B.FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+                WHEN LOWER(B.FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+                WHEN LOWER(B.FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+                END AS mediaType,
+            B.FILE_EXTSN AS fileExtsn, B.FILE_THUMNAIL AS fileThumnail,
+            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+        FROM TB_CONTENTFILEINFO A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE A.FILE_SEQ = #{fileSeq}
+    </select>
+
+    <select id="selectPageSeqCheckFilePageCnt" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(FILE_SEQ), 0)
+        FROM TB_CONTENTFILEINFO
+        WHERE CON_SEQ = #{conSeq}
+          AND DETAIL_SEQ = #{detailSeq}
+    </select>
+
+    <select id="selectMaxfileSeq" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(MAX(FILE_SEQ), 0)
+        FROM TB_CONTENTFILEINFO
+        WHERE CON_SEQ = #{conSeq}
+          AND DETAIL_SEQ = #{detailSeq}
+    </select>
+
+    <select id="selectTimeIntevalNullCheck" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM TB_CONTENTFILEINFO A
+                 JOIN TB_CONDETAIL B ON A.CON_SEQ = B.CON_SEQ
+        WHERE A.CON_SEQ = #{conSeq}
+          AND A.TIME_INTERVAL IS NULL
+    </select>
+
+    <select id="selectDetailContentSumTime" resultType="java.lang.String">
+        SELECT
+            SUM(COALESCE(CAST(TIME_INTERVAL AS INTEGER), 0))
+        FROM TB_CONTENTFILEINFO
+        WHERE DETAIL_SEQ = #{detailSeq}
+    </select>
+
+    <!-- FILE_SEQ는 DB 시퀀스 contentfile_seq로 채번함(08_create_missing_sequences.sql 참고) -->
+    <insert id="insertContentDetailFileManage">
+        <selectKey keyProperty="fileSeq" resultType="java.lang.String" order="BEFORE">
+            SELECT NEXTVAL('contentfile_seq')
+        </selectKey>
+        INSERT INTO TB_CONTENTFILEINFO
+        (
+            FILE_SEQ, DETAIL_SEQ, CON_SEQ, ATCH_FILE_ID, TIME_INTERVAL, FILE_ORDER, REG_DATE
+        )
+        VALUES
+            (
+                #{fileSeq}, #{detailSeq}, #{conSeq}, #{atchFileId}, #{timeInterval,jdbcType=VARCHAR}, #{fileOrder,jdbcType=VARCHAR}, NOW()
+            )
+    </insert>
+
+    <update id="updateContentDetailFileManage">
+        UPDATE TB_CONTENTFILEINFO SET
+                                      CON_SEQ = #{conSeq},
+                                      REG_DATE = NOW(),
+                                      DETAIL_SEQ = #{detailSeq},
+                                      ATCH_FILE_ID = #{atchFileId},
+                                      TIME_INTERVAL = #{timeInterval,jdbcType=VARCHAR},
+                                      FILE_ORDER = #{fileOrder}
+        WHERE FILE_SEQ = #{fileSeq}
+    </update>
+
+    <update id="updateContentDetailFileTimeIntervalManage">
+        UPDATE TB_CONTENTFILEINFO SET
+            TIME_INTERVAL = #{timeInterval}
+        WHERE FILE_SEQ = #{fileSeq}
+    </update>
+
+    <update id="updateContentOrderDetailFileManage">
+        UPDATE TB_CONTENTFILEINFO SET FILE_ORDER = #{fileOrder}
+        WHERE FILE_SEQ = #{fileSeq}
+    </update>
+
+    <delete id="deleteContentDetailFileManage">
+        DELETE FROM TB_CONTENTFILEINFO WHERE FILE_SEQ = #{FILE_SEQ}
+    </delete>
+</mapper>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BrodOrganizationManagerMapper">
+    <select id="selectBrodOrganizationLst" resultType="BrodOrganizationVO">
+        SELECT * FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY A.ORG_SEQ ASC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.ORG_SEQ AS orgSeq, D.BROD_NAME AS brodName, A.BROD_TIME AS brodTime, A.ATCH_FILE_ID AS atchFileId, B.CODE_NM AS codeNm,
+        B.CODE_DC AS codeDc, D.BASIC_FILE_ID AS basicFileId, C.ORIGNL_FILE_NM AS orignlFileNm, A.BROD_GUBUN AS secGubun
+        FROM TB_BRODORGANIZATION A
+        JOIN LETTCCMMNDETAILCODE B ON A.BROD_GUBUN = B.CODE
+        JOIN LETTNFILEDETAIL C ON A.BASIC_FILE_ID = C.ATCH_FILE_ID
+        JOIN TB_BRODSCHEDULE D ON D.BROD_CODE = A.BROD_CODE
+        WHERE A.BROD_CODE = #{brodCode}
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CON_NM'">
+                    AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND CAST(A.ORG_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBrodOrgnizationPage" resultType="BrodOrganization">
+        SELECT
+        A.BROD_TIME AS brodTime, C.ORIGNL_FILE_NM AS orignlFileNm, A.BROD_SEQ AS brodSeq, A.BROD_ANNSEQ AS brodAnnSeq, A.BROD_GUBUN AS brodGubun
+        FROM TB_BRODORGANIZATION A
+        JOIN TB_BRODSCHEDULE B ON A.BROD_CODE = B.BROD_CODE
+        JOIN LETTNFILEDETAIL C ON A.ATCH_FILE_ID = C.ATCH_FILE_ID
+        WHERE A.BROD_CODE = #{brodCode}
+        <if test="centerId != ''">
+            AND A.CENTER_ID = #{centerId}
+        </if>
+        ORDER BY BROD_TIME ASC
+    </select>
+
+    <select id="selectBrodOrgnizationDid" resultType="BrodOrganization">
+        SELECT
+            A.BROD_TIME AS brodTime, C.STRE_FILE_NM AS streFileNm, A.BROD_SEQ AS brodSeq, A.BROD_ANNSEQ AS brodAnnSeq, A.BROD_GUBUN AS brodGubun
+        FROM TB_BRODORGANIZATION A
+                 JOIN TB_BRODSCHEDULE B ON A.BROD_CODE = B.BROD_CODE
+                 JOIN LETTNFILEDETAIL C ON A.ATCH_FILE_ID = C.ATCH_FILE_ID
+                 JOIN TB_CENTERINFO D ON B.CENTER_ID = D.CENTER_ID
+                 JOIN TB_DIDINFO E ON D.CENTER_ID = E.CENTER_ID
+        WHERE A.BROD_CODE = #{brodCode}
+          AND TRIM(E.DID_ID) = #{didId}
+          AND TRIM(E.DID_MAC) = #{didMac}
+        ORDER BY BROD_TIME ASC
+    </select>
+
+    <select id="selectBrodOrganizationInfo" resultType="BrodOrganizationVO">
+        SELECT
+            A.ORG_SEQ AS orgSeq, D.BROD_NAME AS brodName, A.BROD_TIME AS brodTime, A.ATCH_FILE_ID AS atchFileId, B.CODE_NM AS codeNm,
+            B.CODE_DC AS codeDc, D.BASIC_FILE_ID AS basicFileId, C.ORIGNL_FILE_NM AS orignlFileNm, A.BROD_GUBUN AS secGubun
+        FROM TB_BRODORGANIZATION A
+                 JOIN LETTCCMMNDETAILCODE B ON A.BROD_GUBUN = B.CODE
+                 JOIN LETTNFILEDETAIL C ON A.BASIC_FILE_ID = C.ATCH_FILE_ID
+                 JOIN TB_BRODSCHEDULE D ON D.BROD_CODE = A.BROD_CODE
+        WHERE A.BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectOrganizationPageCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BRODORGANIZATION A
+        JOIN LETTCCMMNDETAILCODE B ON A.BROD_GUBUN = B.CODE
+        JOIN LETTNFILEDETAIL C ON A.BASIC_FILE_ID = C.ATCH_FILE_ID
+        JOIN TB_BRODSCHEDULE D ON D.BROD_CODE = A.BROD_CODE
+        WHERE A.BROD_CODE = #{brodCode}
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CON_NM'">
+                    AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND CAST(A.ORG_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <insert id="insertBrodOrganization">
+        INSERT INTO TB_BRODORGANIZATION
+        (
+            ORG_SEQ, BROD_CODE, ATCH_FILE_ID, BROD_TIME, BROD_GUBUN,
+            CONTENT_PLAYDAY, BROD_SEQ, BROD_ANNSEQ, REG_DATE, CENTER_ID
+        )
+        VALUES
+            (
+                NEXTVAL('brodorg_seq'), #{brodCode}, #{atchFileId}, #{brodTime}, #{brodGubun},
+                #{contentPlayDay}, #{brodSeq,jdbcType=VARCHAR}, #{brodAnnSeq,jdbcType=VARCHAR}, NOW(), #{centerId,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <update id="updateBrodOrganization">
+        UPDATE TB_BRODORGANIZATION SET
+                                       BROD_CODE = #{brodCode},
+                                       REG_DATE = NOW(),
+                                       ATCH_FILE_ID = #{atchFileId},
+                                       BROD_TIME = #{brodTime},
+                                       BROD_GUBUN = #{brodGubun},
+                                       CONTENT_PLAYDAY = #{contentPlayDay},
+                                       BROD_SEQ = #{brodSeq,jdbcType=VARCHAR},
+                                       BROD_ANNSEQ = #{brodAnnSeq,jdbcType=VARCHAR},
+                                       CENTER_ID = #{centerId}
+        WHERE ORG_SEQ = #{orgSeq}
+    </update>
+
+    <delete id="deleteBrodOrganization">
+        DELETE FROM TB_BRODORGANIZATION
+        WHERE BROD_CODE = #{brodCode}
+          AND CENTER_ID IS NULL
+    </delete>
+
+    <delete id="deleteBrodOrganizationCenterId">
+        DELETE FROM TB_BRODORGANIZATION
+        WHERE BROD_CODE = #{brodCode}
+          AND CENTER_ID = #{centerId}
+    </delete>
+
+    <delete id="deleteContentToOrg">
+        DELETE FROM TB_BRODORGANIZATION
+        WHERE BROD_CODE IN
+              (
+                  SELECT BROD_CODE
+                  FROM TB_BRODSCHEDULE
+                  WHERE BROD_CODE = #{brodCode} OR BASIC_BROD_CODE = #{brodCode}
+              )
+    </delete>
+</mapper>

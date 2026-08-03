@@ -1,0 +1,132 @@
+.bm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 0 4px;
+}
+
+.bm-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+}
+
+.bm-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 10px;
+}
+
+.bm-card-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #495057;
+}
+
+.bm-card-icon img,
+.bm-card-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.bm-svg-icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: currentColor;
+}
+
+.bm-progress-track {
+    height: 4px;
+    border-radius: 2px;
+    background: #e9ecef;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.bm-progress-fill {
+    height: 100%;
+    background: #0d6efd;
+    transition: width 0.2s;
+}
+
+.bm-progress-label {
+    font-size: 12px;
+    color: #868e96;
+    margin-bottom: 14px;
+}
+
+.bm-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bm-list-item label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #495057;
+    cursor: pointer;
+}
+
+.bm-list-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #0d6efd;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.bm-empty {
+    text-align: center;
+    padding: 60px 0;
+    color: #999;
+    font-size: 14px;
+}
+
+/* ── 다크 모드 ─────────────────────────────────────────────────── */
+[data-theme="dark"] .bm-card {
+    background: #25262b;
+    border-color: #373a40;
+}
+
+[data-theme="dark"] .bm-card-title {
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .bm-card-icon {
+    color: #909296;
+}
+
+[data-theme="dark"] .bm-progress-track {
+    background: #373a40;
+}
+
+[data-theme="dark"] .bm-progress-label {
+    color: #909296;
+}
+
+[data-theme="dark"] .bm-list-item label {
+    color: #c1c2c5;
+}
+
+[data-theme="dark"] .bm-empty {
+    color: #6b6e72;
+}

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BasicBrodManagerMapper">
+    <select id="selectBasicBrodLst" resultType="BasicBrodInfoVO">
+        SELECT *
+        FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY A.LAST_UPDT_PNTTM DESC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.BASIC_CODE AS basicCode,
+        A.BASIC_GROUP_NM AS basicGroupNm,
+        A.BASIC_GROUP_CNT AS basicGroupCnt,
+        A.LAST_UPDT_PNTTM AS lastUpdtPnttm,
+        A.LAST_UPDUSR_ID AS lastUpdusrId
+        FROM TB_BRODBASICGROUP A
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'basicCode'">
+                    AND A.BASIC_CODE LIKE CONCAT('%', #{BASIC_CODE}, '%')
+                </when>
+                <otherwise>
+                    AND A.BASIC_GROUP_NM LIKE CONCAT('%', #{basicGroupNm}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBasicBrod" resultType="BasicBrodInfoVO">
+        SELECT
+            A.BASIC_CODE AS basicCode,
+            A.BASIC_GROUP_NM AS basicGroupNm,
+            A.BASIC_GROUP_CNT AS basicGroupCnt,
+            A.FRST_REGIST_PNTTM AS frstRegistPnttm,
+            A.FRST_REGISTER_ID AS frstRegisterId,
+            A.LAST_UPDT_PNTTM AS lastUpdtPnttm,
+            A.LAST_UPDUSR_ID AS lastUpdusrId
+        FROM TB_BRODBASICGROUP A
+        WHERE A.BASIC_CODE = #{basicCode}
+    </select>
+
+    <select id="selectBasicBrodCombo" resultType="BasicBrodInfo">
+        SELECT
+            BASIC_CODE, BASIC_GROUP_NM
+        FROM TB_BRODBASICGROUP
+    </select>
+
+    <select id="selectBasicBrodPageCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BRODBASICGROUP A
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'basicCode'">
+                    AND A.BASIC_CODE LIKE CONCAT('%', #{BASIC_CODE}, '%')
+                </when>
+                <otherwise>
+                    AND A.BASIC_GROUP_NM LIKE CONCAT('%', #{basicGroupNm}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectMaxBrodCode" resultType="java.lang.String">
+        SELECT MAX(BASIC_CODE)
+        FROM TB_BRODBASICGROUP
+    </select>
+
+    <select id="selectBasicCode" resultType="java.lang.String">
+        SELECT FN_BASICCODE()
+    </select>
+
+    <!-- BASIC_CODE는 컨트롤러가 selectBasicCode()(SELECT FN_BASICCODE())로 미리 채번해서
+         넘겨줌(단건 INSERT 전 값 확보 패턴, 다른 도메인의 selectKey/NEXTVAL과 동일한 이유) -->
+    <insert id="insertBasicBrod">
+        INSERT INTO TB_BRODBASICGROUP
+        (
+            BASIC_CODE, BASIC_GROUP_NM, BASIC_GROUP_CNT, FRST_REGIST_PNTTM, FRST_REGISTER_ID,
+            LAST_UPDT_PNTTM, LAST_UPDUSR_ID
+        )
+        VALUES
+            (
+                #{basicCode}, #{basicGroupNm}, 0, NOW(), #{frstRegisterId,jdbcType=VARCHAR},
+                NOW(), #{frstRegisterId,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <insert id="insertBasicBrodCopy">
+        INSERT INTO TB_BRODBASICGROUP
+        (
+            BASIC_CODE, BASIC_GROUP_NM, BASIC_GROUP_CNT, FRST_REGISTER_ID, LAST_UPDT_PNTTM,
+            LAST_UPDUSR_ID
+        )
+        SELECT
+            #{basicCode}, BASIC_GROUP_NM, BASIC_GROUP_CNT, #{frstRegisterId,jdbcType=VARCHAR}, NOW(),
+            #{frstRegisterId,jdbcType=VARCHAR}
+        FROM TB_BRODBASICGROUP
+        WHERE BASIC_CODE = #{basicCodePre}
+    </insert>
+
+    <update id="updateBasicBrod">
+        UPDATE TB_BRODBASICGROUP SET
+                                     BASIC_GROUP_NM = #{basicGroupNm},
+                                     LAST_UPDT_PNTTM = NOW(),
+                                     LAST_UPDUSR_ID = #{lastUpdusrId,jdbcType=VARCHAR}
+        WHERE BASIC_CODE = #{basicCode}
+    </update>
+
+    <update id="updateBasicBrodCnt">
+        UPDATE TB_BRODBASICGROUP SET
+            BASIC_GROUP_CNT =
+                (
+                    SELECT COALESCE(COUNT(*), 0)
+                    FROM TB_BASICSCHEDULE B
+                    WHERE B.BASIC_CODE = TB_BRODBASICGROUP.BASIC_CODE
+                )
+    </update>
+
+    <update id="updateBasicBrodCntPlus">
+        UPDATE TB_BRODBASICGROUP SET
+            BASIC_GROUP_CNT = BASIC_GROUP_CNT + 1
+        WHERE BASIC_CODE = #{basicCode}
+    </update>
+
+    <update id="updateBasicBrodCntMins">
+        UPDATE TB_BRODBASICGROUP SET
+            BASIC_GROUP_CNT = BASIC_GROUP_CNT - 1
+        WHERE BASIC_CODE = #{basicCode}
+    </update>
+
+    <delete id="deleteBasicBrod">
+        DELETE FROM TB_BRODBASICGROUP
+        WHERE BASIC_CODE = #{basicCode}
+    </delete>
+</mapper>

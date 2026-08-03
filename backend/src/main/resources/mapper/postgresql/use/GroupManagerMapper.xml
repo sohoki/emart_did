@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.use.mapper.GroupManagerMapper">
+
+    <!-- 계층형 쿼리 및 페이징 목록 조회 (Recursive CTE 적용) -->
+    <select id="selectUserGroupManageListByPagination" resultType="GroupVO">
+        WITH RECURSIVE CTE AS (
+        -- 1. 루트 노드 조회 (START WITH PARENT_GROUP_ID = '0')
+        SELECT
+        GROUP_ID AS "groupId",
+        GROUP_NM AS "groupNm",
+        GROUP_CREAT_DE AS "groupCreatDe",
+        PARENT_GROUP_ID AS "parentGroupId",
+        USEYN AS "useYn",
+        1 AS "lv",
+        ARRAY[ROW_NUMBER() OVER(ORDER BY GROUP_ID)] AS sort_path
+        FROM LETTNAUTHORGROUPINFO
+        WHERE USEYN = 'Y'
+        AND PARENT_GROUP_ID = '0'
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'GROUP_ID'">
+                    AND GROUP_ID LIKE '%' || #{searchKeyword} || '%'
+                </when>
+                <otherwise>
+                    AND GROUP_NM LIKE '%' || #{searchKeyword} || '%'
+                </otherwise>
+            </choose>
+        </if>
+
+        UNION ALL
+
+        -- 2. 자식 노드 재귀 조회 (CONNECT BY PRIOR)
+        SELECT
+        T.GROUP_ID AS "groupId",
+        T.GROUP_NM AS "groupNm",
+        T.GROUP_CREAT_DE AS "groupCreatDe",
+        T.PARENT_GROUP_ID AS "parentGroupId",
+        T.USEYN AS "useYn",
+        C."lv" + 1 AS "lv",
+        C.sort_path || ROW_NUMBER() OVER(ORDER BY T.GROUP_ID)
+        FROM LETTNAUTHORGROUPINFO T
+        INNER JOIN CTE C ON T.PARENT_GROUP_ID = C."groupId"
+        WHERE T.USEYN = 'Y'
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'GROUP_ID'">
+                    AND T.GROUP_ID LIKE '%' || #{searchKeyword} || '%'
+                </when>
+                <otherwise>
+                    AND T.GROUP_NM LIKE '%' || #{searchKeyword} || '%'
+                </otherwise>
+            </choose>
+        </if>
+        )
+        SELECT
+        ROW_NUMBER() OVER(ORDER BY sort_path) AS "rnum",
+        TB."groupId",
+        TB."groupNm",
+        TB."groupCreatDe",
+        TB."parentGroupId",
+        CASE
+        WHEN TB."parentGroupId" = '0' THEN '2'
+        ELSE (
+        SELECT B.GROUP_NM
+        FROM LETTNAUTHORGROUPINFO B
+        WHERE B.GROUP_ID = TB."parentGroupId"
+        )
+        END AS "parentGroupNm",
+        TB."useYn",
+        TB."lv"
+        FROM CTE TB
+    </select>
+
+    <!-- 총 건수 조회 -->
+    <select id="selectGroupManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM LETTNAUTHORGROUPINFO
+        WHERE 1=1
+        <!-- AND MHSYN = 'N' -->
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'GROUP_ID'">
+                    AND GROUP_ID LIKE '%' || #{searchKeyword} || '%'
+                </when>
+                <otherwise>
+                    AND GROUP_NM LIKE '%' || #{searchKeyword} || '%'
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- 최대 그룹 ID 조회 -->
+    <!-- GROUP_ID 채번(GroupManagerService.generateGroupId에서 사용) -->
+    <select id="selectGroupCode" resultType="java.lang.String">
+        SELECT FN_GROUPCODE()
+    </select>
+
+    <!-- 콤보박스용 계층 목록 조회 -->
+    <select id="selectGroupManageCombo" resultType="GroupVO">
+        WITH RECURSIVE CTE AS (
+            SELECT
+                GROUP_ID AS "groupId",
+                1 AS lv,
+                GROUP_NM AS "groupNm",
+                PARENT_GROUP_ID AS "parentGroupId"
+            FROM LETTNAUTHORGROUPINFO
+            WHERE USEYN = 'Y'
+            AND PARENT_GROUP_ID = #{parentGroupId}
+            <if test="parentGroupId != 'EMART_00000000000001'">
+                AND (PARENT_GROUP_ID = #{groupId} OR GROUP_ID = #{groupId})
+            </if>
+
+        UNION ALL
+
+            SELECT
+                T.GROUP_ID AS "groupId",
+                C.lv + 1,
+                T.GROUP_NM AS "groupNm",
+                T.PARENT_GROUP_ID AS "parentGroupId"
+            FROM LETTNAUTHORGROUPINFO T
+            INNER JOIN CTE C ON T.PARENT_GROUP_ID = C."groupId"
+            WHERE T.USEYN = 'Y'
+        )
+        SELECT * FROM CTE
+    </select>
+
+    <!-- 상세 조회 -->
+    <select id="selectGroupManageDetail" resultType="Group">
+        SELECT
+            GROUP_ID,
+            GROUP_NM AS groupNm,
+            GROUP_CREAT_DE,
+            GROUP_DC AS groupDc,
+            PARENT_GROUP_ID AS parentGroupId,
+            USEYN AS useYn
+        FROM LETTNAUTHORGROUPINFO
+        WHERE GROUP_ID = #{value}
+    </select>
+
+    <!-- 등록 (GROUP_ID는 GroupManagerService.generateGroupId()에서 애플리케이션 레벨로 채번) -->
+    <insert id="insertGroupManage">
+        INSERT INTO LETTNAUTHORGROUPINFO
+        (
+            GROUP_ID, GROUP_NM, GROUP_CREAT_DE, GROUP_DC, PARENT_GROUP_ID,
+            USEYN
+        )
+        VALUES
+            (
+                #{groupId}, #{groupNm}, TO_CHAR(NOW(), 'YYYYMMDDHH24MISS'), #{groupDc}, #{parentGroupId},
+                #{useYn}
+            )
+    </insert>
+
+    <!-- MHS 등록 (GROUP_ID는 GroupManagerService.generateGroupId()에서 애플리케이션 레벨로 채번) -->
+    <insert id="insertGroupManageMhs">
+        INSERT INTO LETTNAUTHORGROUPINFO
+        (
+            GROUP_ID, GROUP_NM, GROUP_CREAT_DE, GROUP_DC, PARENT_GROUP_ID,
+            USEYN, MHSYN
+        )
+        VALUES
+            (
+                #{groupId}, #{groupNm}, TO_CHAR(NOW(), 'YYYYMMDDHH24MISS'), #{groupDc}, #{parentGroupId},
+                'Y', 'Y'
+            )
+    </insert>
+
+    <!-- 수정 -->
+    <update id="updateGroupManage">
+        UPDATE LETTNAUTHORGROUPINFO SET
+                                        GROUP_NM = #{groupNm},
+                                        GROUP_DC = #{groupDc},
+                                        PARENT_GROUP_ID = #{parentGroupId}
+        WHERE GROUP_ID = #{groupId}
+    </update>
+
+    <!-- 삭제 -->
+    <delete id="deleteGroupManage">
+        DELETE FROM LETTNAUTHORGROUPINFO
+        WHERE GROUP_ID = #{groupId}
+    </delete>
+
+</mapper>

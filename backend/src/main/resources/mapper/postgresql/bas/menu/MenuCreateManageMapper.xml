@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.menu.mapper.MenuCreateManageMapper">
+    <select id="selectMenuCreatManageList_D" resultType="camelmap">
+        SELECT
+        COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
+        ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
+        A.ROLE_ID,
+        A.ROLE_NAME,
+        A.ROLE_DC,
+        TO_CHAR(A.FRST_REGIST_PNTTM, 'YYYY-MM-DD') AS ROLE_CREAT_DE,
+        A.ROLE_USEYN,
+        COALESCE(B.chk_menu, 0) AS chk_menu
+        FROM TB_ROLEINFO A
+        LEFT JOIN (
+        -- 메뉴 개수를 미리 계산하여 JOIN (성능 최적화)
+        SELECT ROLE_ID, COUNT(*) AS chk_menu
+        FROM COMTNMENUCREATDTLS
+        GROUP BY ROLE_ID
+        ) B ON A.ROLE_ID = B.ROLE_ID
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
+            <![CDATA[
+             AND (
+                A.ROLE_ID LIKE CONCAT('%', #{params.searchKeyword}, '%')
+                OR A.ROLE_NAME LIKE CONCAT('%', #{params.searchKeyword}, '%')
+             )
+             ]]>
+        </if>
+        ORDER BY A.FRST_REGIST_PNTTM DESC
+        LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
+    </select>
+
+    <select id="selectMenuCreatManageTotCnt_S" resultType="int">
+        SELECT COALESCE(COUNT(ROLE_ID), 0) AS totcnt
+        FROM TB_ROLEINFO
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
+            <![CDATA[
+                   AND ROLE_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                ]]>
+        </if>
+    </select>
+
+    <select id="selectMenuCreatList_D" resultType="camelmap">
+       <![CDATA[
+        SELECT A.MENU_NO
+             , A.MENU_ORDR
+             , A.MENU_NM
+             , A.UPPER_MENU_NO
+             , A.MENU_BASIC_INFO
+             , ( SELECT COUNT(B.MENU_NO)
+                 FROM COMTNMENUCREATDTLS B
+                 WHERE B.MENU_NO = A.MENU_NO
+                   AND B.ROLE_ID = #{roleId}) AS "chkYeoBu"
+        FROM COMTNMENUINFO A
+        WHERE A.MENU_NO > 0
+        ORDER BY A.MENU_ORDR
+        ]]>
+    </select>
+
+    <select id="selectMenuCreatList_Author" resultType="camelmap">
+        SELECT A.MENU_NO
+        , A.MENU_ORDR
+        , A.MENU_NM
+        , A.UPPER_MENU_NO
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 1 FOR 1) AS MENU_S
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 2 FOR 1) AS MENU_I
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 3 FOR 1) AS MENU_E
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 4 FOR 1) AS MENU_D
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 5 FOR 1) AS MENU_X
+        FROM COMTNMENUINFO A, COMTNMENUCREATDTLS B
+        WHERE A.MENU_NO = B.MENU_NO
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(hidMenuGubun) and hidMenuGubun != 'MENU_GUBUN_2'">
+            AND A.MENU_NO > 0
+            <![CDATA[
+                AND UPPER_MENU_NO <> 0
+             ]]>
+        </if>
+        AND B.ROLE_ID = #{roleId}
+        ORDER BY A.MENU_NO
+    </select>
+
+    <select id="selectMenuCreatList_System" resultType="camelmap">
+        SELECT A.MENU_NO
+        , A.MENU_ORDR
+        , A.MENU_NM
+        , A.UPPER_MENU_NO
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 1 FOR 1) AS MENU_S
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 2 FOR 1) AS MENU_I
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 3 FOR 1) AS MENU_E
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 4 FOR 1) AS MENU_D
+        , SUBSTRING(B.MENU_BASIC_INFO FROM 5 FOR 1) AS MENU_X
+        FROM COMTNMENUINFO A, COMTNMENUCREATDTLS B
+        WHERE A.MENU_NO = B.MENU_NO
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(hidMenuGubun) and hidMenuGubun != 'MENU_GUBUN_2'">
+            AND A.MENU_NO > 0
+            <![CDATA[
+                AND UPPER_MENU_NO <> 0
+                ]]>
+        </if>
+        AND B.ROLE_ID = #{roleId}
+        ORDER BY A.MENU_NO
+    </select>
+
+    <select id="selectMenuCreatCnt_S" resultType="int">
+       <![CDATA[
+        SELECT COUNT(ROLE_ID) AS totcnt
+        FROM COMTNMENUCREATDTLS
+        WHERE ROLE_ID = #{roleId}
+        ]]>
+    </select>
+
+    <select id="selectMenuCacheList" resultType="camelmap">
+        SELECT b.MANAGER_ID
+        FROM TB_ROLEINFO a, TB_MANAGERINFO b
+        WHERE a.ROLE_ID = b.ROLE_ID
+          AND a.ROLE_ID = #{params.roleId}
+    </select>
+
+    <insert id="insertMenuCreat_S">
+       <![CDATA[
+        INSERT INTO COMTNMENUCREATDTLS ( ROLE_ID ,MENU_NO , MENU_BASIC_INFO, MENU_CREATE_DATE, MENU_CREATE_ID)
+        VALUES ( #{roleId}, #{menuNo} , #{menuBasicInfo}, NOW(), #{userId})
+        ]]>
+    </insert>
+
+    <update id="updateMenuCreat_S">
+       <![CDATA[
+        UPDATE COMTNMENUCREATDTLS SET MAPNG_CREAT_ID = #{mapCreatId}
+        WHERE ROLE_ID = #{roleId}
+        ]]>
+    </update>
+
+    <delete id="deleteMenuCreat_S">
+       <![CDATA[
+        DELETE FROM COMTNMENUCREATDTLS
+        WHERE ROLE_ID = #{roleId}
+        ]]>
+    </delete>
+</mapper>

@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentMutiInfoManagerMapper">
+    <select id="selectContentMutiInfoManageListByPagination" resultType="ContentMutiInfoVO">
+        SELECT * FROM
+        (
+            SELECT ROW_NUMBER() OVER (ORDER BY A.CON_SEQ DESC) AS RNUM, TB.* FROM
+            (
+            SELECT
+            A.CON_SEQ AS conSeq, A.CON_NM AS conNm, B.CODE_NM AS codeNm, A.CON_WIDTH AS conWidth, A.CON_HEIGHT AS conHeight,
+            FN_DETAILCODENM(A.CON_SCREEN) AS conScreen, TO_CHAR(A.FRST_REGIST_PNTTM, 'YYYY-MM-DD HH24:MI:SS') AS frstRegistPnttm,
+            (
+            SELECT COUNT(*)
+            FROM TB_SCHEDULE
+            WHERE CONTENT_CODE = A.CON_SEQ
+            ) AS schCnt
+            FROM TB_CONTENTMUTIL A
+            JOIN LETTCCMMNDETAILCODE B ON A.CON_TYPE = B.CODE
+            WHERE 1=1
+            <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+                <choose>
+                    <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                        AND A.GROUP_ID IN
+                            (
+                            WITH RECURSIVE cte AS (
+                                SELECT GROUP_ID, PARENT_GROUP_ID
+                                FROM LETTNAUTHORGROUPINFO
+                                WHERE GROUP_ID = #{groupId}
+                                UNION ALL
+                                SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                                FROM LETTNAUTHORGROUPINFO g
+                                JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                            )
+                        SELECT GROUP_ID FROM cte
+                        )
+                    </when>
+                    <otherwise>
+                        AND A.CENTER_ID = #{centerId}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="searchKeyword != ''">
+                <choose>
+                    <when test="searchCondition == 'conNm'">
+                        AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                    <otherwise>
+                        AND CAST(A.CON_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="conType != null">
+                AND A.CON_TYPE = #{conType}
+            </if>
+            ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectContentMutiInfoManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_CONTENTMUTIL A
+        JOIN LETTCCMMNDETAILCODE B ON A.CON_TYPE = B.CODE
+        WHERE 1=1
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND A.GROUP_ID IN
+                    (
+                    WITH RECURSIVE cte AS (
+                        SELECT GROUP_ID, PARENT_GROUP_ID
+                        FROM LETTNAUTHORGROUPINFO
+                        WHERE GROUP_ID = #{groupId}
+                        UNION ALL
+                        SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                        FROM LETTNAUTHORGROUPINFO g
+                        JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND A.CENTER_ID = #{centerId}
+                </otherwise>
+            </choose>
+        </if>
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'conNm'">
+                    AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND CAST(A.CON_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="conType != null">
+            AND A.CON_TYPE = #{conType}
+        </if>
+    </select>
+
+    <select id="selectDIDContentLst" resultType="ContentMutiInfoVO">
+        SELECT
+            A.HIS_SEQ, B.SCH_CODE, D.CON_SEQ, D.CON_NM, D.CON_SCREEN,
+            D.CON_TYPE, D.CON_USEYN, D.CON_WIDTH, D.CON_HEIGHT, D.CON_MID,
+            D.CON_TIME, D.CON_NEXTSEQ, D.CON_FILE, D.CON_LOCALFILE, B.SCH_EMERGUBUN
+        FROM TB_CONTENTSENDHISTORY A
+         JOIN TB_SCHEDULE B ON A.SCH_CODE = B.SCH_CODE
+         JOIN TB_DIDINFO C ON A.DID_ID = C.DID_ID
+         JOIN TB_CONTENTMUTIL D ON B.CONTENT_CODE = D.CON_SEQ
+        WHERE TO_CHAR(NOW(), 'YYYYMMDD') >= B.SCH_STARTDAY
+          AND B.SCH_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+          AND A.DID_UPDATECHECK = 'N'
+          AND C.DID_ID = #{didId}
+          AND TRIM(C.DID_MAC) = #{didMac}
+          AND B.SCH_USEYN = 'Y'
+        ORDER BY
+            (
+                CASE B.SCH_EMERGUBUN
+                    WHEN 'Y' THEN '1'
+                    ELSE '2'
+                    END
+                ) ASC, A.HIS_SEQ DESC
+            LIMIT 1
+    </select>
+
+    <select id="selectContentMutiInfoManageDetail" resultType="ContentMutiInfoVO">
+        SELECT
+            CON_SEQ, CON_NM, CON_SCREEN, CON_TYPE, CON_USEYN,
+            CON_WIDTH, CON_HEIGHT, CON_MID, CON_TIME, CON_NEXTSEQ,
+            CON_FILE, CON_LOCALFILE
+        FROM TB_CONTENTMUTIL
+        WHERE CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectNextContentMutiInfo" resultType="ContentMutiInfoVO">
+        SELECT
+            A.CON_SEQ AS conSeq, A.CON_SCREEN AS conScreen, A.CON_TYPE AS conType, A.CON_USEYN AS conUseYn, A.CON_WIDTH AS conWidth,
+            A.CON_HEIGHT AS conHeight, A.CON_MID AS conMid, A.CON_NM AS conNm, A.CON_TIME AS conTime, A.CON_NEXTSEQ AS conNextSeq,
+            A.CON_FILE AS conFile, A.CON_LOCALFILE AS conLocalfile, B.DETAIL_SEQ AS detailSeq, B.DETAIL_ORDER AS detailOrder, B.CON_TYPE AS conTypeD,
+            B.IMAGE_SLIDTYPE AS imageSlidType, B.TIME_INTERVAL AS timeIntervalD, A.CON_PLAYTYPE AS conPlayType, A.CON_BASICURL AS conBasicUrl, A.CON_URLTYPE AS conUrlType
+        FROM TB_CONTENTMUTIL A
+        JOIN TB_CONDETAIL B ON A.CON_SEQ = B.CON_SEQ
+        WHERE B.DETAIL_ORDER IS NOT NULL
+          AND A.CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectContentMutiInfoManageView" resultType="ContentMutiInfoVO">
+        SELECT
+            A.CON_NM AS conNm,
+            FN_DETAILCODENM(A.CON_SCREEN) AS codeNm,
+            FN_DETAILCODENM(A.CON_TYPE) AS conType,
+            A.CON_USEYN AS conUseYn, A.CON_WIDTH AS conWidth,
+            A.CON_HEIGHT AS conHeight, A.CON_MID AS conMid, A.CON_SCREEN AS conScreen, A.CON_SEQ AS conSeq, A.CON_NEXTSEQ AS conNextSeq,
+            A.CON_FILE AS conFile,
+            CASE A.CON_NEXTSEQ
+                WHEN '0' THEN 'NO DATA'
+                ELSE
+                    (
+                        SELECT B.CON_NM
+                        FROM TB_CONTENTMUTIL B
+                        WHERE B.CON_SEQ = CAST(A.CON_NEXTSEQ AS INTEGER)
+                    )
+                END AS conNextTitle,
+            FN_DETAILCODENM(A.CON_PLAYTYPE) AS conPlayType,
+            FN_DETAILCODENM(A.CON_URLTYPE) AS conUrlType,
+            A.CON_BASICURL AS conBasicUrl,
+            FN_DETAILCODEDOC(A.CON_SCREEN) AS conDc,
+            (SELECT COALESCE(SUM(COALESCE(CAST(TIME_INTERVAL AS INTEGER), 0)), 0) FROM TB_CONDETAIL WHERE CON_SEQ = A.CON_SEQ) AS conTime,
+            TO_CHAR(A.FRST_REGIST_PNTTM, 'YYYY-MM-DD HH24:MI:SS') AS frstRegistPnttm,
+            (
+                SELECT COUNT(*)
+                FROM TB_SCHEDULE
+                WHERE CONTENT_CODE = A.CON_SEQ
+            ) AS schCnt
+        FROM TB_CONTENTMUTIL A
+        WHERE A.CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectMaxTimeInterval" resultType="java.lang.String">
+        SELECT COALESCE(TIME_INTERVAL, '0')
+        FROM TB_CONDETAIL
+        WHERE CON_SEQ = #{conSeq}
+        ORDER BY TIME_INTERVAL DESC
+            LIMIT 1
+    </select>
+
+    <select id="selectContentFileInfo" resultType="java.lang.String">
+        SELECT CON_FILE AS conFile
+        FROM TB_CONTENTMUTIL
+        WHERE CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectContentFileInfoLocal" resultType="java.lang.String">
+        SELECT COALESCE(CON_LOCALFILE, 'N') AS conFile
+        FROM TB_CONTENTMUTIL
+        WHERE CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectNextSeqList" resultType="ContentMutiInfo">
+        SELECT CON_SEQ, CON_NM
+        FROM TB_CONTENTMUTIL
+        WHERE CON_SEQ != #{conSeq}
+    </select>
+
+    <!-- FN_SEQMAX(table, column)는 DB에 존재하지만 단일 테이블 MAX 조회만 지원(MAX+1 아님).
+         이 화면은 TB_CONTENT/TB_CONTENTMUTIL이 CON_SEQ 채번 공간을 공유하는 걸 감안해 두 테이블의
+         MAX를 함께 봐야 해서(FN_SEQMAX로는 표현 불가) 기존 방식 그대로 유지함
+         (실제 채번은 insertContentMutiInfoManage의 NEXTVAL 호출에서 이뤄짐, 이 쿼리는 미리보기용) -->
+    <select id="selectMaxSeqInfo" resultType="java.lang.String">
+        SELECT CAST(GREATEST(
+            COALESCE((SELECT MAX(CON_SEQ) FROM TB_CONTENT), 0),
+            COALESCE((SELECT MAX(CON_SEQ) FROM TB_CONTENTMUTIL), 0)
+        ) + 1 AS VARCHAR)
+    </select>
+
+    <!-- CON_SEQ는 DB 시퀀스 content_seq로 채번함(TB_CONTENT/TB_CONTENTMUTIL이 채번 공간을
+         공유함, 08_create_missing_sequences.sql 참고) -->
+    <insert id="insertContentMutiInfoManage">
+        <selectKey keyProperty="conSeq" resultType="java.lang.String" order="BEFORE">
+            SELECT NEXTVAL('content_seq')
+        </selectKey>
+        INSERT INTO TB_CONTENTMUTIL
+        (
+            CON_SEQ, CON_NM, CON_SCREEN, CON_TYPE, CON_USEYN,
+            CON_WIDTH, CON_HEIGHT, CON_MID, FRST_REGIST_PNTTM, FRST_REGISTER_ID,
+            LAST_UPDT_PNTTM, LAST_UPDUSR_ID, CON_TIME, CON_NEXTSEQ, CON_PLAYTYPE,
+            CON_BASICURL, CON_URLTYPE, CON_LOCALFILE, GROUP_ID, CENTER_ID
+        )
+        VALUES
+            (
+                #{conSeq}, #{conNm}, #{conScreen}, #{conType}, 'Y',
+                #{conWidth,jdbcType=VARCHAR}, #{conHeight,jdbcType=VARCHAR}, #{conMid,jdbcType=VARCHAR}, NOW(), #{mberId,jdbcType=VARCHAR},
+                NOW(), #{mberId,jdbcType=VARCHAR}, '0', #{conNextSeq,jdbcType=VARCHAR}, #{conPlayType,jdbcType=VARCHAR},
+                #{conBasicUrl,jdbcType=VARCHAR}, #{conUrlType,jdbcType=VARCHAR}, #{conLocalfile,jdbcType=VARCHAR}, #{groupId,jdbcType=VARCHAR}, #{centerId,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <update id="updateContentMutiInfoManage">
+        UPDATE TB_CONTENTMUTIL SET
+                                   CON_NM = #{conNm},
+                                   CON_SCREEN = #{conScreen},
+                                   CON_TYPE = #{conType},
+                                   CON_USEYN = #{conUseYn},
+                                   CON_WIDTH = #{conWidth,jdbcType=VARCHAR},
+                                   CON_HEIGHT = #{conHeight,jdbcType=VARCHAR},
+                                   CON_MID = #{conMid,jdbcType=VARCHAR},
+                                   LAST_UPDT_PNTTM = NOW(),
+                                   LAST_UPDUSR_ID = #{frstRegisterId,jdbcType=VARCHAR},
+                                   CON_NEXTSEQ = #{conNextSeq,jdbcType=VARCHAR},
+                                   CON_PLAYTYPE = #{conPlayType,jdbcType=VARCHAR},
+                                   CON_BASICURL = #{conBasicUrl,jdbcType=VARCHAR},
+                                   CON_URLTYPE = #{conUrlType,jdbcType=VARCHAR}
+        WHERE CON_SEQ = #{conSeq}
+    </update>
+
+    <update id="updateContentMutiFile">
+        UPDATE TB_CONTENTMUTIL SET
+            CON_FILE = #{conFile}
+        WHERE CON_SEQ = #{conSeq}
+    </update>
+
+    <update id="updateContentMutiFileLocal">
+        UPDATE TB_CONTENTMUTIL SET
+            CON_LOCALFILE = #{conLocalfile}
+        WHERE CON_SEQ = #{conSeq}
+    </update>
+
+    <delete id="deleteContentMutiInfoManage">
+        DELETE FROM TB_CONTENTMUTIL
+        WHERE CON_SEQ = #{conSeq}
+    </delete>
+</mapper>

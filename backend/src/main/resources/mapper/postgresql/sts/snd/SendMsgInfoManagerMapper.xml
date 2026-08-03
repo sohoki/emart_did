@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+    ⚠️ 이 파일은 postgresql 폴더에 있었지만 내용은 전부 Oracle 문법(ROWNUM/NVL/SYSDATE/
+    시퀀스.NEXTVAL)이었음 — 실제로 Postgres용으로 변환된 적이 없던 파일. did_emart 리팩토링
+    과정에서 전체를 Postgres 문법으로 변환함(2026-07-26).
+    - ROWNUM → ROW_NUMBER() OVER(...)  (다른 이미 변환된 매퍼들과 동일 패턴)
+    - NVL(...) → COALESCE(...)
+    - SYSDATE → NOW()
+    - MSG_SEQ.NEXTVAL → #{msgSeq} (해당 시퀀스가 DB에 없어 Service단에서 애플리케이션 레벨 채번)
+    - "WHERE ROWNUM = 1" 패턴 → "ORDER BY ... LIMIT 1"
+-->
+<mapper namespace="com.common.backoffice.sts.snd.mapper.SendMsgInfoManagerMapper">
+	<select id="selectSendMsgInfoManageListByPagination" resultType="SendMsgInfoVO">
+		SELECT * FROM
+		(
+			SELECT ROW_NUMBER() OVER (ORDER BY A.MSG_SEQ DESC) AS RNUM, TB.* FROM
+			(
+				SELECT
+					A.MSG_SEQ AS "msgSeq",
+					A.XML_PROCESS_NAME AS "xmlProcessName",
+					C.PROCESS_REMARK AS "processRemark",
+					A.SEND_RESULT AS "sendResult",
+					A.SEND_REGDATE AS "sendRegDate",
+					B.DID_NM AS "didNm",
+					D.GROUP_NM AS "groupNm" ,
+					A.DID_PLAYTIME AS "didPlayTime" ,
+					A.DID_MACADDRESS AS "didMacAddress",
+					B.DID_IPADDR AS "didIpAddr",
+					A.ERROR_MESSAGE AS "errorMessage"
+				FROM TB_MESSAGEHISTORY A, TB_DIDINFO B, TB_SENDMESSAGETYPR C, TB_GROUP D, TB_GROUPDID E
+				WHERE A.DID_ID = B.DID_ID
+				AND A.XML_PROCESS_NAME = C.XML_PROCESS_NAME
+				AND E.DID_ID = A.DID_ID
+				AND D.GROUP_CODE = E.GROUP_CODE
+				<if test="searchKeyword != ''">
+					<choose>
+						<when test="searchCondition == 'XML_PROCESS_NAME'">
+							AND C.XML_PROCESS_NAME LIKE '%' || #{searchKeyword} || '%'
+						</when>
+						<otherwise>
+							AND A.DID_ID LIKE '%' || #{searchKeyword} || '%'
+						</otherwise>
+					</choose>
+				</if>
+				<choose>
+					<when test="author_Code == 'ROLE_ADMIN' and groupCode == 'EMART_00000000000009' ">
+						AND B.DID_MODELTYPE = 'DIDRMODELTYPE03'
+					</when>
+					<when test="author_Code == 'ROLE_ANONYMOUS' and parentGroupId == 'EMART_00000000000001' ">
+						AND B.ROLE_CODE IN
+						(
+							SELECT GROUP_ID
+							FROM LETTNAUTHORGROUPINFO
+							WHERE PARENT_GROUP_ID = #{groupCode}
+						)
+					</when>
+					<when test="author_Code == 'ROLE_USER_MEMBER' ">
+						AND B.ROLE_CODE = #{groupCode}
+					</when>
+				</choose>
+				<if test="didId != null ">
+					AND A.DID_ID = #{didId}
+				</if>
+				<if test="msgSeq !=  null">
+					AND A.MSG_SEQ = #{msgSeq}
+				</if>
+				<if test="xmlProcessName != ''">
+					AND A.XML_PROCESS_NAME = #{xmlProcessName}
+				</if>
+				<if test="schStartDay != ''">
+					AND TO_CHAR(A.SEND_REGDATE, 'YYYYMMDD') BETWEEN #{schStartDay} AND #{schEndDay}
+				</if>
+				<if test="centerId != ''">
+					AND B.CENTER_ID = #{centerId}
+				</if>
+			) TB
+		) TA
+		WHERE RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+	</select>
+
+	<select id="selectSendMsgInfoManageListTotCnt_S" resultType="java.lang.Integer">
+		SELECT
+			COALESCE(COUNT(*),0)
+		FROM TB_MESSAGEHISTORY A, TB_DIDINFO B, TB_SENDMESSAGETYPR C, TB_GROUP D , TB_GROUPDID E
+		WHERE a.DID_ID = b.DID_ID
+		AND A.XML_PROCESS_NAME = C.XML_PROCESS_NAME
+		AND E.DID_ID = A.DID_ID
+		AND D.GROUP_CODE = E.GROUP_CODE
+		<if test="searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 'XML_PROCESS_NAME'">
+					AND C.XML_PROCESS_NAME LIKE '%' || #{searchKeyword} || '%'
+				</when>
+				<otherwise>
+					AND A.DID_ID LIKE '%' || #{searchKeyword} || '%'
+				</otherwise>
+			</choose>
+		</if>
+		<choose>
+			<when test="author_Code == 'ROLE_ADMIN' and groupCode == 'EMART_00000000000009' ">
+				AND B.DID_MODELTYPE = 'DIDRMODELTYPE03'
+			</when>
+			<when test="author_Code == 'ROLE_ANONYMOUS' and parentGroupId == 'EMART_00000000000001' ">
+				AND B.ROLE_CODE IN
+				(
+					SELECT GROUP_ID
+					FROM LETTNAUTHORGROUPINFO
+					WHERE PARENT_GROUP_ID = #{groupCode}
+				)
+			</when>
+			<when test="author_Code == 'ROLE_USER_MEMBER' ">
+				AND B.ROLE_CODE = #{groupCode}
+			</when>
+		</choose>
+		<if test="didId != null ">
+			AND A.DID_ID = #{didId}
+		</if>
+		<if test="msgSeq !=  null">
+			AND A.MSG_SEQ = #{msgSeq}
+		</if>
+		<if test="xmlProcessName != ''">
+			AND A.XML_PROCESS_NAME = #{xmlProcessName}
+		</if>
+		<if test="schStartDay != ''">
+			AND TO_CHAR(A.SEND_REGDATE, 'YYYYMMDD') BETWEEN #{schStartDay} AND #{schEndDay}
+		</if>
+		<if test="centerId != ''">
+			AND B.CENTER_ID = #{centerId}
+		</if>
+	</select>
+
+	<!-- 아래 쿼리들은 XmlInfoManageController의 DID 장비 통신 프로토콜 처리기(jsonAuth.do, 이번
+	     리팩토링 범위 밖)에서 쓰던 것들 — 이번 김에 Postgres 문법으로 같이 맞춰둠 -->
+	<select id="selectDIDScheduleCount" resultType="java.lang.Integer">
+		SELECT COALESCE(COUNT(XX.SCH_CODE),0) FROM
+		(
+			SELECT X.SCH_CODE, X.CON_UPDATECHECK FROM
+			(
+				SELECT
+					A.SCH_CODE,
+					A.CON_UPDATECHECK
+				FROM TB_CONTENTSENDHISTORY A, TB_SCHEDULE B, TB_DIDINFO C
+				WHERE A.SCH_CODE = B.SCH_CODE
+				AND A.DID_ID = C.DID_ID
+				AND TO_CHAR(NOW(), 'YYYYMMDD') >= B.SCH_STARTDAY
+				AND B.SCH_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+				AND B.SCH_USEYN = 'Y'
+				AND C.DID_ID = #{didId}
+				AND TRIM(C.DID_MAC) = #{didMacAddress}
+				AND A.DID_UPDATECHECK = 'N'
+				ORDER BY
+				(
+					CASE b.SCH_EMERGUBUN
+						WHEN 'Y' THEN '1'
+						ELSE '2'
+					END
+				) ASC , A.HIS_SEQ DESC
+				LIMIT 1
+			) X
+		) XX
+		WHERE XX.CON_UPDATECHECK = 'N'
+	</select>
+
+	<select id="selectDIDOrderCount" resultType="java.lang.Integer">
+		SELECT COALESCE(COUNT(A.MSG_SEQ),0)
+		FROM TB_MESSAGEHISTORY A , TB_SENDMESSAGETYPR B
+		WHERE A.XML_PROCESS_NAME = B.XML_PROCESS_NAME
+		AND B.WORK_GUBUN = 'WORKGUBUN02'
+		AND A.SEND_RESULT = 'N'
+		AND A.DID_ID = #{didId}
+		AND TRIM(A.DID_MACADDRESS) = #{didMacAddress}
+	</select>
+
+	<select id="selectDIDMessageCount" resultType="java.lang.Integer">
+		SELECT COALESCE(COUNT(*),0)
+		FROM TB_DIDSENDMESSAGE A, TB_DIDINFO B
+		WHERE A.SEND_DIDCHECKDATE IS NULL
+		AND A.DID_ID = B.DID_ID
+		AND A.DID_ID = #{didId}
+		AND B.DID_MAC= #{didMacAddress}
+	</select>
+
+	<select id="selectDIDOrderLst" resultType="SendMsgInfoVO">
+		SELECT
+			A.MSG_SEQ AS msgSeq,
+			A.XML_PROCESS_NAME AS xmlProcessName,
+			A.SEND_REGDATE AS sendRegdate,
+			A.SEND_RESULT AS sendResult
+		FROM TB_MESSAGEHISTORY A, TB_SENDMESSAGETYPR B
+		WHERE A.XML_PROCESS_NAME = B.XML_PROCESS_NAME
+		AND B.WORK_GUBUN = 'WORKGUBUN02'
+		AND A.SEND_RESULT = 'N'
+		AND A.DID_ID = #{didId}
+		AND TRIM(A.DID_MACADDRESS) = #{didMacAddress}
+		ORDER BY MSG_SEQ ASC
+	</select>
+
+	<select id="selectSendDidIDCheckCnt" resultType="java.lang.Integer">
+		SELECT COALESCE(COUNT(*),0)
+		FROM TB_MESSAGEHISTORY
+		WHERE SEND_DIDID = #{sendDidId}
+	</select>
+
+	<select id="selectSendDidIDMsgSeq" resultType="java.lang.String">
+		SELECT MSG_SEQ
+		FROM TB_MESSAGEHISTORY
+		WHERE SEND_DIDID = #{sendDidId}
+		ORDER BY MSG_SEQ DESC
+		LIMIT 1
+	</select>
+
+	<!-- MSG_SEQ는 DB 시퀀스 msg_seq로 채번함(08_create_missing_sequences.sql 참고) -->
+	<insert id="insertSendMsgInfoManage">
+		<selectKey keyProperty="msgSeq" resultType="java.lang.String" order="BEFORE">
+			SELECT NEXTVAL('msg_seq')
+		</selectKey>
+		INSERT INTO TB_MESSAGEHISTORY
+		(
+			MSG_SEQ, DID_ID, XML_PROCESS_NAME, SEND_RESULT, SEND_REGDATE,
+			DID_MACADDRESS, ERROR_MESSAGE
+		)
+		VALUES
+		(
+			#{msgSeq}, #{didId}, #{xmlProcessName}, #{sendResult}, NOW(),
+			#{didMacAddress}, #{errorMessage, jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<insert id="insertSendMsgInfoManageState">
+		<selectKey keyProperty="msgSeq" resultType="java.lang.String" order="BEFORE">
+			SELECT NEXTVAL('msg_seq')
+		</selectKey>
+		INSERT INTO TB_MESSAGEHISTORY
+		(
+			MSG_SEQ, DID_ID, XML_PROCESS_NAME, SEND_RESULT, SEND_REGDATE,
+			DID_MACADDRESS, DID_PLAYTIME
+		)
+		VALUES
+		(
+			#{msgSeq}, #{didId}, 'SP_DIDSTATE' , 'OK', NOW(),
+			#{didMacAddress}, NOW()
+		)
+	</insert>
+
+	<insert id="insertSendMessageInsertManage">
+		<selectKey keyProperty="msgSeq" resultType="java.lang.String" order="BEFORE">
+			SELECT NEXTVAL('msg_seq')
+		</selectKey>
+		INSERT INTO TB_MESSAGEHISTORY
+		(
+			MSG_SEQ, DID_ID, XML_PROCESS_NAME, SEND_RESULT, SEND_REGDATE,
+			DID_MACADDRESS, SEND_DIDID
+		)
+		SELECT
+			#{msgSeq}, #{didId}, 'SP_MESSAGEUPDATE', 'N', NOW(),
+			#{didMacAddress}, a.SEND_DIDID
+		FROM TB_DIDSENDMESSAGE A
+		WHERE SEND_DIDID = #{sendDidId}
+	</insert>
+
+	<update id="updateSendMsgInfoManage">
+		UPDATE TB_MESSAGEHISTORY
+			SET SEND_RESULT = #{sendResult},
+			DID_MACADDRESS = #{didMacAddress},
+			DID_PLAYTIME = NOW(),
+			ERROR_MESSAGE = #{errorMessage}
+		WHERE MSG_SEQ = #{msgSeq}
+	</update>
+</mapper>

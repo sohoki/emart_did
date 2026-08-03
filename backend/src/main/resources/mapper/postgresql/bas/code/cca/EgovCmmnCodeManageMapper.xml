@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.code.mapper.EgovCmmnCodeManageMapper">
+
+    <select id="selectCmmnCodeListByPagination" resultType="CmmnCodeDto">
+        SELECT COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
+        R.* FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY A.CODE_ID ASC) AS RNUM,
+        A.CODE_ID, A.CODE_ID_NM, A.CODE_ID_DC, A.USE_AT,
+        TO_CHAR(A.LAST_UPDT_PNTTM, 'YYYY-MM-DD AM HH12:MI') AS LAST_UPDT_PNTTM, A.LAST_UPDUSR_ID,
+        A.CL_CODE, (SELECT COUNT(*) FROM COMTCCMMNDETAILCODE WHERE CODE_ID = A.CODE_ID) AS CHILD_CNT
+        FROM COMTCCMMNCODE A
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.clCode)">
+            AND A.CL_CODE = #{params.clCode}
+        </if>
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
+            <choose>
+                <when test="params.searchCondition == 'codeId'">
+                    AND A.CODE_ID LIKE CONCAT('%', #{params.searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.CODE_ID_NM LIKE CONCAT('%', #{params.searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) R
+        ORDER BY RNUM ASC
+        LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
+    </select>
+
+    <select id="selectCmmnCodeList" resultType="CmmnCodeDto">
+        SELECT A.CODE_ID, A.CODE_ID_NM, A.CODE_ID_DC, A.USE_AT,
+               A.LAST_UPDT_PNTTM, A.LAST_UPDUSR_ID
+        FROM COMTCCMMNCODE A
+        WHERE A.CL_CODE = 'COMPASS'
+          AND A.USE_AT = 'Y'
+    </select>
+
+    <select id="selectCmmnCodeDetail" resultType="CmmnCodeDto">
+        SELECT A.CL_CODE, A.CODE_ID, A.CODE_ID_NM, A.CODE_ID_DC, A.USE_AT,
+               A.FRST_REGISTER_ID, A.FRST_REGIST_PNTTM, A.LAST_UPDT_PNTTM, A.LAST_UPDUSR_ID
+        FROM COMTCCMMNCODE A
+        WHERE A.CODE_ID = #{codeId}
+    </select>
+
+    <insert id="insertCmmnCode">
+        INSERT INTO COMTCCMMNCODE
+        (
+            CODE_ID, CODE_ID_NM, CODE_ID_DC, USE_AT, CL_CODE,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID
+        )
+        VALUES
+            (
+                #{codeId}, #{codeIdNm}, #{codeIdDc}, #{useAt}, #{clCode},
+                NOW(), #{userId}, NOW(), #{userId}
+            )
+    </insert>
+
+    <update id="updateCmmnCode">
+        UPDATE COMTCCMMNCODE
+        SET CODE_ID_NM = #{codeIdNm},
+            CODE_ID_DC = #{codeIdDc},
+            USE_AT = #{useAt},
+            LAST_UPDUSR_ID = #{userId},
+            LAST_UPDT_PNTTM = NOW()
+        WHERE CODE_ID = #{codeId}
+    </update>
+
+    <delete id="deleteCmmnCode">
+        DELETE FROM COMTCCMMNDETAILCODE WHERE CODE_ID = #{codeId};
+        DELETE FROM COMTCCMMNCODE WHERE CODE_ID = #{codeId};
+    </delete>
+
+</mapper>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentMessageInfoManagerMapper">
+    <select id="selectContentMessageInfoListByPagination" resultType="ContentMessageInfoVO">
+        SELECT * FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY A.SEND_REGDATE DESC) AS RNUM, TB.* FROM
+        (
+        SELECT
+        A.SEND_DIDID AS "sendDidId",
+        B.DID_NM AS "didNm",
+        C.GROUP_NM AS "groupNm",
+        A.SEND_MESSAGESTARTDAY AS "sendMessageStartDay",
+        A.SEND_MESSAGE AS "sendMessage",
+        A.SEND_MESSAGEENDDAY AS "sendMessageEndDay",
+        A.SEND_MESSAGESTARTTIME AS "sendMessageStartTime",
+        A.SEND_MESSAGEENDTIME AS "sendMessageEndTime",
+        A.SEND_REGDATE AS sendRegDate,
+        A.SEND_DIDCHECKDATE AS sendDidCheckDate,
+        A.SEND_MSGID AS sendMsgId
+        FROM TB_DIDSENDMESSAGE A
+        JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+        JOIN TB_GROUPDID D ON B.DID_ID = D.DID_ID
+        JOIN TB_GROUP C ON C.GROUP_CODE = D.GROUP_CODE
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'SEND_MESSAGE'">
+                    AND A.SEND_MESSAGE LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND C.GROUP_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectContentMessageInfoDidList" resultType="ContentMessageInfo">
+        SELECT
+            A.SEND_DIDID AS "sendDidId",
+            A.SEND_MESSAGESTARTDAY AS "sendMessageStartDay",
+            A.SEND_MESSAGE AS "sendMessage",
+            A.SEND_MESSAGEENDDAY AS "sendMessageEndDay",
+            A.SEND_MESSAGESTARTTIME AS "sendMessageStartTime",
+            A.SEND_MESSAGEENDTIME AS "sendMessageEndTime",
+            A.SEND_REGDATE AS sendRegDate,
+            A.SEND_DIDCHECKDATE AS sendDidCheckDate,
+            A.SEND_MSGID AS sendMsgId,
+            A.SEND_FONTTYPE AS sendFontType
+        FROM TB_DIDSENDMESSAGE A
+                 JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+        WHERE A.DID_ID = #{didId}
+          AND A.SEND_DIDCHECKDATE IS NULL
+    </select>
+
+    <select id="selectContentMessageInfoListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_DIDSENDMESSAGE A
+        JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+        JOIN TB_GROUPDID D ON B.DID_ID = D.DID_ID
+        JOIN TB_GROUP C ON C.GROUP_CODE = D.GROUP_CODE
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'SEND_MESSAGE'">
+                    AND A.SEND_MESSAGE LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND C.GROUP_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectContentMessageInfoDetail" resultType="ContentMessageInfo">
+        SELECT
+            A.SEND_DIDID, A.DID_ID, A.GROUP_CODE, A.SEND_MESSAGE, A.SEND_MESSAGESTARTDAY,
+            A.SEND_MESSAGEENDDAY, A.SEND_MESSAGESTARTTIME, A.SEND_MESSAGEENDTIME, A.SEND_FONTTYPE, A.SEND_USEYN,
+            A.SEND_REGDATE, A.SEND_DIDCHECKDATE, B.DID_NM, C.GROUP_NM, A.SEND_MSGID
+        FROM TB_DIDSENDMESSAGE A
+                 JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+                 JOIN TB_GROUPDID D ON B.DID_ID = D.DID_ID
+                 JOIN TB_GROUP C ON C.GROUP_CODE = D.GROUP_CODE
+        WHERE A.SEND_MSGID = #{sendMsgId}
+            LIMIT 1
+    </select>
+
+    <!-- SEND_MSGID 채번용 최대값 조회(ContentMessageInfoManageService.generateSendMsgId에서 사용) -->
+    <select id="selectMaxSendMsgId" resultType="java.lang.String">
+        SELECT MAX(SEND_MSGID)
+        FROM TB_DIDSENDMESSAGE
+    </select>
+
+    <!-- SEND_DIDID 채번(ContentMessageInfoManageService.generateSendDidId에서 사용).
+         FN_DIDMESSAGEINFO(didId) = didId + 현재시각(yyMMddHHmmss) -->
+    <select id="selectSendDidId" resultType="java.lang.String">
+        SELECT FN_DIDMESSAGEINFO(#{didId})
+    </select>
+
+    <!-- SEND_MSGID는 generateSendMsgId()에서 애플리케이션 레벨로 채번함(EgovIdGnrService 빈
+         미구성, DB 함수도 대응하는 게 없음 — MSG_+10자리 순번 포맷 유지) -->
+    <insert id="insertContentMessageInfo">
+        INSERT INTO TB_DIDSENDMESSAGE
+        (
+            SEND_DIDID, DID_ID, GROUP_CODE, SEND_MESSAGE, SEND_MESSAGESTARTDAY,
+            SEND_MESSAGEENDDAY, SEND_MESSAGESTARTTIME, SEND_MESSAGEENDTIME, SEND_FONTTYPE, SEND_USEYN,
+            SEND_REGDATE, SEND_MSGID
+        )
+        VALUES
+            (
+                #{sendDidId}, #{didId}, #{groupCode}, #{sendMessage}, #{sendMessageStartDay},
+                #{sendMessageEndDay}, #{sendMessageStartTime}, #{sendMessageEndTime}, #{sendFontType,jdbcType=VARCHAR}, 'Y',
+                NOW(), #{sendMsgId}
+            )
+    </insert>
+
+    <update id="updateContentMessageInfo">
+        UPDATE TB_DIDSENDMESSAGE SET
+                                     DID_ID = #{didId},
+                                     GROUP_CODE = #{groupCode},
+                                     SEND_MSGID = #{sendMsgId},
+                                     SEND_MESSAGE = #{sendMessage},
+                                     SEND_MESSAGESTARTDAY = #{sendMessageStartDay},
+                                     SEND_MESSAGEENDDAY = #{sendMessageEndDay},
+                                     SEND_MESSAGESTARTTIME = #{sendMessageStartTime},
+                                     SEND_MESSAGEENDTIME = #{sendMessageEndTime},
+                                     SEND_FONTTYPE = #{sendFontType},
+                                     SEND_USEYN = #{sendUseYn},
+                                     SEND_REGDATE = NOW()
+        WHERE SEND_DIDID = #{senedDidId}
+    </update>
+
+    <update id="updateContentMessageInfoMsgId">
+        UPDATE TB_DIDSENDMESSAGE SET
+                                     SEND_MESSAGE = #{sendMessage},
+                                     SEND_MESSAGESTARTDAY = #{sendMessageStartDay},
+                                     SEND_MESSAGEENDDAY = #{sendMessageEndDay},
+                                     SEND_MESSAGESTARTTIME = #{sendMessageStartTime},
+                                     SEND_MESSAGEENDTIME = #{sendMessageEndTime},
+                                     SEND_FONTTYPE = #{sendFontType},
+                                     SEND_USEYN = #{sendUseYn},
+                                     SEND_REGDATE = NOW(),
+                                     SEND_DIDCHECKDATE = NULL
+        WHERE SEND_MSGID = #{sendMsgId}
+    </update>
+
+    <update id="updateContentMessageInfoClientManage">
+        UPDATE TB_DIDSENDMESSAGE SET
+            SEND_DIDCHECKDATE = NOW()
+        WHERE SEND_DIDID = #{sendDidId}
+    </update>
+
+    <delete id="deleteContentMessageInfo">
+        DELETE FROM TB_DIDSENDMESSAGE
+        WHERE SEND_DIDID = #{sendDidId}
+    </delete>
+
+    <delete id="deleteContentMessageInfoMsgId">
+        DELETE FROM TB_DIDSENDMESSAGE
+        WHERE SEND_MSGID = #{sendMsgId}
+    </delete>
+</mapper>

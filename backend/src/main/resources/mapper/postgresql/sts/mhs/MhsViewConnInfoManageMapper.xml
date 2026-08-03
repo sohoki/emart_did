@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.mhs.mapper.MhsViewConnInfoManageMapper">
+    <select id="selectViewMoniterClassInfo" resultType="MhsViewConnInfoVO">
+        SELECT
+        A.MHS_CONNSEQ, C.MHS_CLASSCD, C.MHS_CLASSROOMNM, C.MHS_CLASSNM, C.MHS_TEACHERNM,
+        C.MHS_CLASSSTARTDAY, C.MHS_CLASSENDDAY, C.MHS_CLASSDAYOFWEEK, C.MHS_CLASSSTARTTIME, C.MHS_CLASSENDTIME,
+        C.MHS_CLASSINTRO
+        FROM TB_MHSVIEWCONNINFO A
+        JOIN TB_MHSMONITORINFO B ON A.MHS_MONITORCD = B.MHS_MONITORCD
+        JOIN TB_MHSCLASSINFO C ON A.MHS_CLASSCD = C.MHS_CLASSCD
+        WHERE C.MHS_CLASSSTATUS != 'N'
+        AND A.MHS_MONITORCD = #{mhsMonitorcd}
+        <if test="searchDay != '' and searchDay != null">
+            AND #{searchDay} BETWEEN C.MHS_CLASSSTARTDAY AND C.MHS_CLASSENDDAY
+            AND C.MHS_CLASSDAYOFWEEK ~ TO_CHAR(TO_DATE(#{searchDay}, 'YYYYMMDD'), 'D')
+        </if>
+        ORDER BY C.MHS_CLASSSTARTTIME ASC, A.MHS_CONNSEQ DESC
+    </select>
+
+    <select id="selectViewMoniterClassUninPageInfo" resultType="MhsViewConnInfoVO">
+       <![CDATA[
+        SELECT * FROM
+            (
+                (
+                    SELECT
+                        A.MHS_CONNSEQ, C.MHS_CLASSROOMNM, C.MHS_CLASSNM, C.MHS_TEACHERNM, C.MHS_CLASSSTARTDAY,
+                        C.MHS_CLASSENDDAY, C.MHS_CLASSDAYOFWEEK, C.MHS_CLASSSTARTTIME, C.MHS_CLASSENDTIME, C.MHS_CLASSINTRO,
+                        'NOW' AS MHSNOWGUBUN
+                    FROM TB_MHSVIEWCONNINFO A
+                             JOIN TB_MHSMONITORINFO B ON A.MHS_MONITORCD = B.MHS_MONITORCD
+                             JOIN TB_MHSCLASSINFO C ON A.MHS_CLASSCD = C.MHS_CLASSCD
+                    WHERE C.MHS_CLASSSTATUS != 'N'
+             AND A.MHS_MONITORCD = #{mhsMonitorcd}
+                      AND #{searchDay} BETWEEN C.MHS_CLASSSTARTDAY AND C.MHS_CLASSENDDAY
+                      AND C.MHS_CLASSDAYOFWEEK ~ TO_CHAR(TO_DATE(#{searchDay}, 'YYYYMMDD'), 'D')
+                      AND TO_CHAR(NOW(), 'HH24MI') BETWEEN C.MHS_CLASSSTARTTIME AND C.MHS_CLASSENDTIME
+                    ORDER BY C.MHS_CLASSSTARTTIME ASC, A.MHS_CONNSEQ DESC
+                        LIMIT 1
+                )
+                UNION ALL
+                (
+                    SELECT
+                        A.MHS_CONNSEQ, C.MHS_CLASSROOMNM, C.MHS_CLASSNM, C.MHS_TEACHERNM, C.MHS_CLASSSTARTDAY,
+                        C.MHS_CLASSENDDAY, C.MHS_CLASSDAYOFWEEK, C.MHS_CLASSSTARTTIME, C.MHS_CLASSENDTIME, C.MHS_CLASSINTRO,
+                        'NEXT' AS MHSNOWGUBUN
+                    FROM TB_MHSVIEWCONNINFO A
+                             JOIN TB_MHSMONITORINFO B ON A.MHS_MONITORCD = B.MHS_MONITORCD
+                             JOIN TB_MHSCLASSINFO C ON A.MHS_CLASSCD = C.MHS_CLASSCD
+                    WHERE C.MHS_CLASSSTATUS != 'N'
+             AND A.MHS_MONITORCD = #{mhsMonitorcd}
+                      AND #{searchDay} BETWEEN C.MHS_CLASSSTARTDAY AND C.MHS_CLASSENDDAY
+                      AND C.MHS_CLASSDAYOFWEEK ~ TO_CHAR(TO_DATE(#{searchDay}, 'YYYYMMDD'), 'D')
+                      AND TO_CHAR(NOW(), 'HH24MI') < C.MHS_CLASSSTARTTIME
+                    ORDER BY C.MHS_CLASSSTARTTIME ASC, A.MHS_CONNSEQ DESC
+                        LIMIT 1
+                )
+            ) TA
+        ORDER BY MHS_CLASSSTARTTIME ASC
+        ]]>
+    </select>
+
+    <select id="selectViewMoniterClassUpdateInfoChange" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM TB_MHSVIEWCONNINFO A
+                 JOIN TB_MHSMONITORINFO B ON A.MHS_MONITORCD = B.MHS_MONITORCD
+                 JOIN TB_MHSCLASSINFO C ON A.MHS_CLASSCD = C.MHS_CLASSCD
+        WHERE TO_CHAR(A.MHS_DATAUPDATEDATE, 'YYYYMMDD HH24MISS') > TO_CHAR(COALESCE(A.MHSDATAUPDATEPLAYDATE, TO_TIMESTAMP('20190101 00:00:00', 'YYYYMMDD HH24:MI:SS')), 'YYYYMMDD HH24MISS')
+          AND A.MHS_MONITORCD = #{mhsMonitorcd}
+          AND TO_CHAR(NOW(), 'YYYYMMDD') BETWEEN C.MHS_CLASSSTARTDAY AND C.MHS_CLASSENDDAY
+          AND C.MHS_CLASSDAYOFWEEK ~ TO_CHAR(TO_CHAR(NOW(), 'YYYYMMDD')::DATE, 'D')
+    </select>
+
+    <!-- MHS_CONNSEQ는 DB 시퀀스 mhsconn_seq로 채번함(08_create_missing_sequences.sql 참고) -->
+    <insert id="insertMoniterClassInfo">
+        <selectKey keyProperty="mhsConnSeq" resultType="java.lang.String" order="BEFORE">
+            SELECT NEXTVAL('mhsconn_seq')
+        </selectKey>
+        INSERT INTO TB_MHSVIEWCONNINFO
+        (
+            MHS_CONNSEQ, MHS_MONITORCD, MHS_CLASSCD, MHS_DATAUPDATEYN, MHSDATAUPDATEPLAYDATE,
+            MHS_DATAREGID, MHS_DATAREGDATE, MHS_DATAUPDATEID, MHS_DATAUPDATEDATE, MHS_DATASTATUS
+        )
+        VALUES
+            (
+                #{mhsConnSeq}, #{mhsMonitorcd}, #{mhsClasscd}, 'N', NULL,
+                #{mhsDataregid}, NOW(), #{mhsDataregid}, NOW(), 'Y'
+            )
+    </insert>
+
+    <update id="updateMoniterClassInfo">
+        UPDATE TB_MHSVIEWCONNINFO SET
+                                      MHS_MONITORCD = #{mhsMonitorcd},
+                                      MHS_CLASSCD = #{mhsClasscd},
+                                      MHS_DATAUPDATEYN = 'N',
+                                      MHSDATAUPDATEPLAYDATE = NULL,
+                                      MHS_DATAUPDATEID = #{mhsDataregid},
+                                      MHS_DATAUPDATEDATE = NOW(),
+                                      MHS_DATASTATUS = 'Y'
+        WHERE MHS_CLASSCD = #{mhsClasscd}
+    </update>
+
+    <update id="updateMoniterDidUpdateDayChange">
+        UPDATE TB_MHSVIEWCONNINFO SET
+            MHSDATAUPDATEPLAYDATE = NULL
+        WHERE MHS_MONITORCD = #{mhsMonitorcd}
+          AND 1 = (
+            SELECT
+                CASE
+                    WHEN TO_CHAR(MHS_LASTCONN, 'YYYYMMDD') = TO_CHAR(NOW(), 'YYYYMMDD') THEN 0
+                    ELSE 1
+                    END
+            FROM TB_MHSMONITORINFO
+            WHERE MHS_MONITORCD = #{mhsMonitorcd}
+        )
+    </update>
+
+    <update id="updateMoniterDidUpdateChange">
+        UPDATE TB_MHSVIEWCONNINFO SET
+                                      MHSDATAUPDATEPLAYDATE = NOW(),
+                                      MHS_DATAUPDATEYN = 'Y'
+        WHERE MHS_MONITORCD = #{mhsMonitorcd}
+    </update>
+
+    <update id="updateMoniterClassChangeInfo">
+        UPDATE TB_MHSVIEWCONNINFO SET
+                                      MHSDATAUPDATEPLAYDATE = NULL,
+                                      MHS_DATAUPDATEYN = 'N'
+        WHERE MHS_CLASSCD = #{mhsClasscd}
+    </update>
+
+    <delete id="deleteMoniterClassInfo">
+        DELETE FROM TB_MHSVIEWCONNINFO
+        WHERE MHS_CONNSEQ = #{mhsConnSeq}
+    </delete>
+</mapper>

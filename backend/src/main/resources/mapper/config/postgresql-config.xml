@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!--Mybatis 설정 -->
+    <settings>
+        <!-- 전통적인 데이터베이스 컬럼명 형태인 A_COLUMN을 CamelCase형태의 자바 프로퍼티명 형태인 aColumn으로 자동으로 매핑하도록 함 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"></setting>
+        <setting name="lazyLoadingEnabled" value="true" />
+        <setting name="cacheEnabled" value="true"/>
+        <!--  파라미터에 Null 값이 있을 경우 에러 처리 -->
+        <setting name="jdbcTypeForNull" value="VARCHAR"></setting>
+    </settings>
+    <typeAliases>
+        <typeAlias alias="camelmap" type="egovframework.com.cmm.models.CamelKeyMap"/>
+        <typeAlias alias="lmap" type="egovframework.com.cmm.models.LowerKeyMap"/>
+
+        <typeAlias alias="ProgrmInfo" type="com.common.backoffice.bas.program.modals.ProgrmInfo"/>
+        <typeAlias alias="ProgrameChangeInfo" type="com.common.backoffice.bas.program.modals.ProgrameChangeInfo"/>
+        <typeAlias alias="ProgrmInfoDto" type="com.common.backoffice.bas.program.modals.dto.ProgrmInfoDto"/>
+
+        <typeAlias alias="RoleInfo" type="com.common.backoffice.bas.role.modals.RoleInfo"/>
+        <typeAlias alias="RoleInfoRequestDto" type="com.common.backoffice.bas.role.modals.dto.RoleInfoRequestDto"/>
+
+        <typeAlias alias="CmmnClCode" type="com.common.backoffice.bas.code.modals.CmmnClCode"/>
+        <typeAlias alias="CmmnCode" type="com.common.backoffice.bas.code.modals.CmmnCode"/>
+        <typeAlias alias="CmmnDetailCode" type="com.common.backoffice.bas.code.modals.CmmnDetailCode"/>
+
+        <typeAlias alias="CmmnClCodeReqDto" type="com.common.backoffice.bas.code.modals.dto.CmmnClCodeReqDto"/>
+        <typeAlias alias="CmmnCodeDto" type="com.common.backoffice.bas.code.modals.dto.CmmnCodeDto"/>
+        <typeAlias alias="CmmnCodeReqDto" type="com.common.backoffice.bas.code.modals.dto.CmmnCodeReqDto"/>
+        <typeAlias alias="CmmnDetailCodeDto" type="com.common.backoffice.bas.code.modals.dto.CmmnDetailCodeDto"/>
+
+        <typeAlias alias="CenterInfo" type="com.common.backoffice.bas.cnt.modals.CenterInfo"/>
+        <typeAlias alias="CenterInfoVO" type="com.common.backoffice.bas.cnt.modals.CenterInfoVO"/>
+
+        <typeAlias alias="CenterInfoAnniversary" type="com.common.backoffice.bas.cnt.modals.CenterInfoAnniversary"/>
+        <typeAlias alias="CenterInfoAnniversaryVO" type="com.common.backoffice.bas.cnt.modals.CenterInfoAnniversaryVO"/>
+
+
+        <!-- cnt 패키지 (com.common.backoffice.sts.cnt.modals) -->
+        <typeAlias alias="ContentDetailFileInfo" type="com.common.backoffice.sts.cnt.modals.ContentDetailFileInfo"/>
+        <typeAlias alias="ContentDetailFileInfoVO" type="com.common.backoffice.sts.cnt.modals.ContentDetailFileInfoVO"/>
+        <typeAlias alias="ContentDetailInfo" type="com.common.backoffice.sts.cnt.modals.ContentDetailInfo"/>
+        <typeAlias alias="ContentFileInfo" type="com.common.backoffice.sts.cnt.modals.ContentFileInfo"/>
+        <typeAlias alias="ContentFileInfoVO" type="com.common.backoffice.sts.cnt.modals.ContentFileInfoVO"/>
+        <typeAlias alias="ContentInfo" type="com.common.backoffice.sts.cnt.modals.ContentInfo"/>
+        <typeAlias alias="ContentInfoVO" type="com.common.backoffice.sts.cnt.modals.ContentInfoVO"/>
+        <typeAlias alias="ContentMessageInfo" type="com.common.backoffice.sts.cnt.modals.ContentMessageInfo"/>
+        <typeAlias alias="ContentMessageInfoVO" type="com.common.backoffice.sts.cnt.modals.ContentMessageInfoVO"/>
+        <typeAlias alias="ContentMutiInfo" type="com.common.backoffice.sts.cnt.modals.ContentMutiInfo"/>
+        <typeAlias alias="ContentMutiInfoVO" type="com.common.backoffice.sts.cnt.modals.ContentMutiInfoVO"/>
+
+        <!-- brd 패키지 (com.common.backoffice.sts.brd.modals) -->
+        <typeAlias alias="BasicBrodFileInfo" type="com.common.backoffice.sts.brd.modals.BasicBrodFileInfo"/>
+        <typeAlias alias="BasicBrodFileInfoVO" type="com.common.backoffice.sts.brd.modals.BasicBrodFileInfoVO"/>
+        <typeAlias alias="BasicBrodFileIntervalInfo" type="com.common.backoffice.sts.brd.modals.BasicBrodFileIntervalInfo"/>
+        <typeAlias alias="BasicBrodFileIntervalInfoVO" type="com.common.backoffice.sts.brd.modals.BasicBrodFileIntervalInfoVO"/>
+        <typeAlias alias="BasicBrodInfo" type="com.common.backoffice.sts.brd.modals.BasicBrodInfo"/>
+        <typeAlias alias="BasicBrodInfoVO" type="com.common.backoffice.sts.brd.modals.BasicBrodInfoVO"/>
+        <typeAlias alias="BasicBrodScheduleInfo" type="com.common.backoffice.sts.brd.modals.BasicBrodScheduleInfo"/>
+        <typeAlias alias="BasicBrodScheduleInfoVO" type="com.common.backoffice.sts.brd.modals.BasicBrodScheduleInfoVO"/>
+        <typeAlias alias="BasicFileGroupInfo" type="com.common.backoffice.sts.brd.modals.BasicFileGroupInfo"/>
+        <typeAlias alias="BasicFileGroupInfoVO" type="com.common.backoffice.sts.brd.modals.BasicFileGroupInfoVO"/>
+        <typeAlias alias="BasicFileGroupPlayInfo" type="com.common.backoffice.sts.brd.modals.BasicFileGroupPlayInfo"/>
+        <typeAlias alias="BasicFileGroupPlayInfoVO" type="com.common.backoffice.sts.brd.modals.BasicFileGroupPlayInfoVO"/>
+        <typeAlias alias="BrodAnniversary" type="com.common.backoffice.sts.brd.modals.BrodAnniversary"/>
+        <typeAlias alias="BrodAnniversaryVO" type="com.common.backoffice.sts.brd.modals.BrodAnniversaryVO"/>
+        <typeAlias alias="BrodContentDetail" type="com.common.backoffice.sts.brd.modals.BrodContentDetail"/>
+        <typeAlias alias="BrodContentDetailTime" type="com.common.backoffice.sts.brd.modals.BrodContentDetailTime"/>
+        <typeAlias alias="BrodContentDetailVO" type="com.common.backoffice.sts.brd.modals.BrodContentDetailVO"/>
+        <typeAlias alias="BrodContentInfo" type="com.common.backoffice.sts.brd.modals.BrodContentInfo"/>
+        <typeAlias alias="BrodContentInfoVO" type="com.common.backoffice.sts.brd.modals.BrodContentInfoVO"/>
+        <typeAlias alias="BrodOrganization" type="com.common.backoffice.sts.brd.modals.BrodOrganization"/>
+        <typeAlias alias="BrodOrganizationVO" type="com.common.backoffice.sts.brd.modals.BrodOrganizationVO"/>
+        <typeAlias alias="BrodScheduleInfo" type="com.common.backoffice.sts.brd.modals.BrodScheduleInfo"/>
+        <typeAlias alias="BrodScheduleInfoVO" type="com.common.backoffice.sts.brd.modals.BrodScheduleInfoVO"/>
+
+        <!-- mhs 패키지 (com.common.backoffice.sts.mhs.modals) -->
+        <typeAlias alias="MhsCenterInfo" type="com.common.backoffice.sts.mhs.modals.MhsCenterInfo"/>
+        <typeAlias alias="MhsCenterInfoVO" type="com.common.backoffice.sts.mhs.modals.MhsCenterInfoVO"/>
+        <typeAlias alias="MhsClassInfo" type="com.common.backoffice.sts.mhs.modals.MhsClassInfo"/>
+        <typeAlias alias="MhsClassInfoVO" type="com.common.backoffice.sts.mhs.modals.MhsClassInfoVO"/>
+        <typeAlias alias="MhsMonitorInfo" type="com.common.backoffice.sts.mhs.modals.MhsMonitorInfo"/>
+        <typeAlias alias="MhsMonitorInfoVO" type="com.common.backoffice.sts.mhs.modals.MhsMonitorInfoVO"/>
+        <typeAlias alias="MhsSendInfo" type="com.common.backoffice.sts.mhs.modals.MhsSendInfo"/>
+        <typeAlias alias="MhsViewConnInfo" type="com.common.backoffice.sts.mhs.modals.MhsViewConnInfo"/>
+        <typeAlias alias="MhsViewConnInfoVO" type="com.common.backoffice.sts.mhs.modals.MhsViewConnInfoVO"/>
+
+        <typeAlias alias="DidMoniterPic" type="com.common.backoffice.sts.pic.modals.DidMoniterPic"/>
+        <typeAlias alias="DidMoniterPicVO" type="com.common.backoffice.sts.pic.modals.DidMoniterPicVO"/>
+
+        <typeAlias alias="SendMsgInfo" type="com.common.backoffice.sts.snd.modals.SendMsgInfo"/>
+        <typeAlias alias="SendMsgInfoVO" type="com.common.backoffice.sts.snd.modals.SendMsgInfoVO"/>
+
+        <typeAlias alias="XmlInfo" type="com.common.backoffice.sts.xml.modals.XmlInfo"/>
+        <typeAlias alias="XmlInfoVO" type="com.common.backoffice.sts.xml.modals.XmlInfoVO"/>
+
+        <typeAlias alias="DashBoardInfo" type="com.common.backoffice.sym.dbd.modals.DashBoardInfo"/>
+
+        <typeAlias alias="DidInfo" type="com.common.backoffice.sym.did.modals.DidInfo"/>
+        <typeAlias alias="DidInfoVO" type="com.common.backoffice.sym.did.modals.DidInfoVO"/>
+
+        <typeAlias alias="GroupDidInfo" type="com.common.backoffice.sym.grp.modals.GroupDidInfo"/>
+        <typeAlias alias="GroupDidInfoVO" type="com.common.backoffice.sym.grp.modals.GroupDidInfoVO"/>
+        <typeAlias alias="GroupInfo" type="com.common.backoffice.sym.grp.modals.GroupInfo"/>
+        <typeAlias alias="GroupInfoVO" type="com.common.backoffice.sym.grp.modals.GroupInfoVO"/>
+
+        <typeAlias alias="AuthorInfoVO" type="com.common.backoffice.sym.rnt.modals.AuthorInfoVO"/>
+        <typeAlias alias="AuthorInfo" type="com.common.backoffice.sym.rnt.modals.AuthorInfo"/>
+
+        <typeAlias alias="ScheduleInfo" type="com.common.backoffice.sym.sch.modals.ScheduleInfo"/>
+        <typeAlias alias="ScheduleInfoVO" type="com.common.backoffice.sym.sch.modals.ScheduleInfoVO"/>
+        <typeAlias alias="ContentSendHistoryInfo" type="com.common.backoffice.sym.sch.modals.ContentSendHistoryInfo"/>
+        <typeAlias alias="ContentSendHistoryInfoVO" type="com.common.backoffice.sym.sch.modals.ContentSendHistoryInfoVO"/>
+
+        <typeAlias alias="Group" type="com.common.backoffice.use.modals.Group"/>
+        <typeAlias alias="GroupVo" type="com.common.backoffice.use.modals.GroupVo"/>
+
+    </typeAliases>
+</configuration>

@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BrodContentDetailManagerMapper">
+    <select id="selectBrodContentDetailLst" resultType="BrodContentDetailVO">
+        SELECT *
+        FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY INTERVAL_SECTION ASC, CONTENT_ORDER ASC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.BROD_SEQ, A.BROD_CODE, A.ATCH_FILE_ID, A.INTERVAL_SECTION, A.CONTENT_STARTDAY,
+        A.CONTENT_ENDDAY, A.CONTENT_ORDER, B.ORIGNL_FILE_NM AS orignlFileNm, B.PLAY_TIME AS playTime, B.FILE_THUMNAIL AS fileThumnail
+        FROM TB_BRODCONTENTDETAIL A
+        JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE A.BROD_CODE = #{brodCode}
+        <if test="intervalSection != ''">
+            AND CAST(A.INTERVAL_SECTION AS INTEGER) = CAST(#{intervalSection} AS INTEGER)
+        </if>
+        <if test="brodDay != ''">
+            AND #{brodDay} BETWEEN CONTENT_STARTDAY AND CONTENT_ENDDAY
+        </if>
+        AND CONTENT_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+        ) TB
+        ) TA
+        WHERE 1=1
+    </select>
+
+    <select id="selectTimeCombo" resultType="BrodContentDetail">
+        SELECT TIME_CODE AS TIMECODE
+        FROM TB_TIME
+        WHERE TIME_CODE BETWEEN '000' AND #{endTime}
+    </select>
+
+    <select id="selectTimeHourCombo" resultType="BrodContentDetail">
+        SELECT TIME_CODE AS TIMECODE
+        FROM TB_TIME
+        WHERE TIME_CODE IN ('060', '120', '180', '240')
+    </select>
+
+    <select id="selectBrodContenDetailt" resultType="BrodContentDetailVO">
+        SELECT
+            A.BROD_SEQ, A.BROD_CODE, A.ATCH_FILE_ID, A.INTERVAL_SECTION, A.CONTENT_STARTDAY,
+            A.CONTENT_ENDDAY, A.CONTENT_ORDER
+        FROM TB_BRODCONTENTDETAIL A
+        WHERE A.BROD_SEQ = #{brodSeq}
+    </select>
+
+    <select id="selectContentRegCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BRODCONTENTDETAIL A
+        WHERE A.BROD_CODE = #{brodCode}
+        <if test="intervalSection != ''">
+            AND A.INTERVAL_SECTION = #{intervalSection}
+        </if>
+        AND A.ATCH_FILE_ID = #{atchFileId}
+    </select>
+
+    <select id="selectContentRegTimeOverCheck" resultType="java.lang.Integer">
+        SELECT COALESCE(X.PLAY_TIME, 0) + C.PLAY_TIME
+        FROM
+            (
+                SELECT SUM(COALESCE(B.PLAY_TIME, 0)) AS PLAY_TIME
+                FROM TB_BRODCONTENTDETAIL A
+                         JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+                WHERE A.INTERVAL_SECTION = #{intervalSection}
+                  AND A.BROD_CODE = #{brodCode}
+            ) X
+                JOIN LETTNFILEDETAIL C ON C.ATCH_FILE_ID = #{atchFileId}
+    </select>
+
+    <select id="selectContentRegTimeImsiOverTableCheck" resultType="java.lang.Integer">
+        SELECT COALESCE(X.PLAY_TIME, 0) + E.PLAY_TIME
+        FROM
+            (
+                SELECT SUM(B.PLAY_TIME) AS PLAY_TIME FROM
+                    (
+                        SELECT SUM(COALESCE(B.PLAY_TIME, 0)) AS PLAY_TIME
+                        FROM TB_BRODCONTENTDETAIL A
+                                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+                        WHERE CAST(A.INTERVAL_SECTION AS INTEGER) = CAST(#{intervalSection} AS INTEGER)
+                          AND A.BROD_CODE = #{brodCode}
+                        UNION ALL
+                        SELECT SUM(COALESCE(D.PLAY_TIME, 0)) AS PLAY_TIME
+                        FROM TB_BRODIMSI C
+                                 JOIN LETTNFILEDETAIL D ON C.ATCH_FILE_ID = D.ATCH_FILE_ID
+                        WHERE CAST(C.INTERVAL_SECTION AS INTEGER) = CAST(#{intervalSection} AS INTEGER)
+                          AND C.BROD_CODE = #{brodCode}
+                    ) B
+            ) X
+                JOIN LETTNFILEDETAIL E ON E.ATCH_FILE_ID = #{atchFileId}
+    </select>
+
+    <select id="selectContentFileTime" resultType="java.lang.Integer">
+        SELECT PLAY_TIME
+        FROM LETTNFILEDETAIL
+        WHERE ATCH_FILE_ID = #{atchFileId}
+    </select>
+
+    <select id="selectBrodContentDetailPageCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BRODCONTENTDETAIL A
+        WHERE 1=1
+        AND A.BROD_CODE = #{brodCode}
+        <if test="intervalSection != ''">
+            AND A.INTERVAL_SECTION = #{intervalSection}
+        </if>
+    </select>
+
+    <select id="selectBrodFileList" resultType="BrodContentDetail">
+        SELECT
+            X.ATCH_FILE_ID, X.fileStreCours, X.streFileNm
+        FROM
+            (
+                SELECT
+                    A.ATCH_FILE_ID,
+                    SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours,
+                    B.STRE_FILE_NM AS streFileNm
+                FROM TB_BRODCONTENTDETAIL A
+                         JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+                         JOIN TB_BRODCENTERSCH E ON A.BROD_CODE = E.BROD_CODE AND E.CREATE_CHECK = 'Y'
+                         JOIN TB_CENTERINFO C ON E.CENTER_ID = C.CENTER_ID
+                         JOIN TB_DIDINFO D ON C.CENTER_ID = D.CENTER_ID AND TRIM(D.DID_ID) = #{didId} AND TRIM(D.DID_MAC) = #{didMac}
+                WHERE A.BROD_CODE = #{brodCode}
+                GROUP BY A.ATCH_FILE_ID, B.FILE_STRE_COURS, B.STRE_FILE_NM
+
+                UNION ALL
+
+                SELECT
+                    A.ATCH_FILE_ID,
+                    SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours,
+                    B.STRE_FILE_NM AS streFileNm
+                FROM TB_BRODANNIVERSARY A
+                         JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+                         JOIN TB_BRODCENTERSCH E ON A.BROD_CODE = E.BROD_CODE AND E.CREATE_CHECK = 'Y'
+                         JOIN TB_CENTERINFO C ON E.CENTER_ID = C.CENTER_ID
+                         JOIN TB_DIDINFO D ON C.CENTER_ID = D.CENTER_ID AND TRIM(D.DID_ID) = #{didId} AND TRIM(D.DID_MAC) = #{didMac}
+                WHERE A.BROD_CODE = #{brodCode}
+                GROUP BY A.ATCH_FILE_ID, B.FILE_STRE_COURS, B.STRE_FILE_NM
+            ) X
+        GROUP BY X.ATCH_FILE_ID, X.fileStreCours, X.streFileNm
+    </select>
+
+    <insert id="insertBrodContentDetail">
+        INSERT INTO TB_BRODCONTENTDETAIL
+        (
+            BROD_SEQ, BROD_CODE, ATCH_FILE_ID, INTERVAL_SECTION, CONTENT_STARTDAY,
+            CONTENT_ENDDAY, CONTENT_ORDER, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM,
+            LAST_UPDUSR_ID
+        )
+        VALUES
+            (
+                NEXTVAL('brodcondetail_seq'), #{brodCode}, #{atchFileId}, #{intervalSection}, #{contentStartDay},
+                #{contentEndDay}, #{contentOrder}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(),
+                #{frstRegisterId,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <insert id="insertBrodContentCopy">
+        INSERT INTO TB_BRODCONTENTDETAIL
+        (
+            BROD_SEQ, BROD_CODE, ATCH_FILE_ID, INTERVAL_SECTION, CONTENT_STARTDAY,
+            CONTENT_ENDDAY, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID,
+            CONTENT_ORDER
+        )
+        SELECT
+            NEXTVAL('brodcondetail_seq'), #{brodCode}, ATCH_FILE_ID, INTERVAL_SECTION, #{contentStartDay},
+            #{contentEndDay}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR},
+            CONTENT_ORDER
+        FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_CODE = #{prebrodCode}
+    </insert>
+
+    <insert id="insertBrodContentCenterCopy">
+        INSERT INTO TB_BRODCONTENTDETAIL
+        (
+            BROD_SEQ, BROD_CODE, ATCH_FILE_ID, INTERVAL_SECTION, CONTENT_STARTDAY,
+            CONTENT_ENDDAY, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID,
+            CONTENT_ORDER
+        )
+        SELECT
+            NEXTVAL('brodcondetail_seq'), #{brodCode}, ATCH_FILE_ID, INTERVAL_SECTION, CONTENT_STARTDAY,
+            CONTENT_ENDDAY, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR},
+            CONTENT_ORDER
+        FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_CODE = #{prebrodCode}
+    </insert>
+
+    <insert id="insertBrodContentScheduleOtherCopy">
+        INSERT INTO TB_BRODCONTENTDETAIL
+        (
+            BROD_SEQ, BROD_CODE, ATCH_FILE_ID, INTERVAL_SECTION, CONTENT_STARTDAY,
+            CONTENT_ENDDAY, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID,
+            CONTENT_ORDER
+        )
+        SELECT
+            NEXTVAL('brodcondetail_seq'), B.BROD_CODE, A.ATCH_FILE_ID, A.INTERVAL_SECTION, A.CONTENT_STARTDAY,
+            A.CONTENT_ENDDAY, A.FRST_REGIST_PNTTM, A.FRST_REGISTER_ID, A.LAST_UPDT_PNTTM, A.LAST_UPDUSR_ID,
+            A.CONTENT_ORDER
+        FROM TB_BRODCONTENTDETAIL A
+                 JOIN TB_BRODSCHEDULE B ON B.BASIC_BROD_CODE = A.BROD_CODE AND B.BROD_CODE != A.BROD_CODE
+        WHERE A.BROD_CODE = #{brodCode}
+    </insert>
+
+    <update id="updateBrodContentDetail">
+        UPDATE TB_BRODCONTENTDETAIL SET
+                                        BROD_CODE = #{brodCode},
+                                        ATCH_FILE_ID = #{atchFileId},
+                                        INTERVAL_SECTION = #{intervalSection},
+                                        CONTENT_STARTDAY = #{contentStartDay},
+                                        CONTENT_ENDDAY = #{contentEndDay},
+                                        CONTENT_ORDER = #{contentOrder},
+                                        LAST_UPDT_PNTTM = NOW(),
+                                        LAST_UPDUSR_ID = #{lastUpdusrId,jdbcType=VARCHAR}
+        WHERE BROD_SEQ = #{brodSeq}
+    </update>
+
+    <update id="insertLogFileMp3Data">
+        INSERT INTO TB_PLAYMUSICCNT
+        (
+            PLAYTIME, PLAYDAY, MUSIC_FILE, DID_ID
+        )
+        VALUES
+            (
+                #{playtime}, #{playday}, #{musicfile}, #{didid}
+            )
+    </update>
+
+    <delete id="deleteBrodContentDetail">
+        DELETE FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_SEQ = #{brodSeq}
+    </delete>
+
+    <delete id="deleteBrodContentBrodCode">
+        DELETE FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_CODE = #{brodCode}
+    </delete>
+
+    <delete id="deleteBrodContentBrodCodeALL">
+        DELETE FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_CODE IN
+              (
+                  SELECT BROD_CODE
+                  FROM TB_BRODSCHEDULE
+                  WHERE BROD_CODE = #{brodCode} OR BASIC_BROD_CODE = #{brodCode}
+              )
+    </delete>
+
+    <delete id="deleteBrodContentTimeDel">
+        DELETE FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_CODE = #{brodCode}
+          AND CAST(INTERVAL_SECTION AS INTEGER) > CAST(#{intervalSection} AS INTEGER)
+    </delete>
+
+    <delete id="deleteBrodBasicBrod">
+        DELETE FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_CODE IN
+              (
+                  SELECT A.BROD_CODE
+                  FROM TB_BRODSCHEDULE A
+                  WHERE A.BASIC_BROD_CODE = #{brodCode}
+              )
+    </delete>
+
+    <delete id="deleteContentDetailBasicContent">
+        DELETE FROM TB_BRODCONTENTDETAIL
+        WHERE BROD_SEQ IN
+              (
+                  SELECT A.BROD_SEQ
+                  FROM TB_BRODCONTENTDETAIL A
+                           JOIN TB_BRODSCHEDULE B ON A.BROD_CODE = B.BROD_CODE AND B.BASIC_BROD_CODE = #{brodCode} AND A.BROD_CODE != #{brodCode}
+        WHERE CONCAT(COALESCE(A.ATCH_FILE_ID, ''), COALESCE(A.INTERVAL_SECTION, ''), COALESCE(A.CONTENT_STARTDAY, ''), COALESCE(A.CONTENT_ENDDAY, ''), COALESCE(CAST(A.CONTENT_ORDER AS VARCHAR), ''))
+            =
+            (
+            SELECT CONCAT(COALESCE(C.ATCH_FILE_ID, ''), COALESCE(C.INTERVAL_SECTION, ''), COALESCE(C.CONTENT_STARTDAY, ''), COALESCE(C.CONTENT_ENDDAY, ''), COALESCE(CAST(C.CONTENT_ORDER AS VARCHAR), ''))
+            FROM TB_BRODCONTENTDETAIL C
+            WHERE C.BROD_CODE = #{brodCode}
+          AND C.BROD_SEQ = #{brodSeq}
+            )
+            )
+    </delete>
+</mapper>

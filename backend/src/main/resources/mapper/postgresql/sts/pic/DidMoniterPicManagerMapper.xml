@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.pic.mapper.DidMoniterPicManagerMapper">
+    <select id="selectDidMoniterPicManageListByPagination" resultType="DidMoniterPicVO">
+        SELECT * FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY A.MSG_SEQ DESC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.DID_FILENM AS "didFileNm",
+        A.DID_ID AS "didId",
+        A.DID_REGDATE AS "didRegDate",
+        A.DID_MAC AS "didMac",
+        B.DID_NM AS "didNm"
+        FROM TB_DIDSTATEPIC A
+        JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+        WHERE 1=1
+        <if test="strDate != null">
+            <![CDATA[
+                AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') >= #{strDate}
+             ]]>
+        </if>
+        <if test="endDate != null">
+            <![CDATA[
+                AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') <= #{endDate}
+             ]]>
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectDidMoniterPicManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_DIDSTATEPIC A
+        JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+        WHERE 1=1
+        <if test="strDate != null">
+            <![CDATA[
+          AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') >= #{strDate}
+       ]]>
+        </if>
+        <if test="endDate != null">
+            <![CDATA[
+          AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') <= #{endDate}
+       ]]>
+        </if>
+    </select>
+
+    <insert id="insertDidMoniterPicManage">
+        INSERT INTO TB_DIDSTATEPIC
+        (
+            DID_FILENM, DID_ID, DID_REGDATE, DID_MAC, MSG_SEQ
+        )
+        VALUES
+            (
+                #{didFileNm}, #{didId}, NOW(), #{didMac}, #{msgSeq}
+            )
+    </insert>
+</mapper>

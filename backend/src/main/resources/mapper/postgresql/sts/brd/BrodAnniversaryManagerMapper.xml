@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BrodAnniversaryManagerMapper">
+    <select id="selectBrodAnniverLst" resultType="BrodAnniversaryVO">
+        SELECT *
+        FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY ANNIVERSARY_GUBUN DESC, ANNIVER_STARTDAY ASC, ANNIVERSARY_TIME ASC, ANNIVER_ORDER ASC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.BROD_ANNSEQ, A.BROD_CODE, A.ATCH_FILE_ID, A.ANNIVERSARY_GUBUN, A.ANNIVERSARY_TIME,
+        A.ANNIVER_STARTDAY AS ANNIVERSTARTDAY, A.ANNIVER_ENDDAY AS anniverEndDay, A.ANNIVER_ORDER,
+        B.ORIGNL_FILE_NM AS orignlFileNm, B.PLAY_TIME AS playTime, B.FILE_THUMNAIL AS fileThumnail,
+        C.CODE_NM AS codeNm, A.ANNIVER_NAME AS anniverName, A.ANNIVERSARY_STARTTIME AS anniversaryStartTime
+        FROM TB_BRODANNIVERSARY A
+        JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
+        WHERE A.BROD_CODE = #{brodCode}
+        <if test="brodDay != ''">
+            AND #{brodDay} BETWEEN A.ANNIVER_STARTDAY AND A.ANNIVER_ENDDAY
+        </if>
+        ) TB
+        ) TA
+        WHERE 1=1
+    </select>
+
+    <select id="selectBrodAnniver" resultType="BrodAnniversaryVO">
+        SELECT
+            A.BROD_ANNSEQ, A.BROD_CODE, A.ATCH_FILE_ID, A.ANNIVERSARY_GUBUN, A.ANNIVERSARY_TIME,
+            A.ANNIVER_STARTDAY, A.ANNIVER_ENDDAY, A.ANNIVER_ORDER, A.ANNIVER_NAME, A.ANNIVERSARY_STARTTIME,
+            A.ANNIVERSARY_STARTTIME AS anniversaryStartTime
+        FROM TB_BRODANNIVERSARY A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+                 JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
+        WHERE A.BROD_ANNSEQ = #{brodAnnSeq}
+    </select>
+
+    <select id="selectBrodAnniverPageCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BRODANNIVERSARY A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+                 JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
+        WHERE A.BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectBrodAnnMaxSeq" resultType="java.lang.String">
+        SELECT BROD_ANNSEQ
+        FROM TB_BRODANNIVERSARY
+        ORDER BY BROD_ANNSEQ DESC
+            LIMIT 1
+    </select>
+
+    <!-- BROD_ANNSEQ는 DB 시퀀스 conanniversary_seq로 채번함(08_create_missing_sequences.sql 참고) -->
+    <insert id="insertBrodAnniver">
+        <selectKey keyProperty="brodAnnSeq" resultType="java.lang.String" order="BEFORE">
+            SELECT NEXTVAL('conanniversary_seq')
+        </selectKey>
+        INSERT INTO TB_BRODANNIVERSARY
+        (
+            BROD_ANNSEQ, BROD_CODE, ATCH_FILE_ID, ANNIVERSARY_GUBUN, ANNIVERSARY_TIME,
+            ANNIVER_STARTDAY, ANNIVER_ENDDAY, ANNIVER_ORDER, FRST_REGIST_PNTTM, FRST_REGISTER_ID,
+            LAST_UPDT_PNTTM, LAST_UPDUSR_ID, ANNIVER_NAME, ANNIVERSARY_STARTTIME
+        )
+        VALUES
+            (
+                #{brodAnnSeq}, #{brodCode}, #{atchFileId}, #{anniversaryGubun}, #{anniversaryTime},
+                #{anniverStartDay}, #{anniverEndDay}, #{anniverOrder}, NOW(), #{frstRegisterId,jdbcType=VARCHAR},
+                NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{anniverName}, #{anniversaryStartTime,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <insert id="insertBrodAnniverCopy">
+        INSERT INTO TB_BRODANNIVERSARY
+        (
+            BROD_ANNSEQ, BROD_CODE, ATCH_FILE_ID, ANNIVERSARY_GUBUN, ANNIVERSARY_TIME,
+            ANNIVER_STARTDAY, ANNIVER_ENDDAY, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM,
+            LAST_UPDUSR_ID, ANNIVER_ORDER, ANNIVER_NAME, ANNIVERSARY_STARTTIME
+        )
+        SELECT
+            NEXTVAL('conanniversary_seq'), #{brodCode}, ATCH_FILE_ID, ANNIVERSARY_GUBUN, ANNIVERSARY_TIME,
+            #{anniverStartDay}, #{anniverEndDay}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(),
+            #{frstRegisterId,jdbcType=VARCHAR}, ANNIVER_ORDER, ANNIVER_NAME, ANNIVERSARY_STARTTIME
+        FROM TB_BRODANNIVERSARY
+        WHERE BROD_CODE = #{prebrodCode}
+    </insert>
+
+    <insert id="insertBrodAnniverCenterCopy">
+        INSERT INTO TB_BRODANNIVERSARY
+        (
+            BROD_ANNSEQ, BROD_CODE, ATCH_FILE_ID, ANNIVERSARY_GUBUN, ANNIVERSARY_TIME,
+            ANNIVER_STARTDAY, ANNIVER_ENDDAY, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM,
+            LAST_UPDUSR_ID, ANNIVER_ORDER, ANNIVER_NAME, ANNIVERSARY_STARTTIME
+        )
+        SELECT
+            NEXTVAL('conanniversary_seq'), #{brodCode}, ATCH_FILE_ID, ANNIVERSARY_GUBUN, ANNIVERSARY_TIME,
+            ANNIVER_STARTDAY, ANNIVER_ENDDAY, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(),
+            #{frstRegisterId,jdbcType=VARCHAR}, ANNIVER_ORDER, ANNIVER_NAME, ANNIVERSARY_STARTTIME
+        FROM TB_BRODANNIVERSARY
+        WHERE BROD_CODE = #{prebrodCode}
+    </insert>
+
+    <insert id="insertBrodAnniverBasicBrodCodeCopy">
+        INSERT INTO TB_BRODANNIVERSARY
+        (
+            BROD_ANNSEQ, BROD_CODE, ATCH_FILE_ID, ANNIVERSARY_GUBUN, ANNIVERSARY_TIME,
+            ANNIVER_STARTDAY, ANNIVER_ENDDAY, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM,
+            LAST_UPDUSR_ID, ANNIVER_ORDER, ANNIVER_NAME, ANNIVERSARY_STARTTIME
+        )
+        SELECT
+            NEXTVAL('conanniversary_seq'), B.BROD_CODE, A.ATCH_FILE_ID, A.ANNIVERSARY_GUBUN, A.ANNIVERSARY_TIME,
+            A.ANNIVER_STARTDAY, A.ANNIVER_ENDDAY, A.FRST_REGIST_PNTTM, A.FRST_REGISTER_ID, A.LAST_UPDT_PNTTM,
+            A.LAST_UPDUSR_ID, A.ANNIVER_ORDER, A.ANNIVER_NAME, A.ANNIVERSARY_STARTTIME
+        FROM TB_BRODANNIVERSARY A
+                 JOIN TB_BRODSCHEDULE B ON B.BASIC_BROD_CODE = A.BROD_CODE AND B.BROD_CODE != A.BROD_CODE
+        WHERE A.BROD_CODE = #{brodCode}
+    </insert>
+
+    <update id="updateBrodAnniver">
+        UPDATE TB_BRODANNIVERSARY SET
+                                      BROD_CODE = #{brodCode},
+                                      ATCH_FILE_ID = #{atchFileId},
+                                      ANNIVERSARY_GUBUN = #{anniversaryGubun},
+                                      ANNIVERSARY_TIME = #{anniversaryTime},
+                                      ANNIVER_STARTDAY = #{anniverStartDay},
+                                      ANNIVER_ENDDAY = #{anniverEndDay},
+                                      ANNIVER_ORDER = #{anniverOrder},
+                                      LAST_UPDT_PNTTM = NOW(),
+                                      ANNIVER_NAME = #{anniverName},
+                                      ANNIVERSARY_STARTTIME = #{anniversaryStartTime,jdbcType=VARCHAR},
+                                      LAST_UPDUSR_ID = #{lastUpdusrId,jdbcType=VARCHAR}
+        WHERE BROD_ANNSEQ = #{brodAnnSeq}
+    </update>
+
+    <delete id="deleteBrodAnniver">
+        DELETE FROM TB_BRODANNIVERSARY
+        WHERE BROD_ANNSEQ = #{brodAnnSeq}
+    </delete>
+
+    <delete id="deleteBrodAnniverBrod">
+        DELETE FROM TB_BRODANNIVERSARY
+        WHERE BROD_CODE = #{brodCode}
+    </delete>
+
+    <delete id="deleteBrodAnniverBrodAll">
+        DELETE FROM TB_BRODANNIVERSARY
+        WHERE BROD_CODE IN
+              (
+                  SELECT BROD_CODE
+                  FROM TB_BRODSCHEDULE
+                  WHERE BROD_CODE = #{brodCode} OR BASIC_BROD_CODE = #{brodCode}
+              )
+    </delete>
+
+    <delete id="deleteBrodAnnBasicBrod">
+        DELETE FROM TB_BRODANNIVERSARY
+        WHERE BROD_CODE IN
+              (
+                  SELECT A.BROD_CODE
+                  FROM TB_BRODSCHEDULE A
+                  WHERE A.BASIC_BROD_CODE = #{brodCode}
+              )
+    </delete>
+</mapper>

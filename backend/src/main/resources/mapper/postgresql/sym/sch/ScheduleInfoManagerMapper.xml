@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sym.sch.mapper.SchedulenfoManagerMapper">
+    <select id="selectScheduleInfoManageListByPagination" resultType="ScheduleInfoVO">
+        SELECT * FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.SCH_CODE AS "schCode",
+        A.SCH_NAME AS "schName",
+        FN_DAYCONVERT(A.SCH_STARTDAY) AS "schStartDay",
+        FN_DAYCONVERT(A.SCH_ENDDAY) AS "schEndDay",
+        A.GROUP_CODE AS "groupCode",
+        B.GROUP_NM AS "groupNm",
+        A.CONTENT_CODE AS "contentCode",
+        fn_contentNm(A.CONTENT_CODE) AS "conNm",
+        A.SCH_EMERGUBUN AS "schEmerGubun",
+        A.SCH_USEYN AS "schUseYn"
+        FROM TB_SCHEDULE A
+        JOIN TB_GROUP B ON A.GROUP_CODE = B.GROUP_CODE
+        WHERE 1=1
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND A.GROUP_ID IN
+                    (
+                    WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = #{groupId}
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND A.CENTER_ID = #{centerId}
+                </otherwise>
+            </choose>
+        </if>
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'schName'">
+                    AND A.SCH_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.SCH_CODE LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectScheduleMaxInfo" resultType="java.lang.String">
+        SELECT SCH_CODE AS schCode
+        FROM TB_SCHEDULE
+        ORDER BY SCH_CODE DESC
+            LIMIT 1
+    </select>
+
+    <select id="selectScheduleInfoManageCombo" resultType="ScheduleInfo">
+        SELECT
+            SCH_CODE AS "schCode",
+            SCH_NAME AS "schName"
+        FROM TB_SCHEDULE
+        WHERE SCH_USEYN = 'Y'
+        ORDER BY SCH_NAME ASC
+    </select>
+
+    <select id="selectScheduleInfoManageDetail" resultType="ScheduleInfoVO">
+        SELECT
+            SCH_CODE AS schCode,
+            SCH_NAME AS schName,
+            SCH_STARTDAY AS schStartDay,
+            SCH_ENDDAY AS schEndDay,
+            GROUP_CODE AS groupCode,
+            CONTENT_CODE AS contentCode,
+            SCH_EMERGUBUN AS schEmerGubun,
+            SCH_USEYN AS schUseYn
+        FROM TB_SCHEDULE
+        WHERE SCH_CODE = #{schCode}
+    </select>
+
+    <select id="selectScheduleInfoManageDetailView" resultType="ScheduleInfoVO">
+        SELECT
+            A.SCH_CODE AS schCode,
+            A.SCH_NAME AS schName,
+            FN_DAYCONVERT(A.SCH_STARTDAY) AS schStartDay,
+            FN_DAYCONVERT(A.SCH_ENDDAY) AS schEndDay,
+            A.GROUP_CODE AS groupCode,
+            A.CONTENT_CODE AS contentCode,
+            A.SCH_EMERGUBUN AS schEmerGubun,
+            A.SCH_USEYN AS schUseYn,
+            fn_contentNm(A.CONTENT_CODE) AS "conNm",
+            (SELECT B.GROUP_NM FROM TB_GROUP B WHERE A.GROUP_CODE = B.GROUP_CODE) AS groupNm
+        FROM TB_SCHEDULE A
+        WHERE 1=1
+          AND A.SCH_CODE = #{schCode}
+    </select>
+
+    <select id="selectScheduleInfoManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_SCHEDULE A
+        JOIN TB_GROUP B ON A.GROUP_CODE = B.GROUP_CODE
+        JOIN TB_CONTENTMUTIL C ON A.CONTENT_CODE = C.CON_SEQ
+        WHERE 1=1
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND A.GROUP_ID IN
+                    (
+                    WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = #{groupId}
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND A.CENTER_ID = #{centerId}
+                </otherwise>
+            </choose>
+        </if>
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'schName'">
+                    AND A.SCH_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.SCH_CODE LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectScheduleConSeqList" resultType="ScheduleInfoVO">
+       <![CDATA[
+        SELECT
+            SCH_CODE,
+            GROUP_CODE
+        FROM TB_SCHEDULE
+        WHERE SCH_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+          AND CONTENT_CODE = #{contentCode}
+        ]]>
+    </select>
+
+    <insert id="insertScheduleInfoManage">
+        INSERT INTO TB_SCHEDULE
+        (
+            SCH_CODE,
+            SCH_NAME,
+            SCH_STARTDAY,
+            SCH_ENDDAY,
+            GROUP_CODE,
+            CONTENT_CODE,
+            SCH_EMERGUBUN,
+            SCH_USEYN,
+            FRST_REGIST_PNTTM,
+            FRST_REGISTER_ID,
+            LAST_UPDT_PNTTM,
+            LAST_UPDUSR_ID,
+            GROUP_ID,
+            CENTER_ID
+        )
+        VALUES
+            (
+                fn_SCHCODE(),
+                #{schName},
+                #{schStartDay},
+                #{schEndDay},
+                #{groupCode,jdbcType=VARCHAR},
+                #{contentCode,jdbcType=VARCHAR},
+                #{schEmerGubun,jdbcType=VARCHAR},
+                #{schUseYn,jdbcType=VARCHAR},
+                NOW(),
+                #{mberId,jdbcType=VARCHAR},
+                NOW(),
+                #{mberId,jdbcType=VARCHAR},
+                #{groupId,jdbcType=VARCHAR},
+                #{centerId,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <update id="updateScheduleInfoManage">
+        UPDATE TB_SCHEDULE SET
+                               SCH_NAME = #{schName},
+                               SCH_STARTDAY = #{schStartDay},
+                               SCH_ENDDAY = #{schEndDay},
+                               GROUP_CODE = #{groupCode},
+                               CONTENT_CODE = #{contentCode,jdbcType=VARCHAR},
+                               SCH_EMERGUBUN = #{schEmerGubun,jdbcType=VARCHAR},
+                               SCH_USEYN = #{schUseYn},
+                               LAST_UPDT_PNTTM = NOW(),
+                               LAST_UPDUSR_ID = #{mberId,jdbcType=VARCHAR}
+        WHERE SCH_CODE = #{schCode}
+    </update>
+
+    <delete id="deleteScheduleInfoManage">
+        DELETE FROM TB_SCHEDULE
+        WHERE SCH_CODE = #{schCode}
+    </delete>
+</mapper>

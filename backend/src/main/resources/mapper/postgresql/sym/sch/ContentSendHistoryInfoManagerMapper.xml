@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sym.sch.mapper.ContentSendHistoryInfoManagerMapper">
+
+    <select id="selectContentSendHistoryInfoManage" resultType="ScheduleInfoVO">
+        SELECT
+            A.HIS_SEQ AS hisSeq,
+            A.DID_ID AS didId,
+            A.SCH_CODE AS schCode,
+            B.SCH_STARTDAY AS schStartDay,
+            B.SCH_ENDDAY AS schEndDay,
+            B.SCH_NAME AS schName,
+            B.CONTENT_CODE AS contentCode,
+            B.SCH_EMERGUBUN AS schEmerGubun
+        FROM TB_CONTENTSENDHISTORY A
+                 JOIN TB_SCHEDULE B ON A.SCH_CODE = B.SCH_CODE
+                 JOIN TB_DIDINFO C ON A.DID_ID = C.DID_ID
+        WHERE TO_CHAR(NOW(), 'YYYYMMDD') BETWEEN B.SCH_STARTDAY AND B.SCH_ENDDAY
+          AND A.DID_UPDATECHECK = 'N'
+          AND B.SCH_USEYN = 'Y'
+          AND C.DID_ID = #{didId}
+          AND C.DID_MACADDRESS = #{didMacAddress}
+    </select>
+
+    <insert id="insertContentSendHistoryInfoManage">
+        INSERT INTO TB_CONTENTSENDHISTORY
+        (
+            HIS_SEQ, DID_ID, SCH_CODE, DID_UPDATECHECK, CON_UPDATECHECK, CON_PAGEUPDATECHECK, CON_FILEUPDATECHECK
+        )
+        VALUES
+            (
+                NEXTVAL('conseqhis_seq'), #{didId}, #{schCode}, 'N', 'N', 'N', 'N'
+            )
+    </insert>
+
+    <update id="updateContentSendHistoryInfoManage">
+        UPDATE TB_CONTENTSENDHISTORY
+        SET DID_ID = #{didId},
+            SCH_CODE = #{schCode}
+        WHERE HIS_SEQ = #{hisSeq}
+    </update>
+
+    <update id="updateContentSendHistoryDidInfoManage">
+        UPDATE TB_CONTENTSENDHISTORY
+        SET DID_UPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}
+    </update>
+
+    <update id="updateContentSendHistoryConInfoManage">
+        UPDATE TB_CONTENTSENDHISTORY
+        SET CON_UPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}
+    </update>
+
+    <update id="updateContentSendHistoryConPageInfoManage">
+        UPDATE TB_CONTENTSENDHISTORY
+        SET CON_PAGEUPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}
+    </update>
+
+    <update id="updateContentSendHistoryConFileInfoManage">
+        UPDATE TB_CONTENTSENDHISTORY
+        SET CON_FILEUPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}
+    </update>
+
+    <update id="updateContentSchUpdateCheckReset">
+        UPDATE TB_CONTENTSENDHISTORY
+        SET CON_UPDATECHECK = 'N',
+            DID_UPDATECHECK = 'N',
+            CON_FILEUPDATECHECK = 'N'
+        WHERE HIS_SEQ = #{hisSeq}
+    </update>
+
+    <delete id="deleteContentSendHistoryInfoManage">
+        DELETE FROM TB_CONTENTSENDHISTORY
+        WHERE SCH_CODE = #{schCode}
+    </delete>
+
+</mapper>

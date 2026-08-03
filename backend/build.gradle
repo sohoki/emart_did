@@ -1,0 +1,113 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'egov'
+version = '1.0.1'
+description = 'emart_cms1.6'
+
+java {
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    // 전자정부 표준프레임워크 및 기타 전용 저장소 필요시 추가
+    maven { url 'https://maven.egovframe.go.kr/maven/' }
+}
+
+dependencies {
+    // Spring Boot Starters (전자정부 5.x 표준 기반)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // 전자정부 표준프레임워크 공통 컴포넌트 (Boot 3.x 호환 버전)
+    // * 참고: 현장 환경에 따라 egovframework.rte 관련 artifact 그룹 및 버전은 egov 5.x 공지사항을 확인해주세요.
+    implementation 'org.egovframe.rte:org.egovframe.rte.ptl.mvc:4.3.0'
+    implementation 'org.egovframe.rte:org.egovframe.rte.psl.dataaccess:4.3.0'
+    // org.egovframe.rte.psl.dataaccess가 물고 오는 org.mybatis:mybatis-spring:2.1.1은
+    // Spring Framework 6.x(Spring Boot 3.x)에서 factoryBeanObjectType 속성을 String으로
+    // 세팅하는 방식이 깨져서(IllegalArgumentException) 컨텍스트 기동 자체가 실패함 —
+    // Spring 6.x 호환 버전으로 강제 승급
+    implementation 'org.mybatis:mybatis-spring:3.0.3'
+    implementation 'org.egovframe.rte:org.egovframe.rte.fdl.idgnr:4.3.0'
+    implementation 'org.egovframe.rte:org.egovframe.rte.fdl.property:4.3.0'
+    implementation 'org.egovframe.rte:org.egovframe.rte.fdl.crypto:4.3.0'
+    implementation 'org.egovframe.rte:org.egovframe.rte.fdl.excel:4.3.0'
+
+    // Swagger / OpenAPI 문서화 (application.yml의 springdoc 설정과 연동)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+
+    // JWT (jjwt 0.12.x API 기준 — egovframework.com.jwt 패키지에서 사용)
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // AesUtil(Hex 인코딩), EgovComCrossSiteHndlr(JSP 커스텀 태그)에서 필요
+    implementation 'commons-codec:commons-codec:1.16.1'
+    implementation 'jakarta.servlet.jsp:jakarta.servlet.jsp-api:3.1.1'
+
+    // ShedLockConfig — 다중 인스턴스 환경에서 @Scheduled 배치 중복 실행 방지 (Redis 기반 락)
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.13.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.13.0'
+
+    // EgovDateUtil(음력 변환 등)에서 사용
+    implementation 'com.ibm.icu:icu4j:74.2'
+
+    // fileMultiService/fileService(업로드 이미지 EXIF 메타데이터 추출)에서 사용
+    implementation 'com.drewnoakes:metadata-extractor:2.19.0'
+
+    // Database & Logging
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11' // Oracle 11g 이상 권장 (구 ojdbc14 대체)
+    runtimeOnly 'org.postgresql:postgresql' // 메인 DB
+    implementation 'org.bgee.log4jdbc-log4j2:log4jdbc-log4j2-jdbc4.1:1.16'
+
+    // 유틸리티 및 라이브러리 (기존 pom.xml 반영)
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'commons-fileupload:commons-fileupload:1.5'
+    implementation 'commons-io:commons-io:2.11.0'
+    implementation 'org.apache.commons:commons-compress:1.24.0'
+    implementation 'org.json:json:20231013'
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+
+    // 멀티미디어 / 썸네일 관련 (Jcodec)
+    implementation 'org.jcodec:jcodec:0.2.5'
+    implementation 'org.jcodec:jcodec-javase:0.2.5'
+
+    // UtilInfoService(외부 API 연계 HTTP 통신)에서 사용
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
+
+    // MS Graph API (기존 설정 유지)
+    implementation 'com.microsoft.graph:microsoft-graph:5.80.0'
+    implementation 'com.microsoft.azure:msal4j:1.14.2'
+
+    // Lombok & DevTools
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Provided (Servlet / JSP)
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    providedRuntime 'jakarta.servlet:jakarta.servlet-api'
+    implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api:3.0.0'
+    implementation 'org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

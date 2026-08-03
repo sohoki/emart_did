@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.menu.mapper.MenuInfoManageMapper">
+    <select id="selectMenuManageList_D" resultType="camelmap">
+        SELECT COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
+        RELATE_IMAGE_PATH, RELATE_IMAGE_NM, MENU_PAGE_TARGET, MENU_POPUPNFO, MENU_PRIVACY, MENU_ICON_TYPE,
+        MENU_NO, MENU_ORDR, MENU_NM, UPPER_MENU_NO, MENU_DC, PROGRM_FILE_NM, PROGRM_KOREAN_NM, URL, LEVEL, ctg_path,
+        MENU_CLASS
+        FROM (
+        WITH RECURSIVE cte AS
+        (
+        -- [1] Anchor Member (최상위 메뉴)
+        SELECT a.MENU_NO, a.MENU_ORDR, a.MENU_NM, a.UPPER_MENU_NO, a.MENU_DC, a.PROGRM_FILE_NM, b.PROGRM_KOREAN_NM,
+        b.URL, a.RELATE_IMAGE_PATH, a.RELATE_IMAGE_NM, a.MENU_PAGE_TARGET, a.MENU_POPUPNFO, a.MENU_PRIVACY,
+        a.MENU_USEYN, a.MENU_CLASS, a.MENU_ICON_TYPE,
+        1 as LEVEL,
+        CAST(a.MENU_NO AS VARCHAR(100)) as ctg_path
+        FROM COMTNMENUINFO a
+        JOIN COMTNPROGRMLIST b ON a.PROGRM_FILE_NM = b.PROGRM_FILE_NM
+        WHERE a.UPPER_MENU_NO IS NULL OR a.UPPER_MENU_NO = 0
+
+        UNION ALL
+
+        -- [2] Recursive Member (하위 메뉴)
+        SELECT a.MENU_NO, a.MENU_ORDR, a.MENU_NM, a.UPPER_MENU_NO, a.MENU_DC, a.PROGRM_FILE_NM, b.PROGRM_KOREAN_NM,
+        b.URL, a.RELATE_IMAGE_PATH, a.RELATE_IMAGE_NM, a.MENU_PAGE_TARGET, a.MENU_POPUPNFO, a.MENU_PRIVACY,
+        a.MENU_USEYN, a.MENU_CLASS, a.MENU_ICON_TYPE,
+        c.LEVEL + 1,
+        CONCAT(c.ctg_path, '-', a.MENU_NO)
+        FROM COMTNMENUINFO a
+        JOIN COMTNPROGRMLIST b ON a.PROGRM_FILE_NM = b.PROGRM_FILE_NM
+        JOIN cte c ON a.UPPER_MENU_NO = c.MENU_NO
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchUseyn)">
+            AND a.MENU_USEYN = #{params.searchUseyn}
+        </if>
+        )
+        -- [3] 최종 조회부
+        SELECT DISTINCT
+        RELATE_IMAGE_PATH, RELATE_IMAGE_NM, MENU_PAGE_TARGET, MENU_POPUPNFO, MENU_PRIVACY,
+        MENU_NO, MENU_ORDR, MENU_NM, UPPER_MENU_NO, MENU_DC, PROGRM_FILE_NM, PROGRM_KOREAN_NM, URL, LEVEL, ctg_path,
+        MENU_CLASS, MENU_ICON_TYPE
+        FROM cte
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
+            <![CDATA[
+          AND MENU_NM LIKE CONCAT('%', #{params.searchKeyword}, '%')
+       ]]>
+        </if>
+        ORDER BY ctg_path ASC, MENU_ORDR ASC
+        ) X
+    </select>
+
+    <select id="selectSystemProgramInfo" resultType="ProgrmInfo">
+        SELECT B.*
+        FROM COMTNMENUINFO A, COMTNPROGRMLIST B
+        WHERE A.PROGRM_FILE_NM  = B.PROGRM_FILE_NM
+          AND A.MENU_NO IN (
+            SELECT MENU_NO
+            FROM COMTNMENUCREATDTLS
+            WHERE ROLE_ID  = #{roleId}
+        )
+    </select>
+
+    <select id="selectSystemMenuInfo" resultType="camelmap">
+        SELECT A.MENU_NO, A.MENU_ORDR , A.MENU_NM , A.UPPER_MENU_NO, A.MENU_DC, A.PROGRM_FILE_NM
+             , A.RELATE_IMAGE_PATH, A.RELATE_IMAGE_NM, A.MENU_PAGE_TARGET, A.MENU_POPUPNFO
+             , A.MENU_PAGE_TARGET, A.MENU_POPUPNFO, A.MENU_USEYN, A.MENU_PRIVACY
+             , B.MENU_BASIC_INFO, B.ROLE_ID
+        FROM COMTNMENUINFO A, COMTNMENUCREATDTLS B
+        WHERE A.MENU_NO  = B.MENU_NO
+          AND B.ROLE_ID  = #{roleId}
+    </select>
+
+    <select id="selectMenuManage_D" resultType="lmap">
+        SELECT  A.MENU_NO
+             , A.MENU_ORDR
+             , A.MENU_NM
+             , A.UPPER_MENU_NO
+             , (SELECT MENU_NM FROM COMTNMENUINFO WHERE MENU_NO = A.UPPER_MENU_NO) AS UPPER_MENU_NM
+             , A.MENU_DC
+             , A.PROGRM_FILE_NM
+             , A.RELATE_IMAGE_PATH
+             , A.RELATE_IMAGE_NM
+             , A.MENU_PAGE_TARGET
+             , A.MENU_POPUPNFO
+             , A.MENU_PAGE_TARGET
+             , A.MENU_POPUPNFO
+             , A.MENU_USEYN
+             , A.MENU_PRIVACY
+             , A.MENU_CLASS
+        FROM COMTNMENUINFO A
+                 INNER JOIN COMTNPROGRMLIST B ON A.PROGRM_FILE_NM = B.PROGRM_FILE_NM
+        WHERE MENU_NO = #{value}
+    </select>
+
+    <insert id="insertMenuManage_S">
+       <![CDATA[
+        INSERT INTO COMTNMENUINFO (
+            MENU_NO , MENU_ORDR , MENU_NM , UPPER_MENU_NO, MENU_DC, PROGRM_FILE_NM,
+            RELATE_IMAGE_PATH, RELATE_IMAGE_NM,
+            MENU_PAGE_TARGET, MENU_POPUPNFO, MENU_USEYN, MENU_PRIVACY,
+            MENU_ICON_TYPE, MENU_CLASS,
+            FRST_REGISTER_ID, LAST_UPDUSR_ID, FRST_REGIST_PNTTM, LAST_UPDT_PNTTM
+        )
+        VALUES
+            (
+                #{menuNo}, #{menuOrdr ,jdbcType=VARCHAR}, #{menuNm}, #{upperMenuNo}, #{menuDc ,jdbcType=VARCHAR}, #{progrmFileNm},
+                #{relateImagePath ,jdbcType=VARCHAR}, #{relateImageNm ,jdbcType=VARCHAR},
+                #{menuPageTarget ,jdbcType=VARCHAR}, #{menuPopupnfo ,jdbcType=VARCHAR},  #{menuUseyn,jdbcType=VARCHAR},#{menuPrivacy},
+                #{menuIconType ,jdbcType=VARCHAR},#{menuClass ,jdbcType=VARCHAR},
+                #{userId,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR} , NOW(), NOW()
+            )
+        ]]>
+    </insert>
+
+    <update id="updateMenuManage_S">
+        UPDATE COMTNMENUINFO SET  MENU_ORDR         = #{menuOrdr},
+        <![CDATA[
+                            MENU_NM           = #{menuNm},
+                         ]]>
+        UPPER_MENU_NO     = #{upperMenuNo},
+        <![CDATA[
+                            MENU_DC           = #{menuDc ,jdbcType=VARCHAR},
+                         ]]>
+        PROGRM_FILE_NM    = #{progrmFileNm},
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(relateImageNm)">
+            RELATE_IMAGE_PATH = #{relateImagePath ,jdbcType=VARCHAR},
+            <![CDATA[
+                            RELATE_IMAGE_NM   = #{relateImageNm ,jdbcType=VARCHAR},
+                         ]]>
+        </if>
+        MENU_PAGE_TARGET = #{menuPageTarget ,jdbcType=VARCHAR},
+        <![CDATA[
+                            MENU_POPUPNFO =  #{menuPopupnfo ,jdbcType=VARCHAR},
+                         ]]>
+        MENU_CLASS =     #{menuClass,jdbcType=VARCHAR},
+        MENU_ICON_TYPE = #{menuIconType,jdbcType=VARCHAR},
+        MENU_USEYN = #{menuUseyn,jdbcType=VARCHAR},
+        MENU_PRIVACY =  #{menuPrivacy,jdbcType=VARCHAR}
+        WHERE MENU_NO=#{menuNo}
+    </update>
+
+    <update id="updateMenuOrder">
+        UPDATE COMTNMENUINFO
+        SET
+        MENU_ORDR = CASE MENU_NO
+        <foreach collection="list" item="item">
+            WHEN #{item.menuNo} THEN #{item.menuOrdr, jdbcType=VARCHAR}
+        </foreach>
+        ELSE MENU_ORDR END,
+        UPPER_MENU_NO = CASE MENU_NO
+        <foreach collection="list" item="item">
+            WHEN #{item.menuNo} THEN #{item.upperMenuNo, jdbcType=VARCHAR}
+        </foreach>
+        ELSE UPPER_MENU_NO END,
+        LAST_UPDT_PNTTM = NOW()
+        WHERE MENU_NO IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.menuNo}
+        </foreach>
+    </update>
+
+    <delete id="deleteMenuManage_S">
+       <![CDATA[
+        DELETE FROM COMTNMENUINFO
+        WHERE MENU_NO=#{menuNo}
+        ]]>
+    </delete>
+
+    <delete id="deleteMenuManage_L">
+        DELETE FROM COMTNMENUINFO
+        WHERE MENU_NO IN
+        <foreach collection="menuNoList" item="item"  open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <select id="selectMenuNoByPk" resultType="Integer">
+       <![CDATA[
+        SELECT COUNT(MENU_NO) AS totcnt
+        FROM COMTNMENUINFO
+        WHERE MENU_NO = #{params.menuNo}
+        ]]>
+    </select>
+
+    <select id="selectUpperMenuNoByPk" resultType="Integer">
+       <![CDATA[
+        SELECT COUNT(MENU_NO) AS totcnt
+        FROM COMTNMENUINFO
+        WHERE UPPER_MENU_NO = #{params.menuNo}
+        ]]>
+    </select>
+
+    <select id="selectMenuListT_D" resultType="lmap">
+       <![CDATA[
+        SELECT
+            MENU_NO
+             , MENU_ORDR
+             , MENU_NM
+             , UPPER_MENU_NO
+             , MENU_DC
+             , RELATE_IMAGE_PATH
+             , RELATE_IMAGE_NM
+             , PROGRM_FILE_NM
+        FROM COMTNMENUINFO
+        WHERE MENU_NO > 0
+        ORDER BY MENU_ORDR
+        ]]>
+    </select>
+
+    <delete id="deleteAllMenuList">
+        DELETE FROM COMTNMENUCREATDTLS;
+        DELETE FROM COMTNMENUINFO WHERE MENU_NO != UPPER_MENU_NO;
+    </delete>
+
+    <update id="deleteMenuNo">
+        <selectKey keyProperty="cnt" resultType="Integer" order="BEFORE">
+            SELECT COUNT(MENU_NO) AS totcnt
+            FROM COMTNMENUINFO
+            WHERE UPPER_MENU_NO = #{menuNo}
+        </selectKey>
+        <choose>
+            <when test="cnt == 0">
+                DELETE FROM COMTNMENUINFO
+                WHERE MENU_NO = #{menuNo}
+            </when>
+            <otherwise>
+                DELETE FROM COMTNMENUINFO
+                WHERE MENU_NO = -1
+            </otherwise>
+        </choose>
+    </update>
+
+    <select id="selectMenuListTotCnt" resultType="Integer">
+       <![CDATA[
+        SELECT COUNT(MENU_NO) AS totcnt
+        FROM COMTNMENUINFO
+        ]]>
+    </select>
+
+    <select id="selectMainMenuHead" resultType="lmap">
+       <![CDATA[
+        SELECT
+            B.MENU_NO
+             , B.MENU_ORDR
+             , B.MENU_NM
+             , B.UPPER_MENU_NO
+             , B.MENU_DC
+             , B.RELATE_IMAGE_PATH
+             , B.RELATE_IMAGE_NM
+             , B.PROGRM_FILE_NM
+             , (SELECT C.URL FROM LETTNPROGRMLIST C WHERE B.PROGRM_FILE_NM = C.PROGRM_FILE_NM) AS chkURL
+        FROM COMTNMENUCREATDTLS A, COMTNMENUINFO B
+        WHERE B.MENU_NO > 0
+          AND (B.UPPER_MENU_NO = 0 OR B.UPPER_MENU_NO IS NULL)
+          AND A.MENU_NO = B.MENU_NO
+          AND A.AUTHOR_CODE = (SELECT C.AUTHOR_CODE FROM COMTNEMPLYRSCRTYESTBS C
+                               WHERE C.SCRTY_DTRMN_TRGET_ID = #{empno})
+        ORDER BY MENU_ORDR
+        ]]>
+    </select>
+
+    <select id="selectMainMenuLeft" resultType="lmap">
+        WITH RECURSIVE cte AS (
+            /* [Root 단계] 최상위 메뉴 추출 */
+            SELECT
+                a.MENU_NO, a.MENU_ORDR, a.MENU_NM, a.UPPER_MENU_NO, a.MENU_DC,
+                a.PROGRM_FILE_NM, b.PROGRM_KOREAN_NM, b.URL, a.RELATE_IMAGE_NM,
+                a.MENU_PAGE_TARGET, a.MENU_POPUPNFO, a.MENU_CLASS, a.MENU_ICON_TYPE,
+                1 AS LEVEL,
+                CAST(LPAD(CAST(a.MENU_NO AS VARCHAR), 5, '0') AS VARCHAR(100)) AS sort_path
+            FROM COMTNMENUINFO a
+                     JOIN COMTNPROGRMLIST b ON a.PROGRM_FILE_NM = b.PROGRM_FILE_NM
+                     JOIN COMTNMENUCREATDTLS c ON a.MENU_NO = c.MENU_NO
+            WHERE (a.UPPER_MENU_NO IS NULL OR a.UPPER_MENU_NO = 0)
+              AND c.ROLE_ID = #{roleId}
+
+            UNION ALL
+            /* [Recursive 단계] 자식 메뉴 추출 */
+            SELECT
+                ta.MENU_NO, ta.MENU_ORDR, ta.MENU_NM, ta.UPPER_MENU_NO, ta.MENU_DC,
+                ta.PROGRM_FILE_NM, tb.PROGRM_KOREAN_NM, tb.URL, ta.RELATE_IMAGE_NM,
+                ta.MENU_PAGE_TARGET, ta.MENU_POPUPNFO, ta.MENU_CLASS, ta.MENU_ICON_TYPE,
+                cte.LEVEL + 1,
+                CAST(CONCAT(cte.sort_path, '-', LPAD(CAST(ta.MENU_NO AS VARCHAR), 5, '0')) AS VARCHAR(100))
+            FROM COMTNMENUINFO ta
+                     JOIN COMTNPROGRMLIST tb ON ta.PROGRM_FILE_NM = tb.PROGRM_FILE_NM
+                     JOIN COMTNMENUCREATDTLS tc ON ta.MENU_NO = tc.MENU_NO
+                     INNER JOIN cte ON ta.UPPER_MENU_NO = cte.MENU_NO
+            WHERE tc.ROLE_ID = #{roleId}
+        )
+        SELECT
+            MENU_NO,
+            MENU_ORDR,
+            UPPER_MENU_NO,
+            MENU_DC,
+            PROGRM_FILE_NM,
+            PROGRM_KOREAN_NM,
+            URL,
+            LEVEL,
+            MENU_NM,
+            sort_path AS ctg_path,
+            RELATE_IMAGE_NM,
+            MENU_PAGE_TARGET,
+            MENU_POPUPNFO,
+            MENU_CLASS,
+            MENU_ICON_TYPE
+        FROM cte
+        ORDER BY sort_path ASC
+    </select>
+
+    <select id="selectLastMenuURL" resultType="String">
+       <![CDATA[
+        SELECT URL
+        FROM LETTNPROGRMLIST
+        WHERE PROGRM_FILE_NM =
+              (SELECT PROGRM_FILE_NM
+               FROM COMTNMENUINFO
+               WHERE MENU_NO = #{menuNo})
+        ]]>
+    </select>
+
+    <select id="selectLastMenuNo" resultType="int">
+       <![CDATA[
+        SELECT MIN(MENU_NO)
+        FROM COMTNMENUINFO
+        WHERE UPPER_MENU_NO = #{params.menuNo}
+          AND MENU_ORDR =
+              (SELECT MIN(MENU_ORDR)
+               FROM COMTNMENUCREATDTLS A, COMTNMENUINFO B
+               WHERE A.MENU_NO = B.MENU_NO
+                 AND A.AUTHOR_CODE = (SELECT AUTHOR_CODE FROM LETTNEMPLYRSCRTYESTBS
+                                      WHERE SCRTY_DTRMN_TRGET_ID = #{params.empNo})
+                 AND B.UPPER_MENU_NO = #{params.menuNo})
+        ]]>
+    </select>
+
+    <select id="selectLastMenuNoCnt" resultType="Integer">
+       <![CDATA[
+        SELECT COUNT(MENU_NO)
+        FROM COMTNMENUINFO
+        WHERE UPPER_MENU_NO = #{params.menuNo}
+          AND MENU_ORDR =
+              (SELECT MIN(MENU_ORDR)
+               FROM COMTNMENUCREATDTLS A, COMTNMENUINFO B
+               WHERE A.MENU_NO = B.MENU_NO
+                 AND A.AUTHOR_CODE = (SELECT AUTHOR_CODE
+                                      FROM LETTNEMPLYRSCRTYESTBS
+                                      WHERE SCRTY_DTRMN_TRGET_ID = #{params.empNo})
+                 AND B.MENU_NO IN (SELECT MENU_NO FROM COMTNMENUINFO WHERE UPPER_MENU_NO = #{params.menuNo}))
+        ]]>
+    </select>
+</mapper>

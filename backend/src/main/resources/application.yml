@@ -1,0 +1,225 @@
+spring:
+  profiles:
+    active: local
+    group:
+      local: [local, common]
+      prod: [prod, common]
+      server: [server, common]
+# logging.config(log4j2-*.xml) 제거함: 이 프로젝트는 spring-boot-starter-logging(Logback)만
+# 의존성에 있고 실제 Log4j2 프레임워크는 classpath에 없어서, Logback이 log4j2 형식 XML(<Appenders>/
+# <Loggers> 태그)을 잘못 파싱해 콘솔 출력이 사실상 막히는 문제가 있었음(부팅 실패 시 실제 예외조차
+# 안 보임). log4j2-*.xml 자체는 log4jdbc-log4j2(JDBC 프록시 드라이버, SQL 로그 노이즈 필터링용)가
+# 참조하도록 작성된 것으로 보이나 현재 연결되어 있지 않음 — 필요 시 spring-boot-starter-log4j2로
+# 전환 + spring-boot-starter-logging 제외하는 별도 작업 필요(후속)
+#################### common 공통 영역 ####################
+---
+spring:
+  config:
+    activate:
+      on-profile: common
+  main:
+    web-application-type: servlet
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 30MB #에디터 본문에 이미지가 base64로 남아있는 기존 데이터 저장 시 여유를 두기 위해 상향
+  application:
+    name: emart_cms1.6
+  api:
+    key: mmhITesGClJMeC5v0HG91%2BKiKiaU5OFW4hjR9h6WJsl70S9Wcd4sCfcY%2Bids8eXQaY%2BX3m%2FIOuXvZ9JDWTK5pA%3D%3D
+
+###################### swagger 설정
+springdoc:
+  packages-to-scan: com.emart.backoffice, egovframework
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+    groups:
+      enabled: true
+  group-configs:
+    - group: "Common API"
+      packages-to-scan: com.emart.backoffice
+    - group: "Egov API"
+      packages-to-scan: egovframework
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    groups-order: asc
+    tags-sorter: alpha
+    operations-sorter: alpha
+  cache:
+    disabled: true
+
+jackson:
+  serialization:
+    WRITE_DATES_AS_TIMESTAMPS: false
+  date-format: yyyy-MM-dd HH:mm:ss
+
+aesinfo:
+  password: COMM_INFOqwer123
+
+token:
+  expiration_time : 36000000  #5시간 연장
+  refresh_time : 86400000 #24*60*60*1000
+  secret : Q4NSl604sgyHJj1qwEkR3ycUeR4uUAt7WJraD7EN3O9DVM4yyYuHxMEbSF4XXyYJkal13eqgB0F7Bq4HQ4NSl604sgyHJj1qwEkR3ycUeR4uUAt7W
+  Allow:
+    Origin: "http://localhost:8081"
+  crypto:
+    algoritm : Q4NSl604sgyHJj1qwEkR3ycUeR4uUAt7WJraD7EN3O9DVM4yyYuHxMEbSF4XXyYJkal13eqgB0F7Bq4HQ4NSl604sgyHJj1qwEkR3ycUeR4uUAt7W
+
+Common :
+  MainPage : /cmm/main/mainPage.do
+  fileUpload:
+    Extensions: .gif.jpg.jpeg.png.xls.xlsx.svg
+  filePath : /usr/share/nginx/html/upload
+#################### local 영역 ####################
+---
+spring:
+  jmx:
+    enabled: false
+  config:
+    activate:
+      on-profile: local
+  application:
+    admin:
+      enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+# Swagger 비활성화 (운영 보안 — API 명세 외부 노출 차단)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    # MyBatis 쿼리 로그(==> Preparing / ==> Parameters / <== Total). 매퍼 namespace(=인터페이스
+    # FQCN)를 로거로 써서 SLF4J 경유로 Logback에 찍힘. 예전 log4j2-local.xml의 SQL 로깅을
+    # 표준 logging.level 프로퍼티로 대체(로그 설정 전체 정리는 20절 후속 과제로 남겨둠)
+    com.common.backoffice: debug
+    egovframework.let: debug
+# 구동 서버 정보
+server:
+  port : 7004
+  tomcat:
+    max-http-form-post-size: 30MB #파일 제외 폼 데이터(멀티파트 텍스트 필드) 크기 제한 - 기본 2MB로는 에디터 본문이 잘림
+  servlet:
+    context-path: /
+    session:
+      timeout : 3600
+Common :
+  filePath : E:\\dev\\front\\did_emart\\backend\\src\\main\\webapp\\upload
+########### 추후 인코딩 변경
+Globals:
+  OsType : WINDOWS
+  LocalIp : 1.255.226.51
+  DbType : postgresql
+  postgresql:
+    Url: jdbc:postgresql://27.96.130.69:8088/EMTINDB
+    UserName: root
+    Password: Qwer123!@#
+  addedOptions:
+    pageUnit: 10
+    pageSize: 10
+    posblAtchFileSize: 5000\
+#################### 개발계 서버 prod 영역 ####################
+---
+spring:
+  jmx:
+    enabled: false
+  config:
+    activate:
+      on-profile: prod
+  application:
+    admin:
+      enabled: false
+# Swagger 비활성화 (운영 보안 — API 명세 외부 노출 차단)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+# 구동 서버 정보
+server:
+  port : 7004
+  tomcat:
+    max-http-form-post-size: 30MB #파일 제외 폼 데이터(멀티파트 텍스트 필드) 크기 제한 - 기본 2MB로는 에디터 본문이 잘림
+  servlet:
+    context-path: /
+    session:
+      timeout : 3600
+Common :
+  filePath : E:\\dev\\front\\더폼나\\theformna\\backoffice\\upload
+########### 추후 인코딩 변경
+Globals:
+  OsType : WINDOWS
+  LocalIp : 1.255.226.51
+  DbType : postgresql
+  postgresql:
+    Url: jdbc:postgresql://27.96.130.69:8088/EMTINDB
+    UserName: didadmin
+    Password: AprkDB202^Q2
+  addedOptions:
+    pageUnit: 10
+    pageSize: 10
+    posblAtchFileSize: 5000
+
+#################### 서버 prod 영역 ####################
+---
+spring:
+  jmx:
+    enabled: false
+  config:
+    activate:
+      on-profile: server
+  application:
+    admin:
+      enabled: false
+# Swagger 비활성화 (운영 보안 — API 명세 외부 노출 차단)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+# 구동 서버 정보
+server:
+  port : 7003
+  tomcat:
+    max-http-form-post-size: 30MB #파일 제외 폼 데이터(멀티파트 텍스트 필드) 크기 제한 - 기본 2MB로는 에디터 본문이 잘림
+  servlet:
+    context-path: /
+    session:
+      timeout : 3600
+Common :
+  filePath : E:\\dev\\front\\더폼나\\theformna\\backoffice\\upload
+########### 추후 인코딩 변경
+Globals:
+  OsType : WINDOWS
+  LocalIp : 1.255.226.51
+  DbType : postgresql
+  postgresql:
+    Url: jdbc:postgresql://27.96.130.69:8088/EMTINDB
+    UserName: didadmin
+    Password: AprkDB202^Q2
+  addedOptions:
+    pageUnit: 10
+    pageSize: 10
+    posblAtchFileSize: 5000

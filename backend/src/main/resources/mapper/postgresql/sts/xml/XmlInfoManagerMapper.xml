@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.xml.mapper.XmlInfoManagerMapper">
+    <select id="selectXmlInfoManageListByPagination" resultType="XmlInfoVO">
+        SELECT * FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY A.XML_SEQ DESC) AS RNUM, TB.* FROM
+        (
+        SELECT
+        A.XML_SEQ AS "xmlSeq",
+        A.WORK_GUBUN AS "workGubun",
+        A.XML_PROCESS_NAME AS "xmlProcessName",
+        A.PROCESS_REMARK AS "processRemark",
+        A.XML_INPUTPARAM AS "xmlInputParam",
+        A.XML_OTPUTPARAM AS "xmlOutputParam",
+        B.CODE_NM AS "codeNm"
+        FROM TB_SENDMESSAGETYPR A
+        JOIN LETTCCMMNDETAILCODE B ON A.WORK_GUBUN = B.CODE
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'XML_PROCESS_NAME'">
+                    AND A.XML_PROCESS_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.PROCESS_REMARK LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectXmlrInfoManageDetail" resultType="XmlInfoVO">
+        SELECT
+            A.XML_SEQ AS xmlSeq,
+            A.WORK_GUBUN AS workGubun,
+            A.XML_PROCESS_NAME AS xmlProcessName,
+            A.PROCESS_REMARK AS processRemark,
+            A.XML_INPUTPARAM AS xmlInputParam,
+            A.XML_OTPUTPARAM AS xmlOutputParam,
+            A.RESULT_CODE_EXAMPLE AS resultCodeExample,
+            A.ETC1 AS etc1,
+            A.ETC2 AS etc2,
+            A.ETC3 AS etc3,
+            A.TEST_OK AS testOk,
+            A.XML_INPUTPARAMSAMPLE AS xmlInputParamSample,
+            A.XML_EXPLAIN AS xmlExplain,
+            B.CODE_NM AS codeNm
+        FROM TB_SENDMESSAGETYPR A
+                 JOIN LETTCCMMNDETAILCODE B ON A.WORK_GUBUN = B.CODE
+        WHERE A.XML_SEQ = #{xmlSeq}
+    </select>
+
+    <select id="selectDIDProcessNm" resultType="java.lang.String">
+        SELECT XML_PROCESS_NAME
+        FROM TB_SENDMESSAGETYPR
+        WHERE ETC1 = #{code}
+    </select>
+
+    <select id="selectXmlrInfoManageNameDetail" resultType="XmlInfoVO">
+        SELECT
+            A.XML_SEQ AS xmlSeq,
+            A.WORK_GUBUN AS workGubun,
+            A.XML_PROCESS_NAME AS xmlProcessName,
+            A.PROCESS_REMARK AS processRemark,
+            A.XML_INPUTPARAM AS xmlInputParam,
+            A.XML_OTPUTPARAM AS xmlOutputParam,
+            A.RESULT_CODE_EXAMPLE AS resultCodeExample,
+            A.ETC1 AS etc1,
+            A.ETC2 AS etc2,
+            A.ETC3 AS etc3,
+            A.TEST_OK AS testOk,
+            A.XML_INPUTPARAMSAMPLE AS xmlInputParamSample,
+            A.XML_EXPLAIN AS xmlExplain
+        FROM TB_SENDMESSAGETYPR A
+        WHERE A.XML_PROCESS_NAME = #{xmlProcessName}
+    </select>
+
+    <select id="selectXmlProcessCombo" resultType="XmlInfo">
+        SELECT
+            A.XML_PROCESS_NAME AS XMLPROCESSNAME,
+            A.PROCESS_REMARK AS processRemark
+        FROM TB_SENDMESSAGETYPR A
+    </select>
+
+    <select id="selectXmlProcessCount" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_SENDMESSAGETYPR
+        WHERE XML_PROCESS_NAME = #{xmlProcessName}
+    </select>
+
+    <select id="selectXmlInfoManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_SENDMESSAGETYPR A
+        JOIN LETTCCMMNDETAILCODE B ON A.WORK_GUBUN = B.CODE
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'XML_PROCESS_NAME'">
+                    AND A.XML_PROCESS_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.PROCESS_REMARK LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- XML_SEQ는 DB 시퀀스 xml_seq로 채번함(08_create_missing_sequences.sql 참고) -->
+    <insert id="insertXmlInfoManage">
+        <selectKey keyProperty="xmlSeq" resultType="java.lang.String" order="BEFORE">
+            SELECT NEXTVAL('xml_seq')
+        </selectKey>
+        INSERT INTO TB_SENDMESSAGETYPR
+        (
+            XML_SEQ, WORK_GUBUN, XML_PROCESS_NAME, PROCESS_REMARK, XML_INPUTPARAM,
+            XML_OTPUTPARAM, RESULT_CODE_EXAMPLE, ETC1, ETC2, ETC3,
+            TEST_OK, XML_INPUTPARAMSAMPLE, XML_EXPLAIN, FRST_REGIST_PNTTM, FRST_REGISTER_ID,
+            PROT_TYPE
+        )
+        VALUES
+            (
+                #{xmlSeq}, #{workGubun}, #{xmlProcessName}, #{processRemark}, #{xmlInputParam},
+                #{xmlOutputParam}, #{resultCodeExample}, #{etc1}, #{etc2,jdbcType=VARCHAR}, #{etc3,jdbcType=VARCHAR},
+                #{testOk}, #{xmlInputParamSample}, #{xmlExplain}, NOW(), #{frstRegisterId,jdbcType=VARCHAR},
+                #{protType,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <update id="updateXmlInfoManage">
+        UPDATE TB_SENDMESSAGETYPR SET
+                                      WORK_GUBUN = #{workGubun},
+                                      XML_PROCESS_NAME = #{xmlProcessName},
+                                      PROCESS_REMARK = #{processRemark},
+                                      XML_INPUTPARAM = #{xmlInputParam},
+                                      XML_OTPUTPARAM = #{xmlOutputParam},
+                                      RESULT_CODE_EXAMPLE = #{resultCodeExample},
+                                      ETC1 = #{etc1},
+                                      ETC2 = #{etc2,jdbcType=VARCHAR},
+                                      ETC3 = #{etc3,jdbcType=VARCHAR},
+                                      TEST_OK = #{testOk},
+                                      XML_INPUTPARAMSAMPLE = #{xmlInputParamSample},
+                                      XML_EXPLAIN = #{xmlExplain},
+                                      PROT_TYPE = #{protType,jdbcType=VARCHAR}
+        WHERE XML_SEQ = #{xmlSeq}
+    </update>
+
+    <delete id="deleteXmlInfoManage">
+        DELETE
+        FROM TB_SENDMESSAGETYPR
+        WHERE XML_SEQ = #{xmlSeq}
+    </delete>
+</mapper>

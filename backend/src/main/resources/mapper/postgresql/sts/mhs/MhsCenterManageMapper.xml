@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.mhs.mapper.MhsCenterManageMapper">
+    <select id="selectMhsBrandList" resultType="CenterInfoVO">
+        <if test="authorCode == 'ROLE_MHS_USER'">
+            SELECT
+            '1' AS mhsBrandlv, GROUP_NM AS mhsBrandnm, GROUP_ID AS mhsBrandcd, PARENT_GROUP_ID AS mhsParentbrandcd
+            FROM LETTNAUTHORGROUPINFO
+            WHERE MHSYN = 'Y'
+            AND GROUP_ID = #{groupId}
+            UNION
+        </if>
+
+        WITH RECURSIVE cte AS (
+        -- Anchor Member (최상위 조건)
+        SELECT
+        GROUP_ID, GROUP_NM, PARENT_GROUP_ID, MHSYN,
+        <choose>
+            <when test="authorCode == 'ROLE_MHS_USER'">
+                2 AS level_val
+            </when>
+            <otherwise>
+                1 AS level_val
+            </otherwise>
+        </choose>
+        FROM LETTNAUTHORGROUPINFO
+        WHERE MHSYN = 'Y'
+        <choose>
+            <when test="authorCode != 'ROLE_MHS_USER'">
+                AND PARENT_GROUP_ID = 'EMART_00000000000001'
+            </when>
+            <otherwise>
+                AND PARENT_GROUP_ID = #{groupId}
+            </otherwise>
+        </choose>
+
+        UNION ALL
+
+        -- Recursive Member (하위 계층 탐색)
+        SELECT
+            g.GROUP_ID, g.GROUP_NM, g.PARENT_GROUP_ID, g.MHSYN,
+            c.level_val + 1
+        FROM LETTNAUTHORGROUPINFO g
+        JOIN cte c ON g.PARENT_GROUP_ID = c.GROUP_ID
+        WHERE g.MHSYN = 'Y'
+        )
+        SELECT
+            CAST(level_val AS VARCHAR) AS mhsBrandlv,
+            GROUP_NM AS mhsBrandnm,
+            GROUP_ID AS mhsBrandcd,
+            PARENT_GROUP_ID AS mhsParentbrandcd
+        FROM cte
+    </select>
+
+    <!-- 미사용 영역은 그대로 주석 유지 -->
+
+    <select id="selectMhsCenterList" resultType="CenterInfoVO">
+        SELECT
+            A.ROLE_CODE AS mhsBrandcd, A.CENTER_ID AS mhsCentercd, A.CENTER_NM AS mhsCenternm,
+            CASE CENTER_USEYN
+            WHEN 'Y' THEN '사용'
+            ELSE '미사용'
+            END AS mhsCenterstatusTxt
+        FROM TB_CENTERINFO A
+        WHERE A.ROLE_CODE = #{mhsBrandcd}
+        <if test="mhsCentercd != '' and mhsCentercd != null">
+            AND A.CENTER_ID = #{mhsCentercd}
+        </if>
+        ORDER BY A.CENTER_ID ASC, A.CENTER_NM ASC
+    </select>
+
+    <select id="selectMhsCenterInfo" resultType="CenterInfoVO">
+        SELECT
+            A.ROLE_CODE AS mhsBrandcd, A.CENTER_ID AS mhsCentercd, A.CENTER_NM AS mhsCenternm
+        FROM TB_CENTERINFO A
+        WHERE A.CENTER_ID = #{mhsCentercd}
+    </select>
+</mapper>

@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BrodScheduleManagerMapper">
+    <!-- 원본에 A.CENTER_ID = B.CENTER_ID 배포여부 판정 조건에서 브랜치 코드가
+         'BROD_0000000474'로 하드코딩되어 있어(항상 그 값 기준으로만 배포여부가 표시되던 버그),
+         파라미터로 넘어오는 #{brodCode}를 쓰도록 수정함 -->
+    <select id="selectBrodRigthLst" resultType="BrodScheduleInfoVO">
+        SELECT
+        A.CENTER_ID, A.CENTER_NM, A.CENTER_STARTTIME, A.CENTER_ENDTIME,
+        CASE
+        WHEN
+        (
+        (
+        SELECT COUNT(B.BROD_CODE)
+        FROM TB_BRODSCHEDULE B
+        WHERE B.BASIC_BROD_CODE = #{brodCode}
+        AND A.CENTER_ID = B.CENTER_ID
+        ) > 0
+        )
+        THEN 'Y'
+        ELSE 'N'
+        END AS BROD_CODE
+        FROM TB_CENTERINFO A
+        WHERE CENTER_USEYN = 'Y'
+        AND CENTER_GUBUN = 'BRANCH01'
+        <if test="searchKeyword != ''">
+            AND A.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+        </if>
+        ORDER BY CENTER_NM ASC
+    </select>
+
+    <select id="selectBrodScheduleUpdateChanage" resultType="BrodScheduleInfoVO">
+        SELECT
+            BROD_CODE, CENTER_ID, BROD_DAY, CREATE_CHECK, SCHEDULE_SEQ
+        FROM TB_BRODCENTERSCH
+        WHERE BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectBrodScheduleCreateCheckList" resultType="BrodScheduleInfo">
+        SELECT
+            SCHEDULE_SEQ, BROD_CODE, CENTER_ID, BROD_DAY
+        FROM TB_BRODCENTERSCH
+        WHERE CREATE_CHECK = 'N'
+          AND CENTER_ID = #{centerId}
+          AND BROD_DAY = #{brodDay}
+    </select>
+
+    <select id="selectBrodScheduleStatusPageCnt" resultType="java.lang.Integer">
+        SELECT
+        COALESCE(COUNT(*), 0)
+        FROM TB_BRODSCHEDULE A
+        JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+        JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CENTER_NM'">
+                    AND C.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="createCheck != ''">
+            AND B.CREATE_CHECK = #{createCheck}
+        </if>
+    </select>
+
+    <select id="selectBrodScheduleStatusLst" resultType="BrodScheduleInfoVO">
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY B.SCHEDULE_SEQ DESC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.BROD_NAME, C.CENTER_NM, B.BROD_DAY AS brodDay, B.CENTER_ID, B.BROD_CODE AS brodCode,
+        B.SCHEDULE_SEQ,
+        CASE B.BROD_DAY
+        WHEN '20991231' THEN CONCAT(C.CENTER_STARTTIME, '/', C.CENTER_ENDTIME)
+        ELSE
+        (
+        SELECT CONCAT(D.START_TIME, '/', D.END_TIME)
+        FROM TB_CENTERANNIVERSARY D
+        WHERE D.CENTER_ID = B.CENTER_ID
+        AND B.BROD_DAY BETWEEN D.CENTER_ANNISTARTDAY AND D.CENTER_ANNIENDDAY
+        LIMIT 1
+        )
+        END AS CENTER_STARTTIME,
+        B.CREATE_CHECK,
+        CASE B.CREATE_CHECK
+        WHEN 'N' THEN '00000000'
+        ELSE TO_CHAR(B.CREATE_REGDATE, 'YYYYMMDD')
+        END AS CREATE_REGDATE,
+        B.DID_DOWNCHECK AS didDownCheck,
+        TO_CHAR(B.DID_DOWNLOADDATE, 'YYYY-MM-DD HH24:MI:SS') AS didDownLoadDate
+        FROM TB_BRODSCHEDULE A
+        JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+        JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CENTER_NM'">
+                    AND C.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="createCheck != ''">
+            AND B.CREATE_CHECK = #{createCheck}
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBrodScheduleCnt" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM TB_BRODCENTERSCH
+        WHERE BROD_CODE = #{brodCode}
+          AND CENTER_ID = #{centerId}
+    </select>
+
+    <select id="selectBrodScheduleStateCnt" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM TB_BRODCENTERSCH
+        WHERE BROD_CODE = #{brodCode}
+          AND CENTER_ID = #{centerId}
+          AND CREATE_CHECK = #{createCheck}
+    </select>
+
+    <select id="selectBrodScheduleCenterCnt" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM TB_BRODCENTERSCH
+        WHERE CENTER_ID = #{centerId}
+    </select>
+
+    <select id="selectBrodScheduleAnniScheduleSeqDay" resultType="java.lang.String">
+        SELECT
+            CONCAT(A.SCHEDULE_SEQ, '/', #{brodDay})
+        FROM TB_BRODCENTERSCH A
+                 JOIN TB_CENTERANNIVERSARY B ON A.CENTER_ID = B.CENTER_ID
+        WHERE A.CENTER_ID = #{centerId}
+          AND #{brodDay} BETWEEN B.CENTER_ANNISTARTDAY AND B.CENTER_ANNIENDDAY
+            LIMIT 1
+    </select>
+
+    <!-- 전문 관련 작업 -->
+    <select id="selectBordScheduleCount" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM TB_BRODSCHEDULE A
+                 JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+                 JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+                 JOIN TB_DIDINFO D ON C.CENTER_ID = D.CENTER_ID
+        WHERE TRIM(D.DID_ID) = #{didId}
+          AND TRIM(D.DID_MAC) = #{didMac}
+          AND B.CREATE_CHECK = 'Y'
+          AND B.DID_DOWNCHECK = 'N'
+    </select>
+
+    <select id="selectBordScheduleCode" resultType="BrodScheduleInfo">
+        SELECT
+            A.BROD_CODE AS brodCode,
+            C.CENTER_STARTTIME AS centerStartTime,
+            C.CENTER_ENDTIME AS centerEndTime,
+            SUBSTRING(E.FILE_STRE_COURS FROM POSITION('/' IN E.FILE_STRE_COURS)) AS fileStreCours,
+            E.STRE_FILE_NM AS streFileNm,
+            C.CENTER_ID AS centerId
+        FROM TB_BRODSCHEDULE A
+                 JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+                 JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+                 JOIN TB_DIDINFO D ON C.CENTER_ID = D.CENTER_ID
+                 JOIN LETTNFILEDETAIL E ON A.BASIC_FILE_ID = E.ATCH_FILE_ID
+        WHERE TRIM(D.DID_ID) = #{didId}
+          AND TRIM(D.DID_MAC) = #{didMac}
+          AND B.CREATE_CHECK = 'Y'
+          AND B.DID_DOWNCHECK = 'N'
+            LIMIT 1
+    </select>
+
+    <select id="selectBordScheduleCodeRedown" resultType="BrodScheduleInfo">
+        SELECT
+            A.BROD_CODE AS brodCode,
+            C.CENTER_STARTTIME AS centerStartTime,
+            C.CENTER_ENDTIME AS centerEndTime,
+            SUBSTRING(E.FILE_STRE_COURS FROM POSITION('/' IN E.FILE_STRE_COURS)) AS fileStreCours,
+            E.STRE_FILE_NM AS streFileNm,
+            C.CENTER_ID AS centerId
+        FROM TB_BRODSCHEDULE A
+                 JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+                 JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+                 JOIN TB_DIDINFO D ON C.CENTER_ID = D.CENTER_ID
+                 JOIN LETTNFILEDETAIL E ON A.BASIC_FILE_ID = E.ATCH_FILE_ID
+        WHERE TRIM(D.DID_ID) = #{didId}
+          AND TRIM(D.DID_MAC) = #{didMac}
+          AND B.CREATE_CHECK = 'Y'
+        ORDER BY B.SCHEDULE_SEQ DESC
+            LIMIT 1
+    </select>
+
+    <!-- 신규 부분 -->
+    <select id="selectBordScheduleCodeNew" resultType="BrodScheduleInfo">
+        SELECT
+            A.BROD_CODE AS brodCode,
+            C.CENTER_STARTTIME AS centerStartTime,
+            C.CENTER_ENDTIME AS centerEndTime,
+            C.CENTER_ID AS centerId
+        FROM TB_BRODSCHEDULE A
+                 JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+                 JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+                 JOIN TB_DIDINFO D ON C.CENTER_ID = D.CENTER_ID
+        WHERE TRIM(D.DID_ID) = #{didId}
+          AND TRIM(D.DID_MAC) = #{didMac}
+          AND B.CREATE_CHECK = 'Y'
+          AND B.DID_DOWNCHECK = 'N'
+    </select>
+
+    <select id="selectBordScheduleCodeRedownNew" resultType="BrodScheduleInfo">
+        SELECT
+            A.BROD_CODE AS brodCode,
+            C.CENTER_STARTTIME AS centerStartTime,
+            C.CENTER_ENDTIME AS centerEndTime,
+            C.CENTER_ID AS centerId
+        FROM TB_BRODSCHEDULE A
+                 JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+                 JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+                 JOIN TB_DIDINFO D ON C.CENTER_ID = D.CENTER_ID
+        WHERE TRIM(D.DID_ID) = #{didId}
+          AND TRIM(D.DID_MAC) = #{didMac}
+          AND B.CREATE_CHECK = 'Y'
+        ORDER BY B.SCHEDULE_SEQ DESC
+            LIMIT 1
+    </select>
+    <!-- 신규 부분 끝 -->
+
+    <insert id="insertBrodSchedule">
+        INSERT INTO TB_BRODCENTERSCH
+        (
+            SCHEDULE_SEQ, BROD_CODE, CENTER_ID, BROD_DAY, CREATE_CHECK,
+            CREATE_REGDATE
+        )
+        VALUES
+            (
+                NEXTVAL('schedule_seq'), #{brodCode}, #{centerId}, #{brodDay}, 'N',
+                NOW()
+            )
+    </insert>
+
+    <update id="updateCenterSchedule">
+        UPDATE TB_CENTERINFO SET
+            BROD_CODE = #{brodCode}
+        WHERE CENTER_ID = #{centerId}
+    </update>
+
+    <update id="updateBrodSchedule">
+        UPDATE TB_BRODCENTERSCH SET
+                                    CREATE_CHECK = #{createCheck},
+                                    CREATE_REGDATE = NOW()
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+    </update>
+
+    <update id="updateBrodScheduleReset">
+        UPDATE TB_BRODCENTERSCH SET
+                                    CREATE_CHECK = #{createCheck},
+                                    CREATE_REGDATE = NOW(),
+                                    DID_DOWNCHECK = #{didDownCheck},
+                                    DID_DOWNLOADDATE = NOW()
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+    </update>
+
+    <update id="updateBrodScheduleCenterBrod">
+        UPDATE TB_BRODCENTERSCH SET
+                                    CREATE_CHECK = #{createCheck},
+                                    CREATE_REGDATE = NOW(),
+                                    DID_DOWNCHECK = 'N',
+                                    DID_DOWNLOADDATE = NULL
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+    </update>
+
+    <update id="updateBrodScheduleCenter">
+        UPDATE TB_BRODCENTERSCH SET
+                                    CREATE_CHECK = #{createCheck},
+                                    CREATE_REGDATE = NOW(),
+                                    DID_DOWNCHECK = 'N',
+                                    DID_DOWNLOADDATE = NULL
+        WHERE CENTER_ID = #{centerId}
+          AND BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodScheduleCenterNotUse">
+        UPDATE TB_BRODCENTERSCH SET
+                                    CREATE_CHECK = 'Y',
+                                    CREATE_REGDATE = NOW(),
+                                    DID_DOWNCHECK = 'N',
+                                    DID_DOWNLOADDATE = NULL
+        WHERE CENTER_ID = #{centerId}
+    </update>
+
+    <update id="updateBrodDidCenterID">
+        UPDATE TB_BRODCENTERSCH SET
+                                    DID_DOWNCHECK = #{didDownCheck},
+                                    DID_DOWNLOADDATE = NOW()
+        WHERE CENTER_ID = #{centerId}
+          AND BROD_CODE = #{brodCode}
+    </update>
+
+    <delete id="deleteBrodScheduleSeq">
+        DELETE FROM TB_BRODCENTERSCH
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+    </delete>
+
+    <delete id="deleteBrodSchedule">
+        DELETE FROM TB_BRODCENTERSCH
+        WHERE BROD_CODE = #{brodCode}
+          AND CENTER_ID = #{centerId}
+    </delete>
+
+    <delete id="deleteBrodScheduleOther">
+        DELETE FROM TB_BRODCENTERSCH
+        WHERE BROD_CODE != #{brodCode}
+          AND CENTER_ID = #{centerId}
+    </delete>
+
+    <delete id="deleteBrodScheduleAll">
+        DELETE FROM TB_BRODCENTERSCH
+        WHERE BROD_CODE IN
+              (
+                  SELECT BROD_CODE
+                  FROM TB_BRODSCHEDULE
+                  WHERE BROD_CODE = #{brodCode} OR BASIC_BROD_CODE = #{brodCode}
+              )
+    </delete>
+
+    <delete id="deleteBrodScheduleState">
+     <![CDATA[
+        DELETE FROM TB_BRODCENTERSCH
+        WHERE BROD_CODE = #{brodCode}
+          AND CREATE_CHECK = #{createCheck}
+          AND CENTER_ID = #{centerId}
+          AND SCHEDULE_SEQ <
+              (
+                  SELECT MAX(SCHEDULE_SEQ)
+                  FROM TB_BRODCENTERSCH
+                  WHERE BROD_CODE = #{brodCode}
+                    AND CREATE_CHECK = #{createCheck}
+                    AND CENTER_ID = #{centerId}
+              )
+        ]]>
+    </delete>
+</mapper>

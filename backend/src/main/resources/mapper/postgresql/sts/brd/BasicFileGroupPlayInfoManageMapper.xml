@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BasicFileGroupPlayInfoManageMapper">
+    <select id="selectPlayListInfo" resultType="BasicFileGroupPlayInfoVO">
+        SELECT
+        A.PLAY_DAY, A.PLAY_CNT, B.SINGER_NM, B.REAL_FILE_NM AS orignlFileNm, B.FILE_ALBUM,
+        B.FILE_ALBUM_REGDATE, C.CENTER_NM
+        FROM TB_BASICFILEGROUP_PLAYINFO A
+        JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        JOIN TB_CENTERINFO C ON A.CENTER_ID = C.CENTER_ID
+        WHERE 1=1
+        <if test="searchStartDay != ''">
+            AND A.PLAY_DAY BETWEEN #{searchStartDay} AND #{searchEndDay}
+        </if>
+        <if test="searchCenterId != null">
+            AND A.CENTER_ID IN
+            <foreach collection="searchCenterId" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY
+        A.PLAY_DAY, A.PLAY_CNT, B.SINGER_NM, B.REAL_FILE_NM, B.FILE_ALBUM,
+        B.FILE_ALBUM_REGDATE, C.CENTER_NM
+        ORDER BY C.CENTER_NM ASC, A.PLAY_DAY ASC
+    </select>
+
+    <select id="selectPlayListInfoNotCenter" resultType="BasicFileGroupPlayInfoVO">
+        SELECT
+        B.REAL_FILE_NM AS ORIGNL_FILE_NM, B.SINGER_NM, B.FILE_ALBUM, B.FILE_ALBUM_REGDATE, SUM(A.PLAY_CNT) AS PLAY_CNT
+        FROM TB_BASICFILEGROUP_PLAYINFO A
+        JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE 1=1
+        <if test="searchStartDay != ''">
+            AND A.PLAY_DAY BETWEEN #{searchStartDay} AND #{searchEndDay}
+        </if>
+        <if test="searchCenterId != null">
+            AND A.CENTER_ID IN
+            <foreach collection="searchCenterId" item="item" index="index" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY B.REAL_FILE_NM, B.SINGER_NM, B.FILE_ALBUM, B.FILE_ALBUM_REGDATE
+        ORDER BY REAL_FILE_NM ASC
+    </select>
+
+    <select id="selectFileInserCheck" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BASICFILEGROUP_PLAYINFO
+        WHERE CENTER_ID = #{centerId}
+          AND PLAY_DAY = #{playDay}
+          AND ATCH_FILE_ID = #{atchFileId}
+    </select>
+
+    <insert id="insertFilePlay">
+        INSERT INTO TB_BASICFILEGROUP_PLAYINFO
+        (
+            CENTER_ID, PLAY_DAY, ATCH_FILE_ID, PLAY_CNT
+        )
+        VALUES
+            (
+                #{centerId}, #{playDay}, #{atchFileId}, #{playCnt}
+            )
+    </insert>
+
+    <update id="updateFilePlay">
+        UPDATE TB_BASICFILEGROUP_PLAYINFO SET
+            PLAY_CNT = #{playCnt}
+        WHERE CENTER_ID = #{centerId}
+          AND PLAY_DAY = #{playDay}
+          AND ATCH_FILE_ID = #{atchFileId}
+    </update>
+
+    <delete id="deleteFilePlay">
+        DELETE FROM TB_BASICFILEGROUP_PLAYINFO
+        WHERE CENTER_ID = #{centerId}
+          AND PLAY_DAY = #{playDay}
+    </delete>
+</mapper>

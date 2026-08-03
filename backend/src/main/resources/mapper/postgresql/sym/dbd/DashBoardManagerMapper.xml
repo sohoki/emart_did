@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sym.dbd.mapper.DashBoardManagerMapper">
+    <select id="selectDidStatus" resultType="DashBoardInfo">
+        SELECT DIDCNT, ONCNT, REAL_PER, OFFDID, OFFCNT FROM DID_STATE
+    </select>
+
+    <select id="selectBrodStatus" resultType="DashBoardInfo">
+        SELECT DIDCNT, ONCNT, REAL_PER, OFFDID, OFFCNT FROM BROD_STATE
+    </select>
+
+    <select id="selectBrodStatusPage01" resultType="DashBoardInfo">
+        SELECT X.* FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.DID_ENDCONTIME DESC) AS RNUM,
+                    TB.*
+                FROM
+                    (
+                        SELECT
+                            A.DID_NM AS didNm, B.CENTER_NM AS centerNm,
+                            CASE A.DID_STTUS
+                                WHEN 'N' THEN 'OFFLINE'
+                                ELSE 'ERROR'
+                                END AS didStatus,
+                            TO_CHAR(A.DID_ENDCONTIME, 'YYYY-MM-DD HH24:MI:SS') AS didEndcontime, A.DID_ID
+                        FROM TB_DIDINFO A
+                                 JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+                        WHERE A.DID_USEYN = 'Y'
+                          AND A.DID_MODELTYPE IN ('DIDRMODELTYPE01', 'DIDRMODELTYPE02')
+                          AND A.DID_STTUS != 'Y'
+                    ) TB
+            ) X
+        WHERE X.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBrodStatusPage01Cnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_DIDINFO A
+                 JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+        WHERE A.DID_USEYN = 'Y'
+          AND A.DID_MODELTYPE IN ('DIDRMODELTYPE01', 'DIDRMODELTYPE02')
+          AND A.DID_STTUS != 'Y'
+    </select>
+
+    <select id="selectBrodStatusPage02" resultType="DashBoardInfo">
+        SELECT X.* FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.DID_ENDCONTIME DESC) AS RNUM,
+                    TB.*
+                FROM
+                    (
+                        SELECT
+                            A.DID_NM AS didNm,
+                            B.CENTER_NM AS centerNm,
+                            CASE A.DID_STTUS
+                                WHEN 'N' THEN 'OFFLINE'
+                                ELSE 'ERROR'
+                                END AS didStatus,
+                            TO_CHAR(A.DID_ENDCONTIME, 'YYYY-MM-DD HH24:MI:SS') AS didEndcontime,
+                            A.DID_ID
+                        FROM TB_DIDINFO A
+                                 JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+                        WHERE A.DID_USEYN = 'Y'
+                          AND A.DID_MODELTYPE = 'DIDRMODELTYPE03'
+                          AND A.DID_STTUS != 'Y'
+                    ) TB
+            ) X
+        WHERE X.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBrodStatusPage02Cnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_DIDINFO A
+                 JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+        WHERE A.DID_USEYN = 'Y'
+          AND A.DID_MODELTYPE = 'DIDRMODELTYPE03'
+          AND A.DID_STTUS != 'Y'
+    </select>
+
+    <update id="dashStateUpdateStep01">
+     <![CDATA[
+        UPDATE TB_DIDINFO SET
+            DID_STTUS = 'Y'
+        WHERE (DID_ENDCONTIME + INTERVAL '2 minute') >= NOW()
+        ]]>
+    </update>
+
+    <update id="dashStateUpdateStep02">
+     <![CDATA[
+        UPDATE TB_DIDINFO SET
+            DID_STTUS = 'N'
+        WHERE (DID_ENDCONTIME + INTERVAL '2 minute') < NOW()
+        ]]>
+    </update>
+</mapper>

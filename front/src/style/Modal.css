@@ -1,0 +1,112 @@
+/* Modal.css */
+/* z-index 2000/2001 — 헤더(1300)/푸터(1200)/사이드바(1100)보다 항상 위에 오도록 고정
+   (SideBar.css/CusReserve.css 참고). 개별 모달 파일들이 이 값을 인라인으로 다시 지정해서
+   써왔던 것도 같은 값(2000/2001)으로 맞춰져 있음 — 이 기본값이 이제 그 자체로 맞다. */
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+}
+
+.modal-custom {
+  position: fixed;
+  inset: 0;
+  z-index: 2001;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* modal-custom 내부 dialog는 클릭 가능하도록 pointer-events 복원 */
+.modal-custom .modal-dialog {
+  pointer-events: auto;
+}
+
+/* ── SweetAlert2 확인창은 항상 최상단에 ──────────────────────── */
+/* sweetalert2 기본 CSS는 z-index:1060을 :where(.swal2-container)로 지정(specificity 0) —
+   ag-grid master/detail 행 내부 모달(z-index 2001까지 portal되는 경우 있음) 뒤에 깔리지 않도록
+   일반 클래스 선택자로 덮어쓴다. */
+.swal2-container {
+  z-index: 3000;
+}
+
+.modal-content-wrapper {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  pointer-events: auto; /* 콘텐츠 영역은 클릭 가능 */
+}
+
+/* ── 모달 헤더/바디/푸터 패딩 명시적 보장 ───────────────────── */
+/* reset.css + Bootstrap 이중 로드 환경에서 common.css 패딩이    */
+/* 덮어써지는 것을 방지하기 위해 Modal.css에서 최종 재정의        */
+.modal-custom .modal-header {
+  padding: 15px 20px !important;
+  border-bottom: none !important;
+  align-items: flex-start !important;
+}
+
+.modal-custom .modal-body {
+  padding: 15px 20px !important;
+}
+
+.modal-custom .modal-footer {
+  padding: 15px 20px !important;
+  border-top: 1px solid #f2f2f2;
+}
+
+/* ── 모달 바디 콘텐츠 래퍼 ───────────────────────────────────── */
+.modal-body__content {
+  padding: 0;
+}
+
+/* ── 모달 인풋 박스 래퍼 — Bootstrap row 음수 마진 보정 ─────── */
+/* row.input-box-wrap 의 음수 마진이 modal-body 패딩을 침범하지   */
+/* 않도록 overflow-x 를 hidden 으로 처리                         */
+.modal-custom .modal-body {
+  overflow-x: hidden;
+}
+
+/* ── 모달 푸터 우측 버튼 그룹 ───────────────────────────────── */
+.modal-footer__right {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+}
+
+/* ── 다크 모드 modal-footer border-top ──────────────────────── */
+[data-theme="dark"] .modal-custom .modal-footer {
+  border-top-color: #373a40;
+}
+
+/* ── 스크롤 가능한 모달 (헤더/푸터 고정, 본문만 스크롤) ─────────
+   modal-dialog-scrollable 클래스는 여러 모달에서 이미 쓰이고 있었지만, 여기가 Bootstrap의
+   진짜 .modal이 아니라 커스텀 오버레이(.modal-custom)라 Bootstrap 자체 CSS가 안 먹혀서
+   지금까지 아무 효과가 없었다 — 내용이 뷰포트보다 길면 모달 전체가 화면 위아래로 넘쳐서
+   하단 버튼(취소/저장 등)이 안 보이는 문제가 있었음. 여기서 직접 구현한다. */
+.modal-custom .modal-dialog-scrollable {
+  max-height: calc(100vh - 3.5rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-custom .modal-dialog-scrollable .modal-content {
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-custom .modal-dialog-scrollable .modal-header,
+.modal-custom .modal-dialog-scrollable .modal-footer {
+  flex-shrink: 0;
+}
+
+.modal-custom .modal-dialog-scrollable .modal-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}

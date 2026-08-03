@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.mhs.mapper.MhsMonitorManageMapper">
+    <select id="selectMhsMonitorList" resultType="MhsMonitorInfoVO">
+        SELECT * FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY A.MHS_MREGDATE DESC) AS RNUM, TB.* FROM
+        (
+        SELECT
+        B.GROUP_NM AS "mhsBrandnm", C.CENTER_NM AS "mhsCenternm", A.MHS_MONITORNM AS "mhsMonitornm", A.MHS_MONITORCD AS "mhsMonitorcd", A.MHS_IPADDR AS "mhsIpaddr",
+        A.MHS_MACADDR AS "mhsMacaddr",
+        CASE
+        <![CDATA[
+                   WHEN A.MHS_LASTCONN > (NOW() - INTERVAL '10 minute') AND A.MHS_LASTCONN IS NOT NULL
+                   ]]>
+        THEN 'ON'
+        ELSE 'OFF'
+        END AS mhsLastconn,
+        A.MHS_REMARK AS "mhsRemark"
+        FROM TB_MHSMONITORINFO A
+        JOIN LETTNAUTHORGROUPINFO B ON A.MHS_BRANDCD = B.GROUP_ID
+        JOIN TB_CENTERINFO C ON A.MHS_CENTERCD = C.CENTER_ID
+        JOIN LETTNAUTHORGROUPINFO D ON C.ROLE_CODE = D.GROUP_ID
+        WHERE A.MHS_MONITORSTATUS != 'N'
+        <if test="authorCode == 'ROLE_MHS_USER'">
+            <if test='mhsCentercd != null and mhsCentercd != "" '>
+                AND A.MHS_CENTERCD = #{mhsCentercd}
+            </if>
+            <choose>
+                <when test="searchCondition == 'A.MHS_MONITORNM' and searchKeyword != ''">
+                    AND A.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchCondition == 'A.MHS_MONITORCD' and searchKeyword != ''">
+                    AND A.MHS_MONITORCD LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchCondition == 'A.MHS_IPADDR' and searchKeyword != ''">
+                    AND A.MHS_IPADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchCondition == 'A.MHS_MACADDR' and searchKeyword != ''">
+                    AND A.MHS_MACADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+            </choose>
+            AND A.MHS_BRANDCD IN
+            (
+            WITH RECURSIVE cte AS (
+            SELECT GROUP_ID, PARENT_GROUP_ID
+            FROM LETTNAUTHORGROUPINFO
+            WHERE GROUP_ID = #{groupId}
+            UNION ALL
+            SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+            FROM LETTNAUTHORGROUPINFO g
+            JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+            )
+            SELECT GROUP_ID FROM cte
+            )
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectMhsMonitorListCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_MHSMONITORINFO A
+        JOIN LETTNAUTHORGROUPINFO B ON A.MHS_BRANDCD = B.GROUP_ID
+        JOIN TB_CENTERINFO C ON A.MHS_CENTERCD = C.CENTER_ID
+        JOIN LETTNAUTHORGROUPINFO D ON C.ROLE_CODE = D.GROUP_ID
+        WHERE A.MHS_MONITORSTATUS != 'N'
+        <if test="authorCode == 'ROLE_MHS_USER'">
+            <if test='mhsCentercd != null and mhsCentercd != "" '>
+                AND A.MHS_CENTERCD = #{mhsCentercd}
+            </if>
+        </if>
+        <choose>
+            <when test="searchCondition == 'A.MHS_MONITORNM' and searchKeyword != ''">
+                AND A.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
+            </when>
+            <when test="searchCondition == 'A.MHS_MONITORCD' and searchKeyword != ''">
+                AND A.MHS_MONITORCD LIKE CONCAT('%', #{searchKeyword}, '%')
+            </when>
+            <when test="searchCondition == 'A.MHS_IPADDR' and searchKeyword != ''">
+                AND A.MHS_IPADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+            </when>
+            <when test="searchCondition == 'A.MHS_MACADDR' and searchKeyword != ''">
+                AND A.MHS_MACADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+            </when>
+        </choose>
+    </select>
+
+    <select id="selectMhsMonitorInfo" resultType="MhsMonitorInfoVO">
+        SELECT
+            A.MHS_MONITORCD AS mhsMonitorcd, A.MHS_MONITORNM AS mhsMonitornm, A.MHS_BRANDCD AS mhsBrandcd,
+            A.MHS_CENTERCD AS mhsCentercd, A.MHS_MVIEWTYPE AS mhsMviewtype, A.MHS_IPADDR AS mhsIpaddr, A.MHS_MACADDR AS mhsMacaddr, A.MHS_MREGID AS mhsMregid,
+            A.MHS_MREGDATE AS mhsMregdate, A.MHS_MUPDATEID AS mhsMupdateid, A.MHS_MUPDATEDATE AS mhsMupdatedate, A.MHS_LASTCONN AS mhsLastconn, A.MHS_REMARK AS mhsRemark,
+            A.MHS_MONITORSTATUS AS mhsMonitorstatus, B.GROUP_NM AS "mhsBrandnm", C.CENTER_NM AS "mhsCenternm"
+        FROM TB_MHSMONITORINFO A
+                 JOIN LETTNAUTHORGROUPINFO B ON A.MHS_BRANDCD = B.GROUP_ID
+                 JOIN TB_CENTERINFO C ON A.MHS_CENTERCD = C.CENTER_ID
+        WHERE A.MHS_MONITORCD = #{mhsMonitorcd}
+    </select>
+
+    <select id="selectMhsMonitorCombo" resultType="MhsMonitorInfoVO">
+        SELECT
+            MHS_MONITORNM AS mhsMonitornm, MHS_MONITORCD AS mhsMonitorcd
+        FROM TB_MHSMONITORINFO
+        WHERE MHS_CENTERCD = #{mhsCentercd}
+        ORDER BY MHS_MONITORNM ASC
+    </select>
+
+    <!-- MHS_MONITORCD 채번(MhsMonitorInfoManageService.generateMhsMonitorcd에서 사용) -->
+    <select id="selectMhsMonitorId" resultType="java.lang.String">
+        SELECT FN_MHSMONITERID(#{mhsCentercd})
+    </select>
+
+    <insert id="insertMhsMonitorInfo">
+        INSERT INTO TB_MHSMONITORINFO
+        (
+            MHS_MONITORCD, MHS_MONITORNM, MHS_BRANDCD, MHS_CENTERCD, MHS_MVIEWTYPE,
+            MHS_MREGID, MHS_MREGDATE, MHS_MUPDATEID, MHS_MUPDATEDATE, MHS_REMARK,
+            MHS_MONITORSTATUS
+        )
+        VALUES
+            (
+                #{mhsMonitorcd}, #{mhsMonitornm,jdbcType=VARCHAR}, #{mhsBrandcd,jdbcType=VARCHAR}, #{mhsCentercd,jdbcType=VARCHAR}, #{mhsMviewtype,jdbcType=VARCHAR},
+                #{mhsMregid,jdbcType=VARCHAR}, NOW(), #{mhsMregid,jdbcType=VARCHAR}, NOW(), #{mhsRemark,jdbcType=VARCHAR},
+                'Y'
+            )
+    </insert>
+
+    <update id="updateMhsMonitorInfo">
+        UPDATE TB_MHSMONITORINFO SET
+        MHS_MONITORNM = #{mhsMonitornm},
+        MHS_BRANDCD = #{mhsBrandcd},
+        MHS_CENTERCD = #{mhsCentercd,jdbcType=VARCHAR},
+        MHS_MVIEWTYPE = #{mhsMviewtype,jdbcType=VARCHAR},
+        MHS_MUPDATEID = #{mhsMupdateid,jdbcType=VARCHAR},
+        MHS_MUPDATEDATE = NOW(),
+        <if test='mhsRemark != null and mhsRemark != "" '>
+            MHS_REMARK = #{mhsRemark},
+        </if>
+        MHS_MONITORSTATUS = #{mhsMonitorstatus,jdbcType=VARCHAR}
+        WHERE MHS_MONITORCD = #{mhsMonitorcd}
+    </update>
+
+    <update id="updateMhsMonitorInfoIpMac">
+        UPDATE TB_MHSMONITORINFO SET
+                                     MHS_IPADDR = #{mhsIpaddr},
+                                     MHS_MACADDR = #{mhsMacaddr},
+                                     MHS_MVIEWTYPE = #{mhsMviewtype,jdbcType=VARCHAR}
+        WHERE MHS_MONITORCD = #{mhsMonitorcd}
+    </update>
+
+    <update id="updateMhsMonitorInfoStatus">
+        UPDATE TB_MHSMONITORINFO SET
+                                     MHS_LASTCONN = NOW(),
+                                     MHS_MONITORSTATUS = 'Y'
+        WHERE MHS_MONITORCD = #{mhsMonitorcd}
+    </update>
+
+    <delete id="deleteMhsMonitorInfo">
+        DELETE FROM TB_MHSMONITORINFO
+        WHERE MHS_MONITORCD = #{mhsMonitorcd}
+    </delete>
+</mapper>

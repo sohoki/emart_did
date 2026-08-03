@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BasicBrodFileManagerMapper">
+    <select id="selectBasicBrodFileLst" resultType="BasicBrodFileInfoVO">
+        SELECT
+            A.BASIC_SEQ, A.BASIC_CODE, A.ATCH_FILE_ID, A.USEYN, A.BASIC_ORDER,
+            B.ORIGNL_FILE_NM, B.STRE_FILE_NM, A.BASIC_STARTDAY, A.BASIC_ENDDAY, A.BASIC_STARTTIME,
+            A.BASIC_ENDTIME, A.BASIC_TIMEDIV,
+            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+        FROM TB_BRODBASICFILE A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE A.BASIC_CODE = #{basicCode}
+        ORDER BY A.BASIC_STARTDAY ASC, A.BASIC_STARTTIME ASC, A.BASIC_TIMEDIV DESC
+    </select>
+
+    <select id="selectBasicBrodSchFileLstNew" resultType="BasicBrodFileInfoVO">
+        SELECT
+            A.ATCH_FILE_ID, B.STRE_FILE_NM,
+            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+        FROM TB_BRODBASICFILE A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE A.BASIC_CODE = #{basicCode}
+          AND TO_CHAR(NOW(), 'YYYYMMDD') BETWEEN A.BASIC_STARTDAY AND A.BASIC_ENDDAY
+        GROUP BY A.ATCH_FILE_ID, B.FILE_STRE_COURS, B.STRE_FILE_NM
+    </select>
+
+    <select id="selectBasicBrodSchFileLst" resultType="BasicBrodFileInfoVO">
+        SELECT
+            A.BASIC_SEQ, A.BASIC_CODE, A.ATCH_FILE_ID, A.USEYN, A.BASIC_ORDER,
+            B.ORIGNL_FILE_NM, B.STRE_FILE_NM, A.BASIC_STARTDAY, A.BASIC_ENDDAY, A.BASIC_STARTTIME,
+            A.BASIC_ENDTIME, A.BASIC_TIMEDIV,
+            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+        FROM TB_BRODBASICFILE A
+                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE A.BASIC_CODE = #{basicCode}
+          AND #{searchDay,jdbcType=VARCHAR} BETWEEN A.BASIC_STARTDAY AND A.BASIC_ENDDAY
+        ORDER BY A.BASIC_STARTDAY ASC, A.BASIC_STARTTIME ASC, A.BASIC_TIMEDIV DESC
+    </select>
+
+    <insert id="insertBasicBrodFile">
+        INSERT INTO TB_BRODBASICFILE
+        (
+            BASIC_SEQ, BASIC_CODE, ATCH_FILE_ID, USEYN, BASIC_ORDER,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID, BASIC_STARTDAY,
+            BASIC_ENDDAY, BASIC_STARTTIME, BASIC_ENDTIME, BASIC_TIMEDIV
+        )
+        VALUES
+            (
+                NEXTVAL('basicbrodfile_seq'), #{basicCode}, #{atchFileId}, 'Y', #{basicOrder},
+                NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{basicStartDay},
+                #{basicEndDay}, #{basicStartTime}, #{basicEndTime}, #{basicTimeDiv}
+            )
+    </insert>
+
+    <insert id="insertBasicBrodFileCopy">
+        INSERT INTO TB_BRODBASICFILE
+        (
+            BASIC_SEQ, BASIC_CODE, ATCH_FILE_ID, USEYN, BASIC_ORDER,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID
+        )
+        SELECT
+            NEXTVAL('basicbrodfile_seq'), #{basicCode}, ATCH_FILE_ID, USEYN, BASIC_ORDER,
+            NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}
+        FROM TB_BRODBASICFILE
+        WHERE BASIC_CODE = #{basicCodeCp}
+    </insert>
+
+    <delete id="deleteBasicBrodFile">
+        DELETE FROM TB_BRODBASICFILE
+        WHERE BASIC_SEQ = #{basicSeq}
+    </delete>
+
+    <delete id="deleteBasicBrodBasicCode">
+        DELETE FROM TB_BRODBASICFILE
+        WHERE BASIC_CODE = #{basicCode}
+    </delete>
+
+</mapper>

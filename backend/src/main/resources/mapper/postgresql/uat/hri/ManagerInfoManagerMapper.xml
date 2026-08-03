@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.uat.hri.mapper.ManagerInfoManagerMapper">
+
+    <select id="selectManagerManageListByPagination" resultType="camelmap">
+        SELECT COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
+        TB.* FROM (
+            SELECT
+                A.MANAGER_ID, A.MANAGER_NAME, A.USE_YN,
+                A.PART_ID, C.PART_NM,
+                A.EMP_NO, A.MANAGER_STATUS,
+                A.ROLE_ID, R.ROLE_NAME,
+                A.CENTER_ID,
+                A.MANAGER_EMAIL, A.MANAGER_TEL,
+                TO_CHAR(A.LAST_UPDT_PNTTM, 'YYYY-MM-DD HH24:MI') AS LAST_UPDT_PNTTM,
+                A.LAST_UPDUSR_ID
+            FROM tb_managerinfo A
+            LEFT JOIN tb_partinfo C ON A.PART_ID = C.PART_ID
+            LEFT JOIN tb_roleinfo R ON A.ROLE_ID = R.ROLE_ID
+            WHERE 1=1
+            <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
+                <choose>
+                    <when test="params.searchCondition == 'managerId'">
+                        AND A.MANAGER_ID LIKE CONCAT('%', #{params.searchKeyword}, '%')
+                    </when>
+                    <otherwise>
+                        AND (A.MANAGER_ID LIKE CONCAT('%', #{params.searchKeyword}, '%')
+                             OR A.MANAGER_NAME LIKE CONCAT('%', #{params.searchKeyword}, '%'))
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchRoleId)">
+                AND A.ROLE_ID = #{params.searchRoleId}
+            </if>
+            <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchPartId)">
+                AND A.PART_ID = #{params.searchPartId}
+            </if>
+            <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchUseYn)">
+                AND A.USE_YN = #{params.searchUseYn}
+            </if>
+            ORDER BY A.MANAGER_ID ASC
+        ) TB
+        LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
+    </select>
+</mapper>

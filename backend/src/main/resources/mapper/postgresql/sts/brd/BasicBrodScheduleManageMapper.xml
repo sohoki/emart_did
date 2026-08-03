@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BasicBrodScheduleManagerMapper">
+    <select id="selectBasicBrodScheduleLst" resultType="BasicBrodScheduleInfoVO">
+        SELECT *
+        FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY A.CREATE_CHECK ASC, A.DID_DOWNCHECK ASC) AS RNUM, TB.*
+        FROM
+        (
+        SELECT
+        A.BASIC_SCHEDULE_SEQ, A.CENTER_ID, B.CENTER_NM, A.BASIC_CODE, C.BASIC_GROUP_NM,
+        A.CREATE_CHECK,
+        CASE A.CREATE_CHECK
+        WHEN 'N' THEN '00000000'
+        ELSE TO_CHAR(A.CREATE_REGDATE, 'YYYY-MM-DD HH24:MI:SS')
+        END AS CREATE_REGDATE,
+        A.DID_DOWNCHECK, A.DID_DOWNLOADDATE
+        FROM TB_BASICSCHEDULE A
+        JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+        JOIN TB_BRODBASICGROUP C ON A.BASIC_CODE = C.BASIC_CODE
+        WHERE 1=1
+        <if test="basicCode != ''">
+            AND A.BASIC_CODE = #{basicCode}
+        </if>
+        <if test="createCheck != ''">
+            AND A.CREATE_CHECK = #{createCheck}
+        </if>
+        <if test="didDowncheck != ''">
+            AND A.DID_DOWNCHECK = #{didDowncheck}
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBasicBrodScheduleLstCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BASICSCHEDULE A
+        JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+        JOIN TB_BRODBASICGROUP C ON A.BASIC_CODE = C.BASIC_CODE
+        WHERE 1=1
+        <if test="basicCode != ''">
+            AND A.BASIC_CODE = #{basicCode}
+        </if>
+        <if test="createCheck != ''">
+            AND A.CREATE_CHECK = #{createCheck}
+        </if>
+        <if test="didDowncheck != ''">
+            AND A.DID_DOWNCHECK = #{didDowncheck}
+        </if>
+    </select>
+
+    <select id="selectBasicBrodContentlDownCheck" resultType="java.lang.String">
+        SELECT COALESCE(A.BASIC_CODE, 'N')
+        FROM TB_BASICSCHEDULE A
+                 JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+                 JOIN TB_DIDINFO C ON A.CENTER_ID = C.CENTER_ID
+        WHERE A.CREATE_CHECK = 'Y'
+          AND A.DID_DOWNCHECK = 'N'
+          AND C.DID_ID = #{didId}
+          AND TRIM(C.DID_MAC) = #{didMac}
+            LIMIT 1
+    </select>
+
+    <select id="selectBasicBrodScheduleCheckList" resultType="BasicBrodScheduleInfoVO">
+        SELECT
+            A.CENTER_ID, A.CENTER_NM, C.BASIC_CODE, C.BASIC_GROUP_NM
+        FROM TB_CENTERINFO A
+                 JOIN TB_BRODSCHEDULE B ON A.CENTER_ID = B.CENTER_ID
+                 LEFT JOIN TB_BRODBASICGROUP C ON B.BASIC_FILE_ID = C.BASIC_CODE
+        WHERE A.CENTER_GUBUN = #{centerGubun}
+        ORDER BY A.CENTER_ID DESC
+    </select>
+
+    <insert id="insertBasicBrodSchedule">
+        INSERT INTO TB_BASICSCHEDULE
+        (
+            BASIC_SCHEDULE_SEQ, CENTER_ID, BASIC_CODE, CREATE_CHECK, CREATE_REGDATE
+        )
+        VALUES
+            (
+                NEXTVAL('basicbrodsechedule_seq'), #{centerId}, #{basicCode}, #{createCheck}, NOW()
+            )
+    </insert>
+
+    <insert id="insertBasicBrodScheduleDistribute">
+        INSERT INTO TB_BASICSCHEDULE
+        (
+            BASIC_SCHEDULE_SEQ, CENTER_ID, BASIC_CODE, CREATE_CHECK, CREATE_REGDATE
+        )
+        SELECT
+            NEXTVAL('basicbrodsechedule_seq'), A.CENTER_ID, A.BASIC_FILE_ID, 'Y', NOW()
+        FROM TB_BRODSCHEDULE A
+                 JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+        WHERE A.BASIC_FILE_ID = #{basicCode}
+    </insert>
+
+    <update id="updateBasicBrodScheduleCenter">
+        UPDATE TB_BASICSCHEDULE SET
+                                    BASIC_CODE = #{basicCode},
+                                    CREATE_CHECK = #{createCheck}
+        WHERE CENTER_ID = #{centerId}
+    </update>
+
+    <update id="updateBasicBrodScheduleCenterStateChange">
+        UPDATE TB_BASICSCHEDULE SET
+            CREATE_CHECK = #{createCheck}
+        WHERE BASIC_CODE = #{basicCode}
+          AND CREATE_CHECK = #{preCreateCheck}
+    </update>
+
+    <update id="updateBasicBrodScheduleState">
+        UPDATE TB_BASICSCHEDULE SET
+                                    CREATE_CHECK = 'E',
+                                    CREATE_REGDATE = NULL,
+                                    DID_DOWNCHECK = 'N',
+                                    DID_DOWNLOADDATE = NULL
+        WHERE BASIC_CODE = #{basicCode}
+    </update>
+
+    <update id="updateBasicBrodScheduleCenterE">
+        UPDATE TB_BASICSCHEDULE SET
+            CREATE_CHECK = #{createCheck}
+        WHERE CENTER_ID = #{centerId}
+          AND CREATE_CHECK = 'Y'
+    </update>
+
+    <update id="updateBasicBrodScheduleCenterDownCheck">
+        UPDATE TB_BASICSCHEDULE SET
+                                    DID_DOWNCHECK = #{didDowncheck},
+                                    DID_DOWNLOADDATE = NOW()
+        WHERE CENTER_ID = #{centerId}
+          AND BASIC_CODE = #{basicCode}
+          AND CREATE_CHECK = 'Y'
+    </update>
+
+    <update id="updateBasicBrodSchedule">
+        UPDATE TB_BASICSCHEDULE SET
+            BASIC_CODE = #{basicCode}
+        WHERE BASIC_SCHEDULE_SEQ = #{basicScheduleSeq}
+    </update>
+
+    <update id="updateBasicBrodScheduleRestart">
+        UPDATE TB_BASICSCHEDULE SET
+                                    CREATE_CHECK = 'Y',
+                                    CREATE_REGDATE = NOW(),
+                                    DID_DOWNCHECK = 'N',
+                                    DID_DOWNLOADDATE = NULL
+        WHERE BASIC_SCHEDULE_SEQ = #{basicScheduleSeq}
+    </update>
+
+    <update id="updateBasicCodeCenterUpdate">
+        UPDATE TB_CENTERINFO SET
+            BROD_CODE = #{basicCode}
+        WHERE CENTER_ID = #{centerId}
+    </update>
+
+    <update id="updateBasicCodeCenterReset">
+        UPDATE TB_CENTERINFO SET
+            BROD_CODE = NULL
+        WHERE BROD_CODE = #{basicCode}
+    </update>
+
+    <delete id="deleteBasicBrodScheduleCenter">
+        DELETE FROM TB_BASICSCHEDULE
+        WHERE BASIC_CODE = #{basicCode}
+          AND CENTER_ID = #{centerId}
+    </delete>
+
+    <delete id="deleteBasicBrodSchedule">
+        DELETE FROM TB_BASICSCHEDULE
+        WHERE BASIC_CODE = #{basicCode}
+          AND CREATE_CHECK = #{createCheck}
+    </delete>
+
+    <delete id="deleteBasicBrodScheduleOther">
+        DELETE FROM TB_BASICSCHEDULE
+        WHERE BASIC_CODE != #{basicCode}
+          AND CENTER_ID = #{centerId}
+    </delete>
+</mapper>

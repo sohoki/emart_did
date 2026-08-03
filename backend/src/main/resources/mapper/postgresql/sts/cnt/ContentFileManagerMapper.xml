@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentFileManagerMapper">
+    <select id="selectFilePageListByPagination" resultType="ContentFileInfoVO">
+        SELECT * FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY X.ATCH_FILE_ID DESC) AS RNUM, X.* FROM
+        (
+        SELECT
+        A.ATCH_FILE_ID,
+        SUBSTRING(A.FILE_STRE_COURS FROM POSITION('/' IN A.FILE_STRE_COURS)) AS FILE_STRE_COURS,
+        A.STRE_FILE_NM, A.FILE_EXTSN, A.CON_SEQ,
+        A.FILE_ORDER, A.FILE_THUMNAIL, A.ORIGNL_FILE_NM,
+        CASE
+        WHEN LOWER(A.FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+        WHEN LOWER(A.FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+        WHEN LOWER(A.FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+        END AS mediaType,
+        A.PLAY_TIME, A.FILE_WIDTH, A.FILE_HEIGHT, A.UseYN, A.FILE_GUBUN
+        FROM LETTNFILEDETAIL A
+        WHERE 1=1
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND A.GROUP_ID IN
+                    (
+                    WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND A.CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'atchFileId'">
+                    AND STRE_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND ORIGNL_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="fileGubun != ''">
+            AND A.FILE_GUBUN = #{fileGubun}
+        </if>
+        ) X
+        WHERE 1=1
+        <if test="mediaType != '' ">
+            AND X.mediaType = #{mediaType}
+        </if>
+        <if test="notConType != '' ">
+            AND X.mediaType != #{notConType}
+        </if>
+        <choose>
+            <when test="fileThumnail == 'no_image.png'">
+                AND X.FILE_THUMNAIL = 'no_image.png'
+            </when>
+            <otherwise>
+                AND (X.FILE_THUMNAIL != 'no_image.png' OR X.FILE_THUMNAIL IS NULL)
+            </otherwise>
+        </choose>
+        ) TA
+        WHERE RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBasicFilePageListByPagination" resultType="ContentFileInfoVO">
+        SELECT * FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY X.ATCH_FILE_ID DESC) AS RNUM, X.* FROM
+        (
+        SELECT
+        A.ATCH_FILE_ID,
+        SUBSTRING(A.FILE_STRE_COURS FROM POSITION('/' IN A.FILE_STRE_COURS)) AS FILE_STRE_COURS,
+        A.STRE_FILE_NM, A.FILE_EXTSN, A.CON_SEQ,
+        A.FILE_ORDER, A.FILE_THUMNAIL, A.ORIGNL_FILE_NM, A.FILE_GUBUN,
+        CASE
+        WHEN LOWER(A.FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+        WHEN LOWER(A.FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+        WHEN LOWER(A.FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+        END AS mediaType,
+        A.PLAY_TIME, A.FILE_WIDTH, A.FILE_HEIGHT, A.UseYN
+        FROM LETTNFILEDETAIL A
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'atchFileId'">
+                    AND STRE_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND ORIGNL_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) X
+        WHERE X.mediaType = 'MUSIC'
+        AND X.FILE_GUBUN = 'fileGubun02'
+        ) TA
+        WHERE RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBasicFileDetailPageListByPagination" resultType="ContentFileInfoVO">
+        SELECT * FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY X.ATCH_FILE_ID DESC) AS RNUM,
+        COUNT(*) OVER() AS totalRecodCount,
+        X.*
+        FROM
+        (
+        SELECT
+        A.ATCH_FILE_ID,
+        SUBSTRING(A.FILE_STRE_COURS FROM POSITION('/' IN A.FILE_STRE_COURS)) AS FILE_STRE_COURS,
+        A.STRE_FILE_NM, A.FILE_EXTSN, A.CON_SEQ,
+        A.FILE_ORDER, A.FILE_THUMNAIL, A.ORIGNL_FILE_NM, A.FILE_GUBUN,
+        CASE
+        WHEN A.FILE_EXTSN IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+        WHEN A.FILE_EXTSN IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+        WHEN A.FILE_EXTSN IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+        END AS mediaType,
+        A.PLAY_TIME, A.FILE_WIDTH, A.FILE_HEIGHT, A.UseYN
+        FROM LETTNFILEDETAIL A
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'atchFileId'">
+                    AND STRE_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND ORIGNL_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) X
+        WHERE X.mediaType = 'MUSIC'
+        AND X.FILE_GUBUN = 'fileGubun02'
+        ) TA
+        WHERE RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBasicFilePageListByPaginationTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0) FROM
+        (
+        SELECT
+        CASE
+        WHEN LOWER(FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+        WHEN LOWER(FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+        WHEN LOWER(FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+        END AS mediaType,
+        ATCH_FILE_ID, FILE_GUBUN
+        FROM LETTNFILEDETAIL
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'atchFileId'">
+                    AND STRE_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND ORIGNL_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        ) X
+        WHERE X.mediaType = 'MUSIC' AND X.FILE_GUBUN = 'fileGubun02'
+    </select>
+
+    <select id="selectFileContentLstDid" resultType="ContentFileInfoVO">
+        SELECT
+            A.HIS_SEQ, B.SCH_CODE, E.CON_SEQ, E.DETAIL_SEQ,
+            SUBSTRING(D.FILE_STRE_COURS FROM POSITION('upload' IN D.FILE_STRE_COURS)) AS FILE_STRE_COURS,
+            D.ATCH_FILE_ID, D.STRE_FILE_NM, D.FILE_EXTSN, D.FILE_SIZE, E.TIME_INTERVAL,
+            E.FILE_ORDER
+        FROM TB_CONTENTSENDHISTORY A
+                 JOIN TB_SCHEDULE B ON A.SCH_CODE = B.SCH_CODE
+                 JOIN TB_DIDINFO C ON A.DID_ID = C.DID_ID
+                 JOIN TB_CONTENTMUTIL E_CON ON E_CON.CON_SEQ = B.CONTENT_CODE
+                 JOIN TB_CONTENTFILEINFO E ON E.CON_SEQ = B.CONTENT_CODE
+                 JOIN LETTNFILEDETAIL D ON E.ATCH_FILE_ID = D.ATCH_FILE_ID
+                 JOIN TB_CONDETAIL F ON F.CON_SEQ = E.CON_SEQ AND F.DETAIL_SEQ = E.DETAIL_SEQ
+        WHERE TO_CHAR(NOW(), 'YYYYMMDD') >= B.SCH_STARTDAY
+          AND B.SCH_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+          AND A.CON_PAGEUPDATECHECK = 'N'
+          AND C.DID_ID = #{didId}
+          AND B.SCH_USEYN = 'Y'
+          AND B.SCH_CODE = #{schCode}
+        GROUP BY A.HIS_SEQ, B.SCH_CODE, E.CON_SEQ, E.DETAIL_SEQ, D.FILE_STRE_COURS,
+                 D.ATCH_FILE_ID, D.STRE_FILE_NM, D.FILE_EXTSN, D.FILE_SIZE, E.TIME_INTERVAL,
+                 E.FILE_ORDER
+    </select>
+
+    <select id="selectFileContentList" resultType="ContentFileInfoVO">
+        SELECT
+            A.ATCH_FILE_ID,
+            SUBSTRING(A.FILE_STRE_COURS FROM POSITION('upload' IN A.FILE_STRE_COURS)) AS FILE_STRE_COURS,
+            A.STRE_FILE_NM, A.FILE_EXTSN, C.CON_SEQ,
+            C.FILE_ORDER, A.FILE_SIZE, A.ORIGNL_FILE_NM, A.FILE_THUMNAIL, C.DETAIL_SEQ
+        FROM TB_CONTENTMUTIL B
+                 JOIN TB_CONTENTFILEINFO C ON B.CON_SEQ = C.CON_SEQ
+                 JOIN LETTNFILEDETAIL A ON A.ATCH_FILE_ID = C.ATCH_FILE_ID
+        WHERE B.CON_SEQ = #{conSeq}
+        ORDER BY C.FILE_ORDER ASC
+    </select>
+
+    <select id="selectFileContentPageList" resultType="ContentFileInfoVO">
+        SELECT
+            ATCH_FILE_ID,
+            SUBSTRING(FILE_STRE_COURS FROM POSITION('/' IN FILE_STRE_COURS)) AS FILE_STRE_COURS,
+            STRE_FILE_NM, FILE_EXTSN, CON_SEQ,
+            FILE_ORDER, ORIGNL_FILE_NM, FILE_THUMNAIL
+        FROM LETTNFILEDETAIL
+        WHERE DETAIL_SEQ = #{detailSeq}
+        ORDER BY FILE_ORDER ASC
+    </select>
+
+    <select id="selectFileContentTotCnt_S" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM LETTNFILEDETAIL
+        WHERE DETAIL_SEQ = #{detailSeq}
+    </select>
+
+    <select id="selectFilePageListByPaginationTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0) FROM
+        (
+        SELECT
+        CASE
+        WHEN LOWER(FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+        WHEN LOWER(FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+        WHEN LOWER(FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
+        END AS mediaType,
+        ATCH_FILE_ID, FILE_GUBUN
+        FROM LETTNFILEDETAIL
+        WHERE 1=1
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND GROUP_ID IN
+                    (
+                    WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'atchFileId'">
+                    AND STRE_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND ORIGNL_FILE_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="fileGubun != ''">
+            AND FILE_GUBUN = #{fileGubun}
+        </if>
+        <choose>
+            <when test="fileThumnail == 'no_image.png'">
+                AND FILE_THUMNAIL = 'no_image.png'
+            </when>
+            <otherwise>
+                AND (FILE_THUMNAIL != 'no_image.png' OR FILE_THUMNAIL IS NULL)
+            </otherwise>
+        </choose>
+        ) X
+        WHERE 1=1
+        <if test="mediaType != ''">
+            AND X.mediaType = #{mediaType}
+        </if>
+        <if test="notConType != ''">
+            AND X.mediaType != #{notConType}
+        </if>
+    </select>
+
+    <select id="selectFileListTotCnt_S" resultType="java.lang.Integer">
+        SELECT
+            COALESCE(COUNT(*), 0)
+        FROM LETTNFILEDETAIL
+        WHERE CON_SEQ = #{conSeq}
+    </select>
+
+    <select id="selectFileListCombo" resultType="ContentFileInfo">
+        SELECT
+            A.ATCH_FILE_ID, A.ORIGNL_FILE_NM
+        FROM LETTNFILEDETAIL A
+        WHERE UseYN = 'Y'
+          AND LOWER(FILE_EXTSN) IN ('mp3', 'wav', 'mid')
+          AND FILE_THUMNAIL != 'no_image.png'
+        ORDER BY ORIGNL_FILE_NM ASC
+    </select>
+
+    <select id="selectMediaConnList" resultType="ContentFileInfoVO">
+        SELECT
+            B.CON_SEQ, B.CON_NM, COUNT(*) AS CONNCOUNT
+        FROM TB_CONTENTFILEINFO A
+                 JOIN TB_CONTENTMUTIL B ON A.CON_SEQ = B.CON_SEQ
+        WHERE A.ATCH_FILE_ID = #{atchFileId}
+        GROUP BY B.CON_SEQ, B.CON_NM
+        ORDER BY CON_SEQ ASC
+    </select>
+
+    <select id="selectFileDetail" resultType="ContentFileInfoVO">
+        SELECT
+            ATCH_FILE_ID,
+            SUBSTRING(FILE_STRE_COURS FROM POSITION('/' IN FILE_STRE_COURS)) AS FILE_STRE_COURS,
+            STRE_FILE_NM, ORIGNL_FILE_NM, FILE_EXTSN,
+            FILE_SIZE, CON_SEQ, FILE_ORDER, FILE_THUMNAIL,
+            CASE
+                WHEN LOWER(FILE_EXTSN) IN ('mp4', 'avi', 'mpeg') THEN 'MEDIA'
+                WHEN LOWER(FILE_EXTSN) IN ('jpg', 'jpeg', 'gif', 'png', 'bmp') THEN 'IMAGE'
+                END AS mediaType,
+            FILE_WIDTH, FILE_HEIGHT, PLAY_TIME, FILE_ALBUM, SINGER_NM,
+            REAL_FILE_NM, FILE_ALBUM_REGDATE
+        FROM LETTNFILEDETAIL
+        WHERE ATCH_FILE_ID = #{atchFileId}
+    </select>
+
+    <insert id="insertFileManage">
+        INSERT INTO LETTNFILEDETAIL
+        (
+            ATCH_FILE_ID, FILE_STRE_COURS, STRE_FILE_NM, ORIGNL_FILE_NM, FILE_EXTSN,
+            FILE_SIZE, FILE_THUMNAIL, PLAY_TIME, FILE_GUBUN, USEYN,
+            GROUP_ID, FILE_ALBUM, SINGER_NM, REAL_FILE_NM, FILE_ALBUM_REGDATE,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID, CENTER_ID
+        )
+        VALUES
+            (
+                #{atchFileId}, #{fileStreCours}, #{streFileNm}, #{orignlFileNm}, #{fileExtsn},
+                #{fileSize}, #{fileThumnail,jdbcType=VARCHAR}, #{playTime,jdbcType=VARCHAR}, #{fileGubun,jdbcType=VARCHAR}, 'Y',
+                #{groupId,jdbcType=VARCHAR}, #{fileAlbum,jdbcType=VARCHAR}, #{singerNm,jdbcType=VARCHAR}, #{realFileNm,jdbcType=VARCHAR}, #{fileAlbumRegdate,jdbcType=VARCHAR},
+                NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{centerId,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <update id="updateFileManage">
+        UPDATE LETTNFILEDETAIL SET
+                                   FILE_STRE_COURS = #{fileStreCours},
+                                   STRE_FILE_NM = #{streFileNm},
+                                   ORIGNL_FILE_NM = #{orignlFileNm},
+                                   FILE_EXTSN = #{fileExtsn},
+                                   FILE_SIZE = #{fileSize},
+                                   FILE_THUMNAIL = #{fileThumnail,jdbcType=VARCHAR},
+                                   PLAY_TIME = #{playTime,jdbcType=VARCHAR},
+                                   FILE_GUBUN = #{fileGubun,jdbcType=VARCHAR},
+                                   FILE_ALBUM = #{fileAlbum,jdbcType=VARCHAR},
+                                   SINGER_NM = #{singerNm,jdbcType=VARCHAR},
+                                   REAL_FILE_NM = #{realFileNm,jdbcType=VARCHAR},
+                                   FILE_ALBUM_REGDATE = #{fileAlbumRegdate,jdbcType=VARCHAR}
+        WHERE ATCH_FILE_ID = #{atchFileId}
+    </update>
+
+    <update id="updateFileManageUseYn">
+        UPDATE LETTNFILEDETAIL SET
+            UseYN = #{useYn}
+        WHERE ATCH_FILE_ID = #{atchFileId}
+    </update>
+
+    <update id="updateFileDetailInfo">
+        UPDATE LETTNFILEDETAIL SET
+                                   PLAY_TIME = #{playTime,jdbcType=VARCHAR},
+                                   FILE_WIDTH = #{fileWidth,jdbcType=VARCHAR},
+                                   FILE_HEIGHT = #{fileHeight,jdbcType=VARCHAR}
+        WHERE ATCH_FILE_ID = #{atchFileId}
+    </update>
+
+    <delete id="deleteFileManage">
+        DELETE FROM LETTNFILEDETAIL
+        WHERE ATCH_FILE_ID = #{atchFileId}
+    </delete>
+
+    <delete id="deleteFileConSeq">
+        DELETE FROM LETTNFILEDETAIL
+        WHERE CON_SEQ = #{conSeq}
+    </delete>
+</mapper>

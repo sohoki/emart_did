@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<Configuration>
+    <Appenders>
+        <!-- 콘솔 출력 (포테이너 로그용) -->
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p [%t] [%c{1}]%n%m%n%n" />
+            <Filters>
+                <RegexFilter regex=".*ResultSet\.getMetaData\(\).*Field level information.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*com\.mysql\.cj\.result\.Field@.*"                     onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*ResultSet\\.get.*returned.*"                          onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*PreparedStatement\\.set.*returned.*"                  onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*ResultSet.*.*"                                        onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*Field level information:.*"                           onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*com\.mysql\.cj\.result\.Field@.*"                     onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*ResultSet\\.get.*returned.*"                          onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*ResultSet\\.wasNull\(\).*returned.*"                  onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*Connection.*.*"                                       onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*PreparedStatement.*returned.*"                        onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ScriptFilter onMatch="DENY" onMismatch="NEUTRAL">
+                    <Script language="javascript"><![CDATA[
+                        var msg = logEvent.getMessage().getFormattedMessage();
+                        msg.contains("ResultSet.getMetaData()") ||
+                        msg.contains("Field level information") ||
+                        msg.contains("com.mysql.cj.result.Field@")
+                    ]]></Script>
+                </ScriptFilter>
+            </Filters>
+        </Console>
+
+        <!-- ✅ 파일 출력 (Rolling) -->
+        <RollingFile name="file"
+                     fileName="/home/atensys/app/logs/commonService.log"
+                     filePattern="/home/atensys/app/logs/commonService.log.%d{yyyyMMdd}">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p [%t] [%c{1}]%n%m%n%n" />
+            <!-- 콘솔과 동일한 필터 적용 -->
+            <Filters>
+                <RegexFilter regex=".*ResultSet\.getMetaData\(\).*Field level information.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*com\.mysql\.cj\.result\.Field@.*"                     onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*ResultSet\\.get.*returned.*"                          onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*PreparedStatement\\.set.*returned.*"                  onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*ResultSet.*.*"                                        onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*Field level information:.*"                           onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*ResultSet\\.wasNull\(\).*returned.*"                  onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*Connection.*.*"                                       onMatch="DENY" onMismatch="NEUTRAL"/>
+                <RegexFilter regex=".*PreparedStatement.*returned.*"                        onMatch="DENY" onMismatch="NEUTRAL"/>
+            </Filters>
+            <!-- ✅ 날짜 기준 롤링 정책 -->
+            <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            <!-- ✅ 7일 이내: .log.YYYYMMDD / 7일 초과: .gz 자동 압축 -->
+            <DefaultRolloverStrategy>
+                <Delete basePath="/home/atensys/app/logs" maxDepth="1">
+                    <!-- 21일 초과 .gz 파일 삭제 -->
+                    <IfFileName glob="commonService.log.*.gz" />
+                    <IfLastModified age="21d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+    </Appenders>
+
+    <Loggers>
+        <Logger name="jdbc"                                                                                     level="OFF"  additivity="false" />
+        <Logger name="jdbc.resultsettable"                                                                      level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="com.common.backoffice.infra.cor.product.mapper.insertKakaoMsgInfo"                        level="OFF"  additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="com.common.backoffice.infra.cor.product.mapper.selectProductMsgInfoFirstNew"              level="OFF"  additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="com.common.backoffice.infra.cor.product.mapper.selectProductMsgInfoManageListByPagination" level="OFF" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="jdbc.sqltiming"         level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="egovframework"          level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="com.system.backoffice"  level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="org.apache.ibatis.jdbc.SQL" level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger>
+        <Logger name="jdbc.sqlonly"    level="OFF" additivity="false" />
+        <Logger name="jdbc.resultset"  level="OFF" additivity="false" />
+        <Logger name="jdbc.connection" level="OFF" additivity="false" />
+        <Logger name="jdbc.statement"  level="OFF" additivity="false" />
+
+        <!-- ✅ 루트 로거: 콘솔 + 파일 동시 출력 -->
+        <Root level="INFO">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Root>
+    </Loggers>
+</Configuration>

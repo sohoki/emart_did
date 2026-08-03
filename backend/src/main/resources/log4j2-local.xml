@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<Configuration>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+        	<!-- 변경 ( [%t] 추가하여 스레드명 확인 ) -->
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p [%t] [%c{1}]%n%m%n%n" />
+			<Filters>
+				
+				<RegexFilter regex=".*ResultSet\.getMetaData\(\).*Field level information.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				<!-- com.mysql.cj.result.Field@ 로그를 필터링하는 정규식 -->
+				<RegexFilter regex=".*com\.mysql\.cj\.result\.Field@.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				<!-- ResultSet.getXXX(...) 로그 제거 -->
+				<RegexFilter regex=".*ResultSet\\.get.*returned.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				
+				<!-- PreparedStatement.setXXX(...) 로그 제거 -->
+				<RegexFilter regex=".*PreparedStatement\\.set.*returned.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+
+				<!-- ResultSet.wasNull() 로그 제거 -->
+				<RegexFilter regex=".*ResultSet.*.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				<!-- PreparedStatement.setXXX(...) 로그 제거 -->
+				<RegexFilter regex=".*Field level information:.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				<!-- com.mysql.cj.result.Field@ 로그 제거 -->
+				<RegexFilter regex=".*com\.mysql\.cj\.result\.Field@.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				
+				<!-- ResultSet.getXXX(...) 로그 제거 -->
+				<RegexFilter regex=".*ResultSet\\.get.*returned.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+
+				<!-- ResultSet.wasNull() 로그 제거 -->
+				<RegexFilter regex=".*ResultSet\\.wasNull\\(\\).*returned.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				
+				<!-- Connection 관련 로그 제거 -->
+				<RegexFilter regex=".*Connection.*.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+				<RegexFilter regex=".*PreparedStatement.*returned.*" onMatch="DENY" onMismatch="NEUTRAL"/>
+
+
+
+			</Filters>
+        </Console>
+        
+    </Appenders>
+
+    <Loggers>
+     <!-- 주요 패키지 로깅 설정 -->
+		<!-- 모든 jdbc 로그를 끕니다. -->
+		<Logger name="jdbc" level="OFF" />
+		<!-- jdbc.resultsettable 로거를 OFF로 설정하여 결과 테이블 로그를 제거합니다. -->
+		
+		<Logger name="jdbc.resultsettable" level="INFO" additivity="false">
+			<AppenderRef ref="console" />
+		</Logger>
+		
+		<Logger name="com.common.backoffice.infra.cor.product.mapper.insertKakaoMsgInfo" level="OFF" additivity="false">
+			<AppenderRef ref="console" />
+		</Logger>
+		<Logger name="com.common.backoffice.infra.cor.product.mapper.selectProductMsgInfoFirstNew" level="OFF" additivity="false">
+			<AppenderRef ref="console" />
+		</Logger>	
+		<Logger name="com.common.backoffice.infra.cor.product.mapper.selectProductMsgInfoManageListByPagination" level="OFF" additivity="false">
+			<AppenderRef ref="console" />
+		</Logger>		
+		
+		
+
+		<!-- 쿼리 실행 시간 로그를 INFO 레벨로 출력합니다. -->
+		<Logger name="jdbc.sqltiming" level="INFO" additivity="false">
+			<AppenderRef ref="console" />
+		</Logger>
+		<Logger name="egovframework" level="info" additivity="false">
+			<AppenderRef ref="console" />
+		</Logger>
+		<Logger name="com.system.backoffice" level="info" additivity="false">
+			<AppenderRef ref="console" />
+		</Logger>
+		
+		<!-- MyBatis 관련 로그 레벨을 INFO로 설정합니다. -->
+		<Logger name="org.apache.ibatis.jdbc.SQL" level="INFO" additivity="false">
+		    <AppenderRef ref="console" />
+		</Logger>
+		
+		<!-- jdbc.sqlonly (SQL 쿼리만 출력) 로그를 끕니다. (sqltiming이 더 유용) -->
+		<Logger name="jdbc.sqlonly" level="OFF" additivity="false" />
+		
+		<!-- jdbc.resultset 로거를 OFF로 설정하여 ResultSet 상세 로그를 제거합니다. -->
+		<Logger name="jdbc.resultset" level="OFF" additivity="false" />
+		
+		
+		
+		<!-- jdbc.connection, jdbc.statement 등의 로그를 OFF로 설정합니다. -->
+		<Logger name="jdbc.connection" level="OFF" additivity="false" />
+		<Logger name="jdbc.statement" level="OFF" additivity="false" />
+		
+		<!-- jdbc 상위 로거의 additivity를 false로 설정하여 하위 로거 설정이 덮어쓰이지 않도록 합니다. -->
+		<Logger name="jdbc" level="OFF" additivity="false" />
+		<!--
+		<Logger name="log4jdbc.sqltiming" level="INFO" additivity="false">
+		    <AppenderRef ref="console" />
+		</Logger>
+		<Logger name="org.apache.ibatis.jdbc.SQL" level="INFO" additivity="false">
+			<AppenderRef ref="console"/>
+		</Logger>
+		
+		<Logger name="log4jdbc.sqlonly" level="OFF" additivity="false" />
+		<Logger name="log4jdbc.log4j2" level="INFO" additivity="false">
+		    <AppenderRef ref="console" />
+		</Logger>
+		<Logger name="log4jdbc.debug" level="OFF" additivity="false" />
+		<Logger name="log4jdbc.resultset" level="OFF" additivity="false" />
+		<Logger name="log4jdbc.statement" level="OFF" additivity="false" />
+		<Logger name="log4jdbc.connection" level="OFF" additivity="false" />
+		<Logger name="jdbc.resultset" level="OFF"/>
+		<Logger name="jdbc.resultsettable" level="INFO"/>
+		
+		-->
+		<!-- 루트 로거 -->
+		<Root level="INFO">
+			<AppenderRef ref="console" />
+		</Root>
+    </Loggers>
+</Configuration>

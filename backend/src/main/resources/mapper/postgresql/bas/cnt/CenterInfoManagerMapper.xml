@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.cnt.mapper.CenterInfoManagerMapper">
+    <select id="selectCenterInfoManageListByPagination" resultType="CenterInfoVO">
+        SELECT * FROM
+        (
+        SELECT ROW_NUMBER() OVER (ORDER BY CENTER_ID DESC) AS RNUM, TB.* FROM
+        (
+        SELECT
+        CENTER_ID AS "centerId",
+        CENTER_NM AS "centerNm",
+        CENTER_STARTTIME AS "centerStartTime",
+        CENTER_ENDTIME AS "centerEndTime",
+        CENTER_USEYN AS "centerUseYn",
+        CENTER_GUBUN AS "centerGubun",
+        CENTER_REGDATE AS "centerRegdate"
+        FROM TB_CENTERINFO
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'centerId'">
+                    AND CENTER_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="author_Code == 'ROLE_ADMIN' and groupId == 'EMART_00000000000009'">
+                AND CENTER_GUBUN = 'BRANCH01'
+            </when>
+            <when test="author_Code == 'ROLE_ANONYMOUS' and groupId == 'EMART_00000000000017'">
+                AND CENTER_GUBUN = 'BRANCH01'
+            </when>
+        </choose>
+        ) TB
+        ) TA
+        WHERE RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectCenterInfoManageCombo" resultType="CenterInfoVO">
+        SELECT
+        CENTER_ID AS centerId, CENTER_NM AS centerNm
+        FROM TB_CENTERINFO
+        WHERE CENTER_USEYN = 'Y'
+        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+            <choose>
+                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    AND ROLE_CODE IN
+                    (
+                    WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = (
+                    SELECT GROUP_ID
+                    FROM LETTNGNRLMBER
+                    WHERE MBER_ID = #{mberId}
+                    )
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                    )
+                    SELECT GROUP_ID FROM cte
+                    )
+                </when>
+                <otherwise>
+                    AND CENTER_ID =
+                    (
+                    SELECT CENTER_ID
+                    FROM LETTNGNRLMBER
+                    WHERE MBER_ID = #{mberId}
+                    )
+                </otherwise>
+            </choose>
+        </if>
+        <if test="searchKeyword != ''">
+            AND CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+        </if>
+        <if test="selectRoleCode != ''">
+            AND ROLE_CODE LIKE CONCAT('%', #{selectRoleCode}, '%')
+        </if>
+        ORDER BY CENTER_NM ASC
+    </select>
+
+    <select id="selectCenterInfoManageDetail" resultType="CenterInfoVO">
+        SELECT
+            CENTER_ID AS centerId,
+            CENTER_NM AS centerNm,
+            CENTER_ZIPCODE AS centerZipcode,
+            CENTER_ADDR1 AS centerAddr1,
+            CENTER_ADDR2 AS centerAddr2,
+            CENTER_TEL AS centerTel,
+            CENTER_FAX AS centerFax,
+            CENTER_USERID AS centerUserId,
+            CENTER_REGDATE AS centerRegdate,
+            CENTER_UPDATEID AS centerUpdateId,
+            CENTER_UPDATE_DT AS centerUpdateDt,
+            CENTER_IMG AS centerImg,
+            CENTER_URL AS centerUrl,
+            CENTER_IMG_MAP AS centerImgMap,
+            CENTER_EQUIPMENT_CMT AS centerEquipmentCmt,
+            CENTER_USEYN AS centerUseYn,
+            CENTER_LOUNGE AS centerLounge,
+            CENTER_MEETINGROOM AS centerMeetingRoom,
+            CENTER_INFO AS centerInfo,
+            SUBSTRING(CENTER_ZIPCODE FROM 1 FOR 3) AS centerZipcode1,
+            SUBSTRING(CENTER_ZIPCODE FROM 4 FOR 3) AS centerZipcode2,
+            ROLE_CODE AS roleCode,
+            CENTER_STARTTIME AS centerStartTime,
+            CENTER_ENDTIME AS centerEndTime,
+            CENTER_GUBUN AS centerGubun,
+            BROD_CODE AS brodCode
+        FROM TB_CENTERINFO
+        WHERE CENTER_ID = #{centerId}
+    </select>
+
+    <select id="selectCenterInfoBrod" resultType="java.lang.String">
+        SELECT BROD_CODE
+        FROM TB_CENTERINFO
+        WHERE CENTER_ID = #{centerId}
+    </select>
+
+    <select id="selectCenterTimeInfo" resultType="java.lang.String">
+        SELECT FN_CENTERBRODINFO(#{centerId}, #{centerSearchDay})
+    </select>
+
+    <select id="selectCenterId" resultType="java.lang.String">
+        SELECT FN_CENTERID()
+    </select>
+
+    <select id="selectCenterBrodCombo" resultType="CenterInfo">
+        SELECT
+            CENTER_ID, CENTER_NM, BROD_CODE
+        FROM TB_CENTERINFO
+        WHERE CENTER_GUBUN = 'BRANCH01'
+          AND BROD_CODE IS NOT NULL
+    </select>
+
+    <select id="selectCenterInfoManageListTotCnt_S" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_CENTERINFO
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'centerId'">
+                    AND CENTER_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectGroupInCenterInfo" resultType="CenterInfoVO">
+        SELECT
+            CENTER_ID, CENTER_NM
+        FROM TB_CENTERINFO
+        WHERE ROLE_CODE = #{roleCode}
+        ORDER BY CENTER_ID ASC
+    </select>
+
+    <insert id="insertCenterInfoManage">
+       <![CDATA[
+        INSERT INTO TB_CENTERINFO
+        (
+            CENTER_ID, CENTER_NM, CENTER_ZIPCODE, CENTER_ADDR1, CENTER_ADDR2,
+            CENTER_TEL, CENTER_FAX, CENTER_USERID, CENTER_REGDATE, CENTER_IMG,
+            CENTER_URL, CENTER_IMG_MAP, CENTER_EQUIPMENT_CMT, CENTER_USEYN, CENTER_LOUNGE,
+            CENTER_MEETINGROOM, CENTER_INFO, ROLE_CODE, CENTER_STARTTIME, CENTER_ENDTIME,
+            CENTER_GUBUN, BROD_CODE
+        )
+        VALUES
+            (
+                #{centerId}, #{centerNm}, #{centerZipcode}, #{centerAddr1}, #{centerAddr2},
+                #{centerTel,jdbcType=VARCHAR}, #{centerFax,jdbcType=VARCHAR}, #{centerUserId,jdbcType=VARCHAR}, NOW(), #{centerImg,jdbcType=VARCHAR},
+                #{centerUrl,jdbcType=VARCHAR}, #{centerImgMap,jdbcType=VARCHAR}, '0', #{centerUseYn,jdbcType=VARCHAR}, #{centerLounge,jdbcType=VARCHAR},
+                #{centerMeetingRoom,jdbcType=VARCHAR}, '', #{roleCode,jdbcType=VARCHAR}, #{centerStartTime,jdbcType=VARCHAR}, #{centerEndTime,jdbcType=VARCHAR},
+                #{centerGubun,jdbcType=VARCHAR}, #{brodCode,jdbcType=VARCHAR}
+            )
+        ]]>
+    </insert>
+
+    <update id="updateCenterInfoManage">
+        UPDATE TB_CENTERINFO SET
+        CENTER_NM = #{centerNm},
+        CENTER_ZIPCODE = #{centerZipcode},
+        CENTER_ADDR1 = #{centerAddr1},
+        CENTER_ADDR2 = #{centerAddr2},
+        CENTER_TEL = #{centerTel,jdbcType=VARCHAR},
+        CENTER_FAX = #{centerFax,jdbcType=VARCHAR},
+        CENTER_UPDATEID = #{centerUserId,jdbcType=VARCHAR},
+        CENTER_UPDATE_DT = NOW(),
+        CENTER_URL = #{centerUrl,jdbcType=VARCHAR},
+        CENTER_USEYN = #{centerUseYn,jdbcType=VARCHAR},
+        CENTER_LOUNGE = #{centerLounge,jdbcType=VARCHAR},
+        CENTER_MEETINGROOM = #{centerMeetingRoom,jdbcType=VARCHAR},
+        CENTER_STARTTIME = #{centerStartTime,jdbcType=VARCHAR},
+        CENTER_ENDTIME = #{centerEndTime,jdbcType=VARCHAR},
+        BROD_CODE = #{brodCode,jdbcType=VARCHAR},
+        CENTER_INFO = #{centerInfo}
+        <if test="centerImg != null">
+            , CENTER_IMG = #{centerImg,jdbcType=VARCHAR}
+        </if>
+        <if test="centerImgMap != null">
+            , CENTER_IMG_MAP = #{centerImgMap,jdbcType=VARCHAR}
+        </if>
+        , ROLE_CODE = #{roleCode,jdbcType=VARCHAR}
+        , CENTER_GUBUN = #{centerGubun,jdbcType=VARCHAR}
+        WHERE CENTER_ID = #{centerId}
+    </update>
+
+    <delete id="deleteCenterInfoManage">
+        DELETE FROM TB_CENTERINFO
+        WHERE CENTER_ID = #{centerId}
+    </delete>
+</mapper>

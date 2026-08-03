@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sym.rnt.mapper.AuthorInfoManagerMapper">
+
+    <select id="selectAuthorIInfoManageCombo"       resultType="AuthorInfoVo">
+       select  AUTHOR_CODE as authorCode, AUTHOR_NM as authorNm
+       from LETTNAUTHORINFO       
+       order by  AUTHOR_CODE  asc
+    </select>
+
+</mapper>

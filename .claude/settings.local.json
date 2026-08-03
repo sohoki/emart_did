@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:maven.egovframe.go.kr)",
+      "Bash(mkdir -p \"e:/dev/front/did_emart/backend/src/main/java/egovframework/com/util\" *)",
+      "Bash(node verify_recover.js)",
+      "Bash(node full_scan.js)",
+      "Bash(node -e ' *)",
+      "Bash(./gradlew compileJava bootJar --console=plain)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 7004 -ErrorAction SilentlyContinue | Select-Object -Property OwningProcess -Unique | ForEach-Object { Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime })",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"ProcessId = 98108\")",
+      "Bash(./gradlew bootJar --console=plain)"
+    ],
+    "additionalDirectories": [
+      "E:\\dev\\front\\common\\basic\\backend\\src\\main\\java\\egovframework\\let\\utl\\fcc\\service"
+    ]
+  }
+}

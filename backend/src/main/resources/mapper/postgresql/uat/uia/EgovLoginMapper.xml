@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.let.uat.uia.mapper.EgovLoginMapper">
+
+    <!-- 일반 로그인 -->
+    <select id="actionLogin" resultType="egovframework.com.cmm.LoginVO">
+        SELECT A.MANAGER_ID, A.MANAGER_PASSWORD, A.MANAGER_NAME, A.USE_YN, A.PART_ID, B.PART_NM AS PART_NAME,
+               A.ROLE_ID, A.MANAGER_EMAIL, A.MANAGER_TEL, A.LOCK_YN, A.EMP_NO,
+               A.ROLE_GUBUN, A.MANAGER_POSITION, A.MANAGER_PIC,
+               'EMP' AS SYSTEMCODE_USECODE
+        FROM tb_managerinfo A
+        LEFT JOIN tb_partinfo B ON A.PART_ID = B.PART_ID
+        WHERE A.MANAGER_ID = #{userId}
+          AND A.MANAGER_PASSWORD = #{userPwd}
+          AND A.MANAGER_STATUS = 'STATE_01'
+          AND A.USE_YN = 'Y'
+    </select>
+
+    <!-- Refresh Token으로 재로그인 -->
+    <select id="actionLoginResfresh" resultType="egovframework.com.cmm.LoginVO">
+        SELECT A.MANAGER_ID, A.MANAGER_PASSWORD, A.MANAGER_NAME, A.USE_YN, A.PART_ID, B.PART_NM AS PART_NAME,
+               A.ROLE_ID, A.MANAGER_EMAIL, A.MANAGER_TEL, A.LOCK_YN, A.EMP_NO,
+               A.ROLE_GUBUN, A.MANAGER_POSITION, A.MANAGER_PIC,
+               'EMP' AS SYSTEMCODE_USECODE
+        FROM tb_managerinfo A
+        LEFT JOIN tb_partinfo B ON A.PART_ID = B.PART_ID
+        WHERE A.MANAGER_ID = #{resfreshToken}
+          AND A.MANAGER_STATUS = 'STATE_01'
+          AND A.USE_YN = 'Y'
+    </select>
+</mapper>

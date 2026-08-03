@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.sts.brd.mapper.BrodContentInfoManagerMapper">
+    <select id="selectBrodContentLst" resultType="BrodContentInfoVO">
+        SELECT *
+        FROM
+        (
+        SELECT
+        ROW_NUMBER() OVER (ORDER BY A.BROD_CODE DESC) AS RNUM,
+        TB.*
+        FROM
+        (
+        SELECT
+        A.BROD_CODE AS brodCode, A.BROD_NAME AS brodName, A.BROD_TOTALTIME AS brodTotalTime, A.BROD_USEYN AS brodUseYn, A.BROD_INTERVAL AS brodInterval,
+        B.CODE_NM AS codeNm, C.BASIC_GROUP_NM AS orignlFileNm,
+        FN_DETAILCODENM(A.SEC_GUBUN) AS secGubun, A.CENTER_ID AS centerId, A.CENTER_RELCNT AS centerRelCnt,
+        D.CENTER_NM AS centerNm
+        FROM TB_BRODSCHEDULE A
+        JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+        LEFT OUTER JOIN TB_CENTERINFO D ON A.CENTER_ID = D.CENTER_ID
+        LEFT OUTER JOIN TB_BRODBASICGROUP C ON A.BASIC_FILE_ID = C.BASIC_CODE
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CON_NM'">
+                    AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchCondition == 'CENTER_NM'">
+                    AND D.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND C.BASIC_GROUP_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="secGubun != ''">
+            AND A.SEC_GUBUN = #{secGubun}
+        </if>
+        <if test="centerGubun != ''">
+            <choose>
+                <when test="centerGubun == 'content'">
+                    AND A.CENTER_ID IS NULL
+                </when>
+                <otherwise>
+                    AND A.CENTER_ID IS NOT NULL
+                </otherwise>
+            </choose>
+        </if>
+        ) TB
+        ) TA
+        WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
+    </select>
+
+    <select id="selectBrodContentInfo" resultType="BrodContentInfoVO">
+        SELECT
+            A.BROD_CODE AS brodCode, A.BROD_NAME AS brodName, A.BROD_TOTALTIME AS brodTotalTime, A.BROD_USEYN AS brodUseYn, A.BROD_INTERVAL AS brodInterval,
+            B.CODE_NM AS codeNm, B.CODE_DC AS CodeDc, BASIC_FILE_ID AS basicFileId, A.FRST_REGIST_PNTTM AS frstRegistPnttm, A.FRST_REGISTER_ID AS frstRegisterId,
+            A.LAST_UPDT_PNTTM AS lastUpdtPnttm, A.LAST_UPDUSR_ID AS lastUpdusrId, A.SEC_GUBUN AS secGubun, A.BROD_STARTDAY AS brodStartDay, A.BROD_ENDDAY AS brodEndDay,
+            A.CENTER_ID AS centerId, A.BASIC_BROD_CODE AS basicBrodCode,
+            (
+                SELECT E.CENTER_NM
+                FROM TB_CENTERINFO E
+                WHERE A.CENTER_ID = E.CENTER_ID
+            ) AS centerNm,
+            (
+                SELECT BASIC_GROUP_NM
+                FROM TB_BRODBASICGROUP C
+                WHERE A.BASIC_FILE_ID = C.BASIC_CODE
+            ) AS basicGroupNm
+        FROM TB_BRODSCHEDULE A
+                 JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+        WHERE A.BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectBrodContentTimeInfo" resultType="java.lang.String">
+        SELECT CAST(CAST(B.CODE_DC AS INTEGER) - 10 AS VARCHAR) AS codeDc
+        FROM TB_BRODSCHEDULE A
+                 JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+        WHERE A.BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectBrodContentTimeInfoChar" resultType="java.lang.String">
+        SELECT
+            CASE
+                WHEN LENGTH(CAST(CAST(B.CODE_DC AS INTEGER) - 10 AS VARCHAR)) = 2 THEN CONCAT('0', CAST(CAST(B.CODE_DC AS INTEGER) - 10 AS VARCHAR))
+                ELSE TO_CHAR(CAST(B.CODE_DC AS INTEGER) - 10, 'FM999999')
+                END AS codeDc
+        FROM TB_BRODSCHEDULE A
+                 JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+        WHERE A.BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectBrodContentCopy" resultType="BrodContentInfoVO">
+        SELECT
+            A.BROD_CODE AS brodCode, A.BROD_NAME AS brodName
+        FROM TB_BRODSCHEDULE A
+        WHERE BROD_CODE != #{brodCode}
+    </select>
+
+    <select id="selectBrodContentCombo" resultType="BrodContentInfo">
+        SELECT
+            A.BROD_CODE AS brodCode, A.BROD_NAME AS brodName
+        FROM TB_BRODSCHEDULE A
+        WHERE BROD_USEYN = 'Y'
+    </select>
+
+    <select id="selectBrodContentComboAnn" resultType="BrodContentInfo">
+        SELECT
+            A.BROD_CODE AS brodCode, A.BROD_NAME AS brodName
+        FROM TB_BRODSCHEDULE A
+        WHERE BROD_USEYN = 'Y'
+          AND SEC_GUBUN = 'SECGUBUN02'
+    </select>
+
+    <select id="selectBrodContentBasicContent" resultType="BrodContentInfo">
+        SELECT
+            A.BROD_CODE AS brodCode, A.BROD_NAME AS brodName, A.CENTER_ID AS centerId
+        FROM TB_BRODSCHEDULE A
+        WHERE BROD_USEYN = 'Y'
+          AND
+            (
+                A.BROD_CODE = #{brodCode} OR A.BASIC_BROD_CODE = #{brodCode}
+                )
+    </select>
+
+    <select id="selectBrodContentCenterNm" resultType="java.lang.String">
+        SELECT COALESCE(X.CENTER_NM, '연결지점없음') AS centerNm
+        FROM
+            (
+                SELECT
+                    CASE
+                        WHEN CENTER_ID IS NULL THEN '연결지점없음'
+                        ELSE
+                            (
+                                SELECT B.CENTER_NM
+                                FROM TB_CENTERINFO B
+                                WHERE B.CENTER_ID = A.CENTER_ID
+                            )
+                        END AS CENTER_NM
+                FROM TB_BRODSCHEDULE A
+                WHERE BROD_CODE = #{brodCode}
+            ) X
+    </select>
+
+    <!-- BROD_CODE 채번용 최대값 조회(BrodContentInfoManageService.generateBrodCode에서 사용).
+         원본은 EgovIdGnrService(egovBrodIdGnrService) 빈을 사용했으나 did_emart에 미구성이라
+         애플리케이션 레벨로 대체 채번함 -->
+    <select id="selectMaxBrodCode" resultType="java.lang.String">
+        SELECT MAX(BROD_CODE)
+        FROM TB_BRODSCHEDULE
+    </select>
+
+    <select id="selectBrodContentPageCnt" resultType="java.lang.Integer">
+        SELECT COALESCE(COUNT(*), 0)
+        FROM TB_BRODSCHEDULE A
+        JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+        LEFT OUTER JOIN TB_BRODBASICGROUP C ON A.BASIC_FILE_ID = C.BASIC_CODE
+        LEFT OUTER JOIN TB_CENTERINFO D ON A.CENTER_ID = D.CENTER_ID
+        WHERE 1=1
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchCondition == 'CON_NM'">
+                    AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <otherwise>
+                    AND A.CENTER_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        <if test="secGubun != ''">
+            AND A.SEC_GUBUN = #{secGubun}
+        </if>
+        <if test="centerGubun != ''">
+            <choose>
+                <when test="centerGubun == 'content'">
+                    AND A.CENTER_ID IS NULL
+                </when>
+                <otherwise>
+                    AND A.CENTER_ID IS NOT NULL
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectBrodContentCenterCheckBrodCode" resultType="java.lang.String">
+        SELECT BROD_CODE
+        FROM TB_BRODSCHEDULE
+        WHERE CENTER_ID = #{centerId}
+    </select>
+
+    <select id="selectBrodContentBasicBrodCode" resultType="java.lang.String">
+        SELECT BASIC_BROD_CODE
+        FROM TB_BRODSCHEDULE
+        WHERE BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectBrodContentCenterPreBrodCode" resultType="java.lang.String">
+        SELECT BASIC_BROD_CODE
+        FROM TB_BRODSCHEDULE
+        WHERE CENTER_ID = #{centerId}
+    </select>
+
+    <select id="selectBrodContentBasicBrodCodePreBrodCode" resultType="java.lang.String">
+        SELECT COALESCE(BASIC_BROD_CODE, '')
+        FROM TB_BRODSCHEDULE
+        WHERE BROD_CODE = #{brodCode}
+    </select>
+
+    <select id="selectBrodRight" resultType="BrodContentInfoVO">
+        SELECT
+        X.CENTER_ID AS centerId, X.CENTER_NM AS centerNm, X.BROD_CODE AS brodCode, XX.ATCH_FILE_ID AS atchFileId, XX.ORIGNL_FILE_NM AS orignlFileNm,
+        XX.PLAY_TIME AS playTime, XX.FILE_THUMNAIL AS fileThumnail, XX.INTERVAL_SECTION AS intervalSection, XX.BROD_SEQ AS brodSeq, XX.tbGubun,
+        XX.ANNIVERSARY_TIME AS anniversaryTime, XX.ANNIVERSARY_STARTTIME AS anniversaryStartTime, XX.CONTENT_STARTDAY AS contentStartDay, XX.CONTENT_ENDDAY AS contentEndDay
+        FROM
+        (
+        SELECT
+        A.CENTER_ID, A.CENTER_NM, B.BROD_CODE
+        FROM TB_CENTERINFO A
+        LEFT OUTER JOIN TB_BRODSCHEDULE B ON A.CENTER_ID = B.CENTER_ID
+        WHERE A.CENTER_USEYN = 'Y'
+        AND A.CENTER_GUBUN = 'BRANCH01'
+        ) X
+        LEFT OUTER JOIN
+        (
+        SELECT
+        A.BROD_CODE, B.ATCH_FILE_ID, C.ORIGNL_FILE_NM, C.PLAY_TIME, C.FILE_THUMNAIL, B.INTERVAL_SECTION, B.CONTENT_STARTDAY, B.CONTENT_ENDDAY,
+        B.BROD_SEQ, 'D' AS tbGubun, '' AS ANNIVERSARY_TIME, '' AS ANNIVERSARY_STARTTIME
+        FROM TB_BRODSCHEDULE A
+        JOIN TB_BRODCONTENTDETAIL B ON A.BROD_CODE = B.BROD_CODE
+        JOIN LETTNFILEDETAIL C ON B.ATCH_FILE_ID = C.ATCH_FILE_ID
+        WHERE A.CENTER_ID IS NOT NULL
+        AND B.ATCH_FILE_ID = #{atchFileId}
+        AND B.CONTENT_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+
+        UNION ALL
+
+        SELECT
+        A.BROD_CODE, B.ATCH_FILE_ID, C.ORIGNL_FILE_NM, C.PLAY_TIME, C.FILE_THUMNAIL, B.ANNIVER_STARTDAY, B.ANNIVER_ENDDAY,
+        B.ANNIVERSARY_GUBUN AS INTERVAL_SECTION, B.BROD_ANNSEQ AS BROD_SEQ, 'A' AS tbGubun, B.ANNIVERSARY_TIME, B.ANNIVERSARY_STARTTIME
+        FROM TB_BRODSCHEDULE A
+        JOIN TB_BRODANNIVERSARY B ON A.BROD_CODE = B.BROD_CODE
+        JOIN LETTNFILEDETAIL C ON B.ATCH_FILE_ID = C.ATCH_FILE_ID
+        WHERE A.CENTER_ID IS NOT NULL
+        AND B.ATCH_FILE_ID = #{atchFileId}
+        AND B.ANNIVER_ENDDAY >= TO_CHAR(NOW(), 'YYYYMMDD')
+        ) XX ON X.BROD_CODE = XX.BROD_CODE
+        WHERE 1=1
+        <if test="centerNm != null">
+            AND X.CENTER_NM LIKE CONCAT('%', #{centerNm}, '%')
+        </if>
+        ORDER BY X.CENTER_NM ASC
+    </select>
+
+    <insert id="insertBrodContent">
+        INSERT INTO TB_BRODSCHEDULE
+        (
+            BROD_CODE, BROD_NAME, BROD_TOTALTIME, BROD_USEYN, BROD_INTERVAL,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID, BASIC_FILE_ID,
+            SEC_GUBUN, BROD_STARTDAY, BROD_ENDDAY, CENTER_ID, BASIC_BROD_CODE
+        )
+        VALUES
+            (
+                #{brodCode}, #{brodName}, '0', #{brodUseYn,jdbcType=VARCHAR}, #{brodInterval,jdbcType=VARCHAR},
+                NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{basicFileId},
+                #{secGubun}, #{brodStartDay,jdbcType=VARCHAR}, #{brodEndDay,jdbcType=VARCHAR}, #{centerId,jdbcType=VARCHAR}, #{basicBrodCode,jdbcType=VARCHAR}
+            )
+    </insert>
+
+    <insert id="insertBrodContentCopy">
+        INSERT INTO TB_BRODSCHEDULE
+        (
+            BROD_CODE, BROD_NAME, BROD_TOTALTIME, BROD_USEYN, BROD_INTERVAL,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID,
+            BASIC_FILE_ID, SEC_GUBUN
+        )
+        SELECT
+            #{brodCode}, BROD_NAME, BROD_TOTALTIME, BROD_USEYN, BROD_INTERVAL,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID,
+            BASIC_FILE_ID, SEC_GUBUN
+        FROM TB_BRODSCHEDULE
+        WHERE BROD_CODE = #{prebrodCode}
+    </insert>
+
+    <insert id="insertBrodContentCenterBrodCodeCopy">
+        INSERT INTO TB_BRODSCHEDULE
+        (
+            BROD_CODE, BROD_NAME, BROD_TOTALTIME, BROD_USEYN, BROD_INTERVAL,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID,
+            BASIC_FILE_ID, SEC_GUBUN, CENTER_ID, BASIC_BROD_CODE
+        )
+        SELECT
+            #{brodCode}, #{brodName}, BROD_TOTALTIME, BROD_USEYN, BROD_INTERVAL,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID,
+            BASIC_FILE_ID, SEC_GUBUN, #{centerId}, #{prebrodCode}
+        FROM TB_BRODSCHEDULE
+        WHERE BROD_CODE = #{prebrodCode}
+    </insert>
+
+    <update id="updateBrodContent">
+        UPDATE TB_BRODSCHEDULE SET
+                                   BROD_NAME = #{brodName},
+                                   LAST_UPDT_PNTTM = NOW(),
+                                   BROD_USEYN = #{brodUseYn},
+                                   SEC_GUBUN = #{secGubun},
+                                   BROD_STARTDAY = #{brodStartDay,jdbcType=VARCHAR},
+                                   BROD_ENDDAY = #{brodEndDay,jdbcType=VARCHAR},
+                                   BASIC_FILE_ID = #{basicFileId},
+                                   BROD_INTERVAL = #{brodInterval},
+                                   LAST_UPDUSR_ID = #{lastUpdusrId,jdbcType=VARCHAR}
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentCenter">
+        UPDATE TB_BRODSCHEDULE SET
+                                   BROD_NAME = #{brodName},
+                                   LAST_UPDT_PNTTM = NOW(),
+                                   BROD_USEYN = #{brodUseYn},
+                                   SEC_GUBUN = #{secGubun},
+                                   BASIC_FILE_ID = #{basicFileId},
+                                   BROD_INTERVAL = #{brodInterval},
+                                   LAST_UPDUSR_ID = #{lastUpdusrId,jdbcType=VARCHAR},
+                                   CENTER_ID = #{centerId,jdbcType=VARCHAR},
+                                   BASIC_BROD_CODE = #{basicBrodCode,jdbcType=VARCHAR}
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentSchChange">
+        UPDATE TB_BRODSCHEDULE SET
+            BROD_CHANGEINFO = #{brodChangeInfo}
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentCenterCntPlus">
+        UPDATE TB_BRODSCHEDULE SET
+            CENTER_RELCNT = CENTER_RELCNT + 1
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentCenterCntMin">
+        UPDATE TB_BRODSCHEDULE SET
+            CENTER_RELCNT = CENTER_RELCNT - 1
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentTimeInterval">
+        UPDATE TB_BRODSCHEDULE SET
+            BROD_TOTALTIME = #{brodTotalTime}
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentBasicInfo">
+        UPDATE TB_BRODSCHEDULE SET
+                                   CENTER_ID = #{centerId,jdbcType=VARCHAR},
+                                   BASIC_BROD_CODE = #{basicBrodCode,jdbcType=VARCHAR}
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentBasicInfoName">
+        UPDATE TB_BRODSCHEDULE SET
+                                   CENTER_ID = #{centerId,jdbcType=VARCHAR},
+                                   BASIC_BROD_CODE = #{basicBrodCode,jdbcType=VARCHAR},
+                                   BROD_NAME = #{brodName}
+        WHERE BROD_CODE = #{brodCode}
+    </update>
+
+    <update id="updateBrodContentBasicFileInfo">
+        UPDATE TB_BRODSCHEDULE SET
+            BASIC_FILE_ID = #{basicBrodCode,jdbcType=VARCHAR}
+        WHERE BROD_CODE = #{brodCode}
+          AND CENTER_ID = #{centerId}
+    </update>
+
+    <update id="updateBrodBasicCodeCntMin">
+        UPDATE TB_BRODSCHEDULE
+        SET CENTER_RELCNT = CENTER_RELCNT - 1
+        WHERE BROD_CODE =
+              (
+                  SELECT BASIC_BROD_CODE
+                  FROM TB_BRODSCHEDULE
+                  WHERE BROD_CODE = #{brodCode}
+              )
+    </update>
+
+    <delete id="deleteBrodContent">
+        DELETE FROM TB_BRODSCHEDULE
+        WHERE BROD_CODE = #{brodCode}
+    </delete>
+
+    <delete id="deleteBrodContentAll">
+        DELETE FROM TB_BRODSCHEDULE
+        WHERE BROD_CODE IN
+              (
+                  SELECT BROD_CODE
+                  FROM TB_BRODSCHEDULE
+                  WHERE BROD_CODE = #{brodCode} OR BASIC_BROD_CODE = #{brodCode}
+              )
+    </delete>
+</mapper>

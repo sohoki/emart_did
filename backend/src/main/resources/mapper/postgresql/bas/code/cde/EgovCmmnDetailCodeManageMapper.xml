@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.code.mapper.EgovCmmnDetailCodeManageMapper">
+    <select id="selectCmmnDetailCodeListByPagination" resultType="CmmnDetailCodeDto">
+        SELECT R.* FROM
+        (
+        SELECT
+        COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
+        ROW_NUMBER() OVER (ORDER BY A.CODE DESC) AS RNUM,
+        A.CODE_ID, B.CODE_ID_NM, A.CODE, A.CODE_NM, A.CODE_DC, A.USE_AT, A.CODE_ETC1, A.CODE_ETC2,
+        TO_CHAR(A.LAST_UPDT_PNTTM, 'YYYY-MM-DD AM HH12:MI') AS LAST_UPDT_PNTTM, A.LAST_UPDUSR_ID
+        FROM COMTCCMMNDETAILCODE A
+        INNER JOIN COMTCCMMNCODE B ON A.CODE_ID = B.CODE_ID
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(codeId)">
+            AND B.CODE_ID = #{codeId}
+        </if>
+        ) R
+        WHERE 1=1
+        ORDER BY REPLACE(CODE, CONCAT(CODE_ID, '_'), '') ASC
+    </select>
+
+    <select id="selectCmmnDetailCodeDetail" resultType="CmmnDetailCodeDto">
+        SELECT B.CODE_ID AS codeId, B.CODE_ID_NM AS codeIdNm , A.CODE AS code,
+               A.CODE_NM AS codeNm, A.CODE_DC AS codeDc, A.USE_AT AS useAt
+        FROM COMTCCMMNDETAILCODE A, COMTCCMMNCODE B
+        WHERE A.CODE = #{code}
+          AND  A.CODE_ID = B.CODE_ID
+    </select>
+
+    <select id="selectCmmnDetailCombo" resultType="CmmnDetailCodeDto">
+        SELECT
+            A.CODE AS code, A.CODE_NM AS codeNm, A.CODE_DC AS codeDc, A.USE_AT AS useAt,
+            A.CODE_ETC1 AS codeEtc1, A.CODE_ETC2 AS codeEtc2
+        FROM COMTCCMMNDETAILCODE A
+        WHERE A.CODE_ID = #{code}
+        ORDER BY REPLACE(CODE, CONCAT(CODE_ID, '_'), '') ASC
+    </select>
+
+    <select id="selectCmmnDetailList" resultType="camelmap">
+        SELECT
+            A.CODE_ID,
+            A.CODE ,
+            A.CODE_NM ,
+            A.CODE_DC ,
+            A.USE_AT,
+            A.CODE_ETC1,
+            A.CODE_ETC2
+        FROM COMTCCMMNDETAILCODE A
+    </select>
+
+    <!-- 신규 추가 -->
+    <select id="selectCmmnDetailComboLamp" resultType="CmmnDetailCodeDto">
+        SELECT
+            A.CODE AS code, A.CODE_NM AS codeNm
+        FROM COMTCCMMNDETAILCODE A
+        WHERE A.CODE_ID = #{code}
+          AND USE_AT = 'Y'
+    </select>
+    <!--  2021-11-11 수정 -->
+    <select id="selectCmmnDetail" resultType="CmmnDetailCodeDto">
+        SELECT A.CODE,  A.CODE_NM, A.CODE_DC, A.CODE_ETC1, A.CODE_ETC2, A.USE_AT, A.CODE_ID
+        FROM COMTCCMMNDETAILCODE A
+        WHERE A.CODE = #{code}
+    </select>
+
+    <select id="selectCmmnDetailComboEtc" resultType="CmmnDetailCodeDto">
+        SELECT
+        A.CODE AS code, A.CODE_NM AS codeNm, A.CODE_DC AS codeDc, A.USE_AT AS useAt
+        FROM COMTCCMMNDETAILCODE A
+        WHERE A.CODE_ID = #{params.code}
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.nowData)">
+            <![CDATA[
+          AND REPLACE(A.CODE_NM, ':','') >= #{params.nowData}
+          ]]>
+        </if>
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.overData)">
+            <![CDATA[
+          AND REPLACE(A.CODE_NM, ':','') > #{params.overData}
+          ]]>
+        </if>
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.startCode) and !@org.apache.commons.lang3.StringUtils@isEmpty(params.endCode)">
+            AND CAST(CODE_DC AS INTEGER) BETWEEN CAST(REPLACE(#{params.startCode}, CONCAT(#{params.code}, '_'), '') AS INTEGER)
+            AND CAST(REPLACE(#{params.endCode}, CONCAT(#{params.code}, '_'), '') AS INTEGER)
+        </if>
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.notIn)">
+            AND A.CODE_NM NOT IN
+            <foreach collection="params.notlist" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.notSearch)">
+            AND REPLACE(a.CODE_NM, ':','') NOT LIKE CONCAT('%', #{params.notSearch})
+        </if>
+        AND    USE_AT ='Y'
+
+        <choose>
+            <when test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.startCode) and !@org.apache.commons.lang3.StringUtils@isEmpty(params.endCode)">
+                ORDER BY CAST(CODE_DC AS INTEGER) ASC
+            </when>
+            <otherwise>
+                ORDER BY CODE ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectCmmnDetailResTypeCombo" resultType="CmmnDetailCodeDto">
+        SELECT     A.CODE AS code, A.CODE_NM AS codeNm, A.CODE_DC AS codeDc, A.USE_AT AS useAt
+        FROM COMTCCMMNDETAILCODE A
+        WHERE A.CODE_ID = #{codeId}
+        <if test="searchCodedc != ''">
+            AND A.CODE_DC = #{searchCodedc}
+        </if>
+        AND A.USE_AT ='Y'
+    </select>
+
+    <insert id="insertCmmnDetailCode">
+        <selectKey resultType="string" keyProperty="code" order="BEFORE">
+            SELECT FN_DETAIL_CODEID(#{codeId})
+        </selectKey>
+        <![CDATA[
+       INSERT INTO COMTCCMMNDETAILCODE
+       (
+          CODE_ID, CODE, CODE_NM, CODE_DC, USE_AT, CODE_ETC1,
+          FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID
+       )
+       VALUES
+       (
+          #{codeId}, #{code} , #{codeNm},
+          #{codeDc,jdbcType=VARCHAR}, #{useAt}, #{codeEtc1},
+          NOW(), #{userId}, NOW(), #{userId}
+       )
+       ]]>
+    </insert>
+
+    <update id="updateCmmnDetailCode">
+       <![CDATA[
+        UPDATE COMTCCMMNDETAILCODE SET CODE_NM = #{codeNm},
+                                       CODE_DC = #{codeDc, jdbcType=VARCHAR},
+                                       CODE_ETC1 = #{codeEtc1},
+                                       USE_AT = #{useAt},
+                                       LAST_UPDUSR_ID = #{lastUpdusrId},
+                                       LAST_UPDT_PNTTM = NOW()
+        WHERE CODE = #{code}
+        ]]>
+    </update>
+
+    <delete id="deleteCmmnDetailCode">
+        DELETE FROM COMTCCMMNDETAILCODE WHERE CODE = #{code}
+    </delete>
+
+    <delete id="deleteCmmnDetailCodeId">
+        DELETE FROM COMTCCMMNDETAILCODE WHERE CODE_ID = #{code}
+    </delete>
+</mapper>

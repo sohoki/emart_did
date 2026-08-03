@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.program.mapper.ProgrameChangeManageMapper">
+    <select id="selectProgrmChangeRequstList" resultType="lmap">
+        SELECT * FROM (
+        SELECT COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
+        TB.*
+        FROM (
+        SELECT ROW_NUMBER() OVER (ORDER BY REQUST_NO DESC) AS RNUM
+        , PROGRM_FILE_NM AS "progrmFileNm"
+        , REQUST_NO AS "rqesterNo"
+        , RQESTER_ID AS "rqesterPersonId"
+        , CONCAT(SUBSTRING(CHANGE_REQUST_CN FROM 1 FOR 10), '...') AS "changerqesterCn"
+        , CONCAT(SUBSTRING(REQUST_PROCESS_CN FROM 1 FOR 10), '...') AS "rqesterProcessCn"
+        , OPETR_ID AS "opetrId"
+        , TRIM(PROCESS_STTUS_CODE) AS "processSttus"
+        , TO_CHAR(PROCESS_DE, 'YY-MM-DD') AS processDe
+        , TO_CHAR(REQUST_DE, 'YY-MM-DD') AS rqesterDe
+        , REQUST_SJ AS "rqesterSj"
+        FROM COMTHPROGRMCHANGEDTLS
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
+            AND PROGRM_FILE_NM LIKE CONCAT('%', #{params.searchKeyword}, '%')
+        </if>
+        ) TB
+        ) R
+        ORDER BY RNUM DESC
+        LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
+    </select>
+
+    <select id="selectProgrmChangeRequstNo" resultType="String">
+       <![CDATA[
+        SELECT COALESCE(MAX(CAST(REQUST_NO AS INTEGER)), 0) + 1 AS "rqesterNo"
+        FROM COMTHPROGRMCHANGEDTLS
+        ]]>
+    </select>
+
+    <select id="selectProgrmChangeRequst" resultType="lmap">
+       <![CDATA[
+        SELECT
+            PROGRM_FILE_NM AS "progrmFileNm"
+             , REQUST_NO AS "rqesterNo"
+             , RQESTER_ID AS "rqesterPersonId"
+             , CHANGE_REQUST_CN AS "changerqesterCn"
+             , REQUST_PROCESS_CN AS "rqesterProcessCn"
+             , OPETR_ID AS "opetrId"
+             , TRIM(PROCESS_STTUS_CODE) AS "processSttus"
+             , TO_CHAR(PROCESS_DE, 'YY-MM-DD') AS processDe
+             , TO_CHAR(REQUST_DE, 'YY-MM-DD') AS rqesterDe
+             , REQUST_SJ AS "rqesterSj"
+        FROM COMTHPROGRMCHANGEDTLS
+        WHERE PROGRM_FILE_NM = #{params.progrmFileNm}
+          AND   REQUST_NO = #{params.rqesterNo}
+        ]]>
+    </select>
+
+    <insert id="insertProgrmChangeRequst">
+       <![CDATA[
+        INSERT INTO COMTHPROGRMCHANGEDTLS
+        (  PROGRM_FILE_NM
+        , REQUST_NO
+        , RQESTER_ID
+        , CHANGE_REQUST_CN
+        , REQUST_DE
+        , REQUST_SJ
+        , PROCESS_STTUS_CODE)
+        VALUES (  #{progrmFileNm}
+               , #{rqesterNo}
+               , #{rqesterPersonId}
+               , #{changerqesterCn}
+               , TO_DATE(#{rqesterDe}, 'YY-MM-DD')
+               , #{rqesterSj}
+               , 'A')
+        ]]>
+    </insert>
+
+    <update id="updateProgrmChangeRequst">
+       <![CDATA[
+        UPDATE COMTHPROGRMCHANGEDTLS
+        SET    RQESTER_ID = #{rqesterPersonId}
+          , CHANGE_REQUST_CN = #{changerqesterCn}
+          , REQUST_DE = TO_DATE(#{rqesterDe}, 'YY-MM-DD')
+          , REQUST_SJ = #{rqesterSj}
+        WHERE PROGRM_FILE_NM = #{progrmFileNm}
+          AND   REQUST_NO = #{rqesterNo}
+        ]]>
+    </update>
+
+    <delete id="deleteProgrmChangeRequst">
+       <![CDATA[
+        DELETE FROM COMTHPROGRMCHANGEDTLS
+        WHERE PROGRM_FILE_NM = #{progrmFileNm}
+          AND   REQUST_NO = #{rqesterNo}
+        ]]>
+    </delete>
+
+    <update id="updateProgrmChangeRequstProcess">
+       <![CDATA[
+        UPDATE COMTHPROGRMCHANGEDTLS
+        SET    REQUST_PROCESS_CN = #{rqesterProcessCn}
+          , OPETR_ID = #{opetrId}
+          , PROCESS_STTUS_CODE = #{processSttus}
+          , PROCESS_DE = TO_DATE(#{rqesterDe}, 'YY-MM-DD')
+        WHERE  PROGRM_FILE_NM = #{progrmFileNm}
+          AND    REQUST_NO = #{rqesterNo}
+        ]]>
+    </update>
+
+    <select id="selectChangeRequstProcessList" resultType="lmap">
+        SELECT * FROM (
+        SELECT COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
+        TB.*
+        FROM (
+        SELECT ROW_NUMBER() OVER (ORDER BY REQUST_NO ASC) AS RNUM
+        , PROGRM_FILE_NM AS "progrmFileNm"
+        , REQUST_NO AS "rqesterNo"
+        , RQESTER_ID AS "rqesterPersonId"
+        , CONCAT(SUBSTRING(CHANGE_REQUST_CN FROM 1 FOR 10), '...') AS "changerqesterCn"
+        , CONCAT(SUBSTRING(REQUST_PROCESS_CN FROM 1 FOR 10), '...') AS "rqesterProcessCn"
+        , OPETR_ID AS "opetrId"
+        , TRIM(PROCESS_STTUS_CODE) AS "processSttus"
+        , TO_CHAR(PROCESS_DE, 'YYYY-MM-DD') AS "processDe"
+        , TO_CHAR(REQUST_DE, 'YYYY-MM-DD') AS "rqesterDe"
+        , REQUST_SJ AS "rqesterSj"
+        FROM COMTHPROGRMCHANGEDTLS
+        WHERE 1=1
+        <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
+            <![CDATA[ AND ${params.searchCondition} LIKE CONCAT('%', #{params.searchKeyword}, '%') ]]>
+        </if>
+        ) TB
+        ) R
+        LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
+    </select>
+
+    <delete id="deleteAllProgrmDtls">
+       <![CDATA[
+        DELETE FROM COMTHPROGRMCHANGEDTLS
+        ]]>
+    </delete>
+</mapper>
