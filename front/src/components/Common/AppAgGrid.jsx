@@ -1,6 +1,8 @@
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useRef } from 'react';
 
+// AG Grid 커뮤니티 모듈은 main.jsx에서 앱 시작 시 한 번 전역 등록됨(ModuleRegistry.registerModules).
+
 /**
  * AgGridReact 래퍼 — 사이드바 토글 후 'sb:resized' 커스텀 이벤트를 받아
  * api.sizeColumnsToFit()을 호출하여 flex 컬럼 너비를 재계산합니다.

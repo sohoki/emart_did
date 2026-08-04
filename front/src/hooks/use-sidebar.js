@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
 import API_URL from '@/constants/URL.jsx';
@@ -17,7 +17,6 @@ const deserializeOpenParents = (raw) => {
 };
 
 export function useSidebar() {
-    const didInit  = useRef(false);
     const location = useLocation();
 
     const [isOpenSideBar, setIsOpenSideBar] = useState(true);
@@ -74,9 +73,13 @@ export function useSidebar() {
     }, [items]);
 
     // fetch menu items once on mount
+    // 주의: didInit ref로 두 번째 effect 실행을 건너뛰는 방식은 StrictMode(개발모드 mount→cleanup→
+    // mount 이중 호출)에서 깨진다 — 첫 번째 실행의 cleanup이 자신의 active를 false로 만든 뒤,
+    // didInit 가드 때문에 두 번째 실행은 새 active/fetch를 만들지 못해 첫 fetch 응답이 도착해도
+    // active===false라서 setItems/setLoading이 영원히 호출되지 않고 로딩 상태에 멈춰 있었음
+    // (사이드바가 스켈레톤 상태로 고착). ref 가드 없이 매 실행마다 자기 own active 클로저를 쓰면
+    // StrictMode의 첫 실행은 스스로 정리되고 두 번째 실행이 정상적으로 완료된다.
     useEffect(() => {
-        if (didInit.current) return;
-        didInit.current = true;
         let active = true;
         (async () => {
             setLoading(true);

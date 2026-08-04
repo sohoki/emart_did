@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.common.backoffice.bas.mark.mapper.BookMarksInfoManageMapper">
+
+    <select id="selectBookMarksInfoList" resultType="camelmap">
+        SELECT A.PROGRM_FILE_NM, A.BOOKMARKS_ORDER, B.URL, A.BOOKMARKS_NAME, B.PROGRM_KOREAN_NM
+        FROM tb_bookmarks A
+        INNER JOIN COMTNPROGRMLIST B ON A.PROGRM_FILE_NM = B.PROGRM_FILE_NM
+        WHERE A.USER_ID = #{params.userId}
+          AND A.USER_GUBUN = #{params.userGubun}
+        ORDER BY A.BOOKMARKS_ORDER ASC
+    </select>
+
+    <insert id="insertBookMarksInfo">
+        INSERT INTO tb_bookmarks (
+            USER_ID, USER_GUBUN, PROGRM_FILE_NM,
+            BOOKMARKS_ORDER, BOOKMARKS_NAME, LAST_UPDUSR_ID, LAST_UPDT_PNTTM
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId}, #{item.userGubun,jdbcType=VARCHAR}, #{item.progrmFileNm},
+            #{item.bookmarksOrder,jdbcType=VARCHAR}, #{item.bookmarksName,jdbcType=VARCHAR},
+            #{item.userId,jdbcType=VARCHAR}, NOW()
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateBookMarksOrder">
+        UPDATE tb_bookmarks
+        SET BOOKMARKS_ORDER = CASE PROGRM_FILE_NM
+        <foreach collection="list" item="item">
+            WHEN #{item.progrmFileNm} THEN #{item.bookmarksOrder,jdbcType=VARCHAR}
+        </foreach>
+        ELSE BOOKMARKS_ORDER END,
+        LAST_UPDUSR_ID = #{userId},
+        LAST_UPDT_PNTTM = NOW()
+        WHERE USER_ID = #{userId}
+          AND PROGRM_FILE_NM IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.progrmFileNm}
+        </foreach>
+    </update>
+
+    <delete id="deleteBookMarksInfo">
+        DELETE FROM tb_bookmarks
+        WHERE
+        <foreach collection="list" item="item" separator=" OR ">
+            (USER_ID = #{item.userId} AND PROGRM_FILE_NM = #{item.progrmFileNm})
+        </foreach>
+    </delete>
+
+</mapper>

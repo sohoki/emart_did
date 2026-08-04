@@ -29,13 +29,13 @@ spring:
       max-file-size: 20MB
       max-request-size: 30MB #에디터 본문에 이미지가 base64로 남아있는 기존 데이터 저장 시 여유를 두기 위해 상향
   application:
-    name: emart_cms1.6
+    name: emart_cms1.7
   api:
     key: mmhITesGClJMeC5v0HG91%2BKiKiaU5OFW4hjR9h6WJsl70S9Wcd4sCfcY%2Bids8eXQaY%2BX3m%2FIOuXvZ9JDWTK5pA%3D%3D
 
 ###################### swagger 설정
 springdoc:
-  packages-to-scan: com.emart.backoffice, egovframework
+  packages-to-scan: com.common.backoffice, egovframework
   api-docs:
     enabled: true
     path: /v3/api-docs
@@ -43,7 +43,7 @@ springdoc:
       enabled: true
   group-configs:
     - group: "Common API"
-      packages-to-scan: com.emart.backoffice
+      packages-to-scan: com.common.backoffice
     - group: "Egov API"
       packages-to-scan: egovframework
   swagger-ui:
@@ -153,6 +153,11 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+    # MyBatis 쿼리 로그(==> Preparing / ==> Parameters / <== Total). local 프로파일과 동일하게
+    # 추가함 — IDE Run Configuration에서 SPRING_PROFILES_ACTIVE를 prod/server로 지정해 로컬에서
+    # 띄우는 경우에도 SQL 로그가 보이지 않던 문제 확인 후 반영
+    com.common.backoffice: debug
+    egovframework.let: debug
 # 구동 서버 정보
 server:
   port : 7004
@@ -199,6 +204,11 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+    # MyBatis 쿼리 로그(==> Preparing / ==> Parameters / <== Total). local 프로파일과 동일하게
+    # 추가함 — IDE Run Configuration에서 SPRING_PROFILES_ACTIVE를 prod/server로 지정해 로컬에서
+    # 띄우는 경우에도 SQL 로그가 보이지 않던 문제 확인 후 반영
+    com.common.backoffice: debug
+    egovframework.let: debug
 # 구동 서버 정보
 server:
   port : 7003

@@ -38,18 +38,7 @@ const URL = {
     BOOKMARKS_ORDER_UPDATE: "/api/backoffice/bas/books/updateBookMarksOrder.do",
     BOOKMARKS_DELETE: "/api/backoffice/bas/books/deleteBookMarksInfo.do",
 
-    //메인 위젯 정보
-    WIDGET_MY_LIST: "/api/backoffice/bas/wedget/myWidgetListAjax.do",
-    WIDGET_AVAILABLE_LIST: "/api/backoffice/bas/wedget/availableWidgetListAjax.do",
-    WIDGET_INSERT: "/api/backoffice/bas/wedget/insertUserWidget.do",
-    WIDGET_LAYOUT_UPDATE: "/api/backoffice/bas/wedget/updateUserWidgetLayout.do",
-    WIDGET_DELETE: "/api/backoffice/bas/wedget/deleteUserWidget.do",
-
-    //위젯 마스터(정의) 관리자 정보
-    WIDGET_MST_LIST: "/api/backoffice/bas/wedget/wedgetMstListAjax.do",
-    WIDGET_MST_INFO: "/api/backoffice/bas/wedget/wedgetMst",
-    WIDGET_MST_ID_CHECK: "/api/backoffice/bas/wedget/wedgetMst/idCheck",
-    WIDGET_MST_UPDATE: "/api/backoffice/bas/wedget/updateWedgetMst.do",
+    
 
     //게시판 마스터(정의) 관리자 정보
     BOARD_MASTER_LIST: "/api/backoffice/board/master/boardMasterListAjax.do",
@@ -250,6 +239,12 @@ const URL = {
     PART_DELETE:"/api/backoffice/hr/part",
     PART_COMBO:"/api/backoffice/hr/part/partCombo.do",
     PART_PARENT_COMBO:"/api/backoffice/hr/part/parentPartCombo.do",
+
+    //부서 관리(LETTNAUTHORGROUPINFO, 레거시 "부서관리"/selectGroupLst.do)
+    GROUP_LIST: "/api/backoffice/sub/basicManage/group/list.do",
+    GROUP_COMBO: "/api/backoffice/sub/basicManage/group/combo.do",
+    GROUP_INFO: "/api/backoffice/sub/basicManage/group",
+    GROUP_UPDATE: "/api/backoffice/sub/basicManage/group/update.do",
 
     //벤더사 정보
     VENDOR_LIST:"/api/backoffice/infra/vendor/vendorListAjax.do",

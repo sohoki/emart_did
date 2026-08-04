@@ -20,7 +20,7 @@ const Header = ({
     return (
         <header>
             <img
-                src="/resource/img/logo_black.svg"
+                src="/resource/img/emartLogo.png"
                 alt=""
                 style={{ cursor: 'pointer' }}
                 onClick={() => navigate('/sub/dashboard/mainWidget')}

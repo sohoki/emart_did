@@ -40,6 +40,10 @@
 
 /* ── 다크모드 CSS 변수 오버라이드 ────────────────────────────────── */
 [data-theme="dark"] {
+  /* className 없는 순수 select/input 등 네이티브 폼 컨트롤을 앱의 다크모드 토글에 맞춤
+     (index.css의 color-scheme: light 기본값 참고) */
+  color-scheme: dark;
+
   /* 카드/패널 */
   --ipcc-card-bg: #25262b;
   --ipcc-card-header-bg: #2c2e33;

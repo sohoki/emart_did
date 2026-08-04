@@ -13,9 +13,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 	
-	private static final String API_NAME = "호텔 예약 관리 공통 영역";
-	private static final String API_VERSION = "0.9.0";
-	private static final String API_DESCRIPTION = "호텔 예약 관리 공통 영역 명세서";
+	private static final String API_NAME = "Emart DID 관리 공통 영역";
+	private static final String API_VERSION = "1.7.0";
+	private static final String API_DESCRIPTION = "Emart DID 관리 공통 영역 명세서";
 
 	@Bean
 	public OpenAPI api() {

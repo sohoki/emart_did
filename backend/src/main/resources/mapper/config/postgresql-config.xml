@@ -19,6 +19,11 @@
         <typeAlias alias="ProgrameChangeInfo" type="com.common.backoffice.bas.program.modals.ProgrameChangeInfo"/>
         <typeAlias alias="ProgrmInfoDto" type="com.common.backoffice.bas.program.modals.dto.ProgrmInfoDto"/>
 
+        <typeAlias alias="BookMarksInfoReqDto" type="com.common.backoffice.bas.mark.models.dto.BookMarksInfoReqDto"/>
+
+        <typeAlias alias="ManagerInfoReqDto" type="com.common.backoffice.uat.hri.models.dto.ManagerInfoReqDto"/>
+        <typeAlias alias="ManagerInfoResDto" type="com.common.backoffice.uat.hri.models.dto.ManagerInfoResDto"/>
+
         <typeAlias alias="RoleInfo" type="com.common.backoffice.bas.role.modals.RoleInfo"/>
         <typeAlias alias="RoleInfoRequestDto" type="com.common.backoffice.bas.role.modals.dto.RoleInfoRequestDto"/>
 

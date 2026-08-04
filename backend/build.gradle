@@ -7,7 +7,7 @@ plugins {
 
 group = 'egov'
 version = '1.0.1'
-description = 'emart_cms1.6'
+description = 'emart_cms1.7'
 
 java {
     sourceCompatibility = '17'

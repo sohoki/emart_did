@@ -171,6 +171,25 @@ public class EgovLoginApiController {
 	}
 
 	@Operation(
+			summary = "토큰값 검증",
+			description = "ProtectedRoute(프론트)가 페이지 진입 전 토큰 유효성을 서버에 확인하는 용도. " +
+					"이 메서드까지 도달했다는 것 자체가 JwtAuthenticationFilter를 통과했다는 뜻이므로 별도 로직 없이 성공만 반환한다.",
+			tags = {"EgovLoginApiController"}
+	)
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "성공"),
+			@ApiResponse(responseCode = "401", description = "인증 실패")
+	})
+	@PostMapping(value = "/jwtAuthAPI")
+	public ResultVO jwtAuthentication(HttpServletRequest request) throws Exception {
+		ResultVO resultVO = new ResultVO();
+		resultVO.setResultCode(ResponseCode.SUCCESS.getCode());
+		resultVO.setResultCodeInfo(Globals.STATUS_SUCCESS);
+		resultVO.setResultMessage(egovMessageSource.getMessage("success.common.msg"));
+		return resultVO;
+	}
+
+	@Operation(
 			summary = "로그아웃",
 			description = "로그아웃 처리(JWT)",
 			tags = {"EgovLoginApiController"}

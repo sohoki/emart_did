@@ -1,13 +1,13 @@
 import Switch from 'react-switch';
 
 /**
- * 사용/미사용공통 공통 컴포넌트
- * @param {string}   value      - ?재?('Y' | 'N')
- * @param {string}   name       - updateForm???용???드?
- * @param {function} onChange   - 변??들??(checked => updateForm({ [name]: 'Y'|'N' }))
- * @param {string}   onText     - ON ?태 ?스??(기본: '사용')
- * @param {string}   offText    - OFF ?태 ?스??(기본: '미사용')
- * @param {boolean}  disabled   - 비활성화
+ * 사용/미사용 공통 토글 스위치 컴포넌트
+ * @param {string}   value      - 현재값 ('Y' | 'N')
+ * @param {string}   name       - updateForm에 사용할 필드명
+ * @param {function} onChange   - 변경 핸들러 (payload => updateForm({ [name]: 'Y'|'N' }))
+ * @param {string}   onText     - ON 상태 텍스트 (기본: '사용')
+ * @param {string}   offText    - OFF 상태 텍스트 (기본: '미사용')
+ * @param {boolean}  disabled   - 비활성화 여부
  */
 const IsoSwitch = ({
     value,

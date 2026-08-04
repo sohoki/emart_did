@@ -15,7 +15,7 @@ const LoginForm = ({
 }) => {
   return (
     <div className="login-box">
-        <img src="/resource/img/logo_black.svg" alt="Logo" />
+        <img src="/resource/img/emartLogo.png" alt="Logo" />
 
         <form onSubmit={submitFormHandler}>
             <div className="login-input">

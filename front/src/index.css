@@ -17,7 +17,11 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* OS/브라우저의 다크모드 선호도가 아니라 [data-theme] 토글 상태를 따르도록 기본은 light로
+     고정 — DarkMode.css의 [data-theme="dark"]가 다크일 때만 다시 dark로 바꿔준다. 이게 없으면
+     className 없는 순수 select/input 같은 네이티브 폼 컨트롤이 앱 테마와 무관하게 OS 설정을
+     보고 제멋대로 어둡게 렌더링된다. */
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -55,11 +59,7 @@ body {
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  width: 100%;
   min-height: 100svh;
   display: flex;
   flex-direction: column;

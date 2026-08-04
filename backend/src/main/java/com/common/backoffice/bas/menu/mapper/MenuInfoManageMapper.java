@@ -135,7 +135,7 @@ public interface MenuInfoManageMapper {
 	 * @return List
 	 * @exception Exception
 	 */
-	public List<Map<String, Object>> selectMainMenuLeft(String roleId, String url) ;
+	public List<Map<String, Object>> selectMainMenuLeft(@Param("roleId") String roleId, @Param("url") String url) ;
 
 	/**
 	 * MainMenu Head MenuURL 조회

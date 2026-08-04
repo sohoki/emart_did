@@ -14,7 +14,7 @@ const IdFindForm = ({
     
     return (
         <div className="login-box">
-            <img src="/resource/img/logo_black.svg" alt="Logo" />
+            <img src="/resource/img/emartLogo.png" alt="Logo" />
             {/* ✅ 핵심: input들을 form 태그로 감싸 경고 해결 및 엔터키 지원 */}
             <form className="row g-0 w-100" onSubmit={submitFormHandler}>
                 <div className="col-12">

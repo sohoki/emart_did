@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
-import { getCookie, setCookie } from '@/lib/cookie.jsx';
+import { getCookie } from '@/lib/cookie.jsx';
 import URL from '@/constants/URL.jsx';
 
 const PAGE_UNIT = 20;
@@ -14,9 +14,6 @@ export default function ManagerListPage() {
     const [totalCnt, setTotalCnt] = useState(0);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [loading, setLoading] = useState(false);
-
-    const managerName = getCookie('userName') || '';
-    const managerId = getCookie('userId') || '';
 
     const columnDefs = useMemo(() => ([
         { field: 'managerId', headerName: '아이디', width: 140 },
@@ -66,25 +63,9 @@ export default function ManagerListPage() {
         loadList(searchKeyword);
     };
 
-    const handleLogout = async () => {
-        try {
-            await fnAjaxFetch({ url: URL.LOGOUT_PROCESS, method: 'GET', withCredentials: true });
-        } finally {
-            setCookie('accessToken', '', -1);
-            setCookie('refreshToken', '', -1);
-            navigate('/login', { replace: true });
-        }
-    };
-
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 16, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h2 style={{ margin: 0 }}>관리자 리스트</h2>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span>{managerName} ({managerId})</span>
-                    <button type="button" onClick={handleLogout}>로그아웃</button>
-                </div>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 16, boxSizing: 'border-box' }}>
+            <h2 style={{ margin: '0 0 12px' }}>관리자 리스트</h2>
 
             <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 <input
