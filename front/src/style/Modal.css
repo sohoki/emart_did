@@ -77,6 +77,28 @@
   margin-left: auto;
 }
 
+/* ── 모달 제목 색상 명시 고정 ───────────────────────────────── */
+/* common.css의 .modal-title__title은 font-size/weight만 정하고 color는 비워둬서,
+   index.css의 전역 h1,h2{color:var(--text-h)} 규칙과 다크모드 오버라이드 사이에서
+   불안정하게 흐릿해 보이던 문제 — --ipcc-text-primary(카드/텍스트 테마 변수)로 고정한다. */
+.modal-title__title {
+  color: var(--ipcc-text-primary, #1e293b);
+}
+
+/* ── 모달 본문 내 입력창 옆 버튼("중복확인" 등) 크기 통일 ───────── */
+/* common.css는 .modal-footer button만 33px/14px로 컴팩트하게 줄여주고
+   .modal-body(입력창 옆 중복확인 버튼 등)는 대상이 아니라서, Bootstrap 기본 .btn
+   크기(더 크고 16px)가 그대로 적용되어 footer 버튼과 크기가 안 맞던 문제를 맞춘다. */
+.modal-body .input-group > button {
+  min-width: 82px;
+  height: 33px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 3px;
+  border: none;
+  white-space: nowrap;
+}
+
 /* ── 다크 모드 modal-footer border-top ──────────────────────── */
 [data-theme="dark"] .modal-custom .modal-footer {
   border-top-color: #373a40;

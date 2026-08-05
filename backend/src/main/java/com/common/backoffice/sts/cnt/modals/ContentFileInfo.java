@@ -47,10 +47,18 @@ public class ContentFileInfo {
 	
 	private String fileAlbum = "";
 	private String singerNm = "";
-	
+	private String realFileNm;
+	private String fileAlbumRegdate;
+
 	private String frstRegistPnttm;
 	private String lastRegistPnttm;
 	private String frstRegisterId;
 	private String lastRegisterId;
+
+	// insertFileManage/selectFilePageListByPagination 등에서 부서/매장 단위 권한 스코프로 쓰임
+	// (레거시 컬럼을 그대로 포팅했지만 정작 이 모델에 필드가 빠져 있어 등록 시 MyBatis
+	// "no getter for property" 오류가 나던 것을 여기서 보강함)
+	private String groupId;
+	private String centerId;
 
 }

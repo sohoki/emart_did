@@ -4,44 +4,49 @@
     <select id="selectCenterInfoManageListByPagination" resultType="CenterInfoVO">
         SELECT * FROM
         (
-        SELECT ROW_NUMBER() OVER (ORDER BY CENTER_ID DESC) AS RNUM, TB.* FROM
-        (
-        SELECT
-        CENTER_ID AS "centerId",
-        CENTER_NM AS "centerNm",
-        CENTER_STARTTIME AS "centerStartTime",
-        CENTER_ENDTIME AS "centerEndTime",
-        CENTER_USEYN AS "centerUseYn",
-        CENTER_GUBUN AS "centerGubun",
-        CENTER_REGDATE AS "centerRegdate"
-        FROM TB_CENTERINFO
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'centerId'">
-                    AND CENTER_ID LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        <choose>
-            <when test="author_Code == 'ROLE_ADMIN' and groupId == 'EMART_00000000000009'">
-                AND CENTER_GUBUN = 'BRANCH01'
-            </when>
-            <when test="author_Code == 'ROLE_ANONYMOUS' and groupId == 'EMART_00000000000017'">
-                AND CENTER_GUBUN = 'BRANCH01'
-            </when>
-        </choose>
-        ) TB
+            SELECT ROW_NUMBER() OVER (ORDER BY "centerId" DESC) AS RNUM,
+                TB.*
+            FROM
+            (
+                SELECT
+                    A.CENTER_ID AS "centerId",
+                    A.CENTER_NM AS "centerNm",
+                    A.CENTER_STARTTIME AS "centerStartTime",
+                    A.CENTER_ENDTIME AS "centerEndTime",
+                    A.CENTER_USEYN AS "centerUseYn",
+                    A.CENTER_GUBUN AS "centerGubun",
+                    B.CODE_NM AS "codeNm",
+                    A.CENTER_REGDATE AS "centerRegdate"
+                FROM TB_CENTERINFO A
+                INNER JOIN COMTCCMMNDETAILCODE B ON A.CENTER_GUBUN = B.CODE
+                WHERE 1=1
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'centerId'">
+                            AND CENTER_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <otherwise>
+                            AND CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
+                <choose>
+                    <when test="author_Code == 'ROLE_ADMIN' and groupId == 'EMART_00000000000009'">
+                        AND CENTER_GUBUN = 'BRANCH01'
+                    </when>
+                    <when test="author_Code == 'ROLE_ANONYMOUS' and groupId == 'EMART_00000000000017'">
+                        AND CENTER_GUBUN = 'BRANCH01'
+                    </when>
+                </choose>
+            ) TB
         ) TA
         WHERE RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
 
     <select id="selectCenterInfoManageCombo" resultType="CenterInfoVO">
         SELECT
-        CENTER_ID AS centerId, CENTER_NM AS centerNm
+        CENTER_ID AS centerId,
+        CENTER_NM AS centerNm
         FROM TB_CENTERINFO
         WHERE CENTER_USEYN = 'Y'
         <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
@@ -49,28 +54,29 @@
                 <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
                     AND ROLE_CODE IN
                     (
-                    WITH RECURSIVE cte AS (
-                    SELECT GROUP_ID, PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (
-                    SELECT GROUP_ID
-                    FROM LETTNGNRLMBER
-                    WHERE MBER_ID = #{mberId}
-                    )
-                    UNION ALL
-                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO g
-                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
-                    )
-                    SELECT GROUP_ID FROM cte
+                        WITH RECURSIVE cte AS
+                        (
+                            SELECT GROUP_ID, PARENT_GROUP_ID
+                            FROM LETTNAUTHORGROUPINFO
+                            WHERE GROUP_ID = (
+                            SELECT PART_ID
+                            FROM TB_MANAGERINFO
+                            WHERE MANAGER_ID = #{mberId}
+                            )
+                            UNION ALL
+                            SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                            FROM LETTNAUTHORGROUPINFO g
+                            JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                        )
+                        SELECT GROUP_ID FROM cte
                     )
                 </when>
                 <otherwise>
                     AND CENTER_ID =
                     (
-                    SELECT CENTER_ID
-                    FROM LETTNGNRLMBER
-                    WHERE MBER_ID = #{mberId}
+                        SELECT CENTER_ID
+                        FROM TB_MANAGERINFO
+                        WHERE MANAGER_ID = #{mberId}
                     )
                 </otherwise>
             </choose>

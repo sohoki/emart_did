@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import LoginForm from '@/components/Auth/LoginForm.jsx';
 import Swal from '@/lib/swal.js';
@@ -9,9 +9,20 @@ import URL from '@/constants/URL.jsx';
 
 const ID_COOKIE = 'savedManagerId';
 
+const DEFAULT_LANDING_PATH = '/backoffice/hr/manager';
+
 export default function LoginPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const idRef = useRef(null);
+
+    // ProtectedRoute가 인증 실패로 /login에 보낼 때 state.from에 원래 가려던 위치를 실어 보낸다
+    // (예: /backoffice/sub/equiManage/did_group 접속 중 토큰이 일시적으로 만료돼 튕겼다가
+    // 로그인 화면이 무조건 hr/manager로만 보내버리면 원래 가려던 화면을 잃어버림)
+    const redirectPath = useMemo(() => {
+        const from = location.state?.from;
+        return (from?.pathname ? `${from.pathname}${from.search || ''}` : DEFAULT_LANDING_PATH);
+    }, [location.state]);
 
     const [userInfo, setUserInfo] = useState({
         userId: getCookie(ID_COOKIE) || '',
@@ -23,11 +34,11 @@ export default function LoginPage() {
     useEffect(() => {
         // 이미 로그인된 상태면 로그인 화면을 건너뛴다
         if (getCookie('accessToken')) {
-            navigate('/backoffice/hr/manager', { replace: true });
+            navigate(redirectPath, { replace: true });
             return;
         }
         idRef.current?.focus();
-    }, [navigate]);
+    }, [navigate, redirectPath]);
 
     const onChangeUserInfo = useCallback((e) => {
         const { name, value } = e.target;
@@ -91,13 +102,13 @@ export default function LoginPage() {
                 setCookie(ID_COOKIE, '', -1);
             }
 
-            navigate('/backoffice/hr/manager', { replace: true });
+            navigate(redirectPath, { replace: true });
         } catch (error) {
             Swal.fire({ icon: 'error', title: '로그인 오류', text: error?.message || '로그인 중 오류가 발생했습니다.' });
         } finally {
             setLoginButtonActive(true);
         }
-    }, [userInfo, saveIDFlag, navigate]);
+    }, [userInfo, saveIDFlag, navigate, redirectPath]);
 
     return (
         <div className="login-center">

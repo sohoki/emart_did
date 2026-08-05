@@ -1,21 +1,28 @@
 package com.common.backoffice.sts.cnt.web;
 
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.common.backoffice.bas.uni.service.UtilInfoService;
 import com.common.backoffice.sts.cnt.modals.ContentFileInfo;
 import com.common.backoffice.sts.cnt.modals.ContentFileInfoVO;
 import com.common.backoffice.sts.cnt.service.ContentFileInfoManageService;
 import com.common.backoffice.util.service.AuthHelper;
 import egovframework.com.cmm.EgovMessageSource;
+import egovframework.com.cmm.LoginVO;
 import egovframework.com.cmm.ResponseCode;
 import egovframework.com.cmm.service.Globals;
 import egovframework.com.cmm.service.ResultVO;
 import egovframework.com.cmm.util.ResultHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.common.backoffice.util.service.fileMultiService;
 
@@ -73,16 +81,30 @@ public class ContentFileInfoManageController {
 	private final ContentFileInfoManageService conFileService;
 	private final fileMultiService uploadFile;
 
-	@Operation(summary = "콘텐츠 파일 리스트 조회", description = "mediaType(IMAGE/MEDIA/MUSIC)/notConType/fileGubun/검색조건으로 페이징 조회합니다.")
+	@Operation(summary = "콘텐츠 파일 리스트 조회",
+            description = "mediaType(IMAGE/MEDIA/MUSIC)/notConType/fileGubun/검색조건으로 페이징 조회합니다.",
+            tags = {"ContentFileInfoManageController"}
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "500", description = "실패")
+    })
 	@PostMapping("/list.do")
-	public ResultVO selectFilePageListByPagination(@RequestBody ContentFileInfoVO searchVO, HttpServletRequest request) throws Exception {
+	public ResultVO selectFilePageListByPagination(@RequestBody ContentFileInfoVO searchVO,
+                                                   HttpServletRequest request) throws Exception {
 		ResultVO resultVO = new ResultVO();
 		try {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
 
-			if (searchVO.getMediaType() == null) searchVO.setMediaType("");
-			if (searchVO.getNotConType() == null) searchVO.setNotConType("");
-			if (searchVO.getFileGubun() == null) searchVO.setFileGubun("");
+            LoginVO vo = AuthHelper.getLoginVO();
+            searchVO.setAuthorCode(vo.getRoleId());
+            searchVO.setAuthorCode("ROLE_ADMIN");
+            searchVO.setMberId(vo.getManagerId());
+
+            searchVO.setMediaType(UtilInfoService.NVLObj(searchVO.getMediaType(),""));
+            searchVO.setNotConType(UtilInfoService.NVLObj(searchVO.getNotConType(),""));
+            searchVO.setFileGubun(UtilInfoService.NVLObj(searchVO.getFileGubun(),""));
+
 
 			if (searchVO.getPageUnit() <= 0) {
 				searchVO.setPageUnit(propertiesService.getInt(Globals.PAGE_UNIT));
@@ -175,6 +197,60 @@ public class ContentFileInfoManageController {
 			ResultHelper.setCudResult(resultVO, ret, "success.common.update", egovMessageSource);
 		} catch (Exception e) {
 			ResultHelper.setFailResult(resultVO, "updateFileDetailInfo", e, egovMessageSource);
+		}
+		return resultVO;
+	}
+
+	@Operation(summary = "콘텐츠 파일 다건 업로드", description = "미디어 라이브러리에 새 파일을 등록합니다. mediaType은 저장 안 하고 조회 시 확장자 기준으로 자동 판별됩니다.")
+	@PostMapping("/upload.do")
+	public ResultVO uploadFileManage(@RequestParam("files") List<MultipartFile> files, HttpServletRequest request) throws Exception {
+		ResultVO resultVO = new ResultVO();
+		try {
+			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
+			LoginVO loginVO = AuthHelper.getLoginVO();
+
+			// 기존 데이터와 동일한 관례: /EMART_DID/did/upload/{yyyyMM}/ 아래 저장
+			// (물리 저장 경로 = filePath + 관례 경로, DB엔 이 관례 경로를 그대로 fileStreCours로 저장)
+			String yyyyMM = new SimpleDateFormat("yyyyMM").format(new Date());
+			String relDir = "/EMART_DID/did/upload/" + yyyyMM + "/";
+			String targetDir = Paths.get(filePath, "EMART_DID", "did", "upload", yyyyMM).toString();
+
+			int successCount = 0;
+			for (MultipartFile file : files) {
+				fileMultiService.FileUploadResult uploaded = uploadFile.uploadFile(file, targetDir);
+				if (uploaded == null) {
+					continue;
+				}
+
+				String savedName = uploaded.savedFileName();
+				int dot = savedName.lastIndexOf('.');
+				String atchFileId = (dot != -1) ? savedName.substring(0, dot) : savedName;
+				String fileExtsn = (dot != -1) ? savedName.substring(dot + 1) : "";
+
+				ContentFileInfo vo = new ContentFileInfo();
+				vo.setMode(Globals.SAVE_MODE_INSERT);
+				vo.setAtchFileId(atchFileId);
+				vo.setFileStreCours(relDir);
+				vo.setStreFileNm(savedName);
+				vo.setOrignlFileNm(uploaded.originalFileName());
+				vo.setFileExtsn(fileExtsn);
+				vo.setFileSize(String.valueOf(file.getSize()));
+				vo.setConSeq("0");
+				vo.setGroupId(loginVO.getPartId());
+				vo.setFrstRegisterId(loginVO.getManagerId());
+
+				int ret = conFileService.insertFileManage(vo);
+				if (ret > 0) {
+					successCount++;
+				}
+			}
+
+			Map<String, Object> resultMap = new HashMap<>();
+			resultMap.put("successCount", successCount);
+			resultMap.put("totalCount", files.size());
+			ResultHelper.setSuccess(resultVO, resultMap);
+		} catch (Exception e) {
+			ResultHelper.setFailResult(resultVO, "uploadFileManage", e, egovMessageSource);
 		}
 		return resultVO;
 	}

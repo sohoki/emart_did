@@ -27,7 +27,7 @@
                     WITH RECURSIVE cte AS (
                     SELECT GROUP_ID, PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                     UNION ALL
                     SELECT g.GROUP_ID, g.PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO g
@@ -37,7 +37,7 @@
                     )
                 </when>
                 <otherwise>
-                    AND A.CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    AND A.CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                 </otherwise>
             </choose>
         </if>
@@ -249,7 +249,7 @@
                     WITH RECURSIVE cte AS (
                     SELECT GROUP_ID, PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                     UNION ALL
                     SELECT g.GROUP_ID, g.PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO g
@@ -259,7 +259,7 @@
                     )
                 </when>
                 <otherwise>
-                    AND CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    AND CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                 </otherwise>
             </choose>
         </if>
@@ -341,14 +341,14 @@
         INSERT INTO LETTNFILEDETAIL
         (
             ATCH_FILE_ID, FILE_STRE_COURS, STRE_FILE_NM, ORIGNL_FILE_NM, FILE_EXTSN,
-            FILE_SIZE, FILE_THUMNAIL, PLAY_TIME, FILE_GUBUN, USEYN,
+            FILE_SIZE, FILE_THUMNAIL, PLAY_TIME, FILE_GUBUN, USEYN, CON_SEQ,
             GROUP_ID, FILE_ALBUM, SINGER_NM, REAL_FILE_NM, FILE_ALBUM_REGDATE,
             FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID, CENTER_ID
         )
         VALUES
             (
                 #{atchFileId}, #{fileStreCours}, #{streFileNm}, #{orignlFileNm}, #{fileExtsn},
-                #{fileSize}, #{fileThumnail,jdbcType=VARCHAR}, #{playTime,jdbcType=VARCHAR}, #{fileGubun,jdbcType=VARCHAR}, 'Y',
+                #{fileSize,jdbcType=VARCHAR}::numeric, #{fileThumnail,jdbcType=VARCHAR}, #{playTime,jdbcType=VARCHAR}, #{fileGubun,jdbcType=VARCHAR}, 'Y', #{conSeq,jdbcType=VARCHAR}::numeric,
                 #{groupId,jdbcType=VARCHAR}, #{fileAlbum,jdbcType=VARCHAR}, #{singerNm,jdbcType=VARCHAR}, #{realFileNm,jdbcType=VARCHAR}, #{fileAlbumRegdate,jdbcType=VARCHAR},
                 NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{centerId,jdbcType=VARCHAR}
             )
@@ -360,7 +360,7 @@
                                    STRE_FILE_NM = #{streFileNm},
                                    ORIGNL_FILE_NM = #{orignlFileNm},
                                    FILE_EXTSN = #{fileExtsn},
-                                   FILE_SIZE = #{fileSize},
+                                   FILE_SIZE = #{fileSize,jdbcType=VARCHAR}::numeric,
                                    FILE_THUMNAIL = #{fileThumnail,jdbcType=VARCHAR},
                                    PLAY_TIME = #{playTime,jdbcType=VARCHAR},
                                    FILE_GUBUN = #{fileGubun,jdbcType=VARCHAR},

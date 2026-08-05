@@ -4,43 +4,42 @@
     <select id="selectContentInfoManageListByPagination" resultType="ContentInfoVO">
         SELECT * FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.CON_SEQ DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.CON_SEQ AS "conSeq",
-        B.CODE_NM AS "codeNm",
-        A.CON_NM AS "conNm",
-        A.CON_TIMEINTERVAL AS "conTimeInterval",
-        FN_DETAILCODENM(A.CON_PLAYTYPE) AS "conPlayType",
-        CASE
-        WHEN (A.CON_NEXTCONSEQ) > 0 THEN
-        (
-        SELECT CON_NM
-        FROM TB_CONTENT C
-        WHERE C.CON_SEQ = A.CON_NEXTCONSEQ
-        )
-        ELSE '컨텐츠 없음'
-        END AS "conNextConSeq"
-        FROM TB_CONTENT A
-        JOIN LETTCCMMNDETAILCODE B ON A.CON_TYPE = B.CODE
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'CON_NM'">
-                    AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND CAST(A.CON_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        <if test="conType != null">
-            AND A.CON_TYPE = #{conType}
-        </if>
-        ) TB
+            SELECT
+            ROW_NUMBER() OVER (ORDER BY "conSeq" DESC) AS RNUM,
+            TB.*
+            FROM
+            (
+                SELECT
+                    A.CON_SEQ AS "conSeq",
+                    B.CODE_NM AS "codeNm",
+                    A.CON_NM AS "conNm",
+                    A.CON_TIMEINTERVAL AS "conTimeInterval",
+                    FN_DETAILCODENM(A.CON_PLAYTYPE) AS "conPlayType",
+                    CASE  WHEN (A.CON_NEXTCONSEQ) > 0 THEN
+                    (
+                        SELECT CON_NM
+                        FROM TB_CONTENT C
+                        WHERE C.CON_SEQ = A.CON_NEXTCONSEQ
+                    )
+                    ELSE '컨텐츠 없음'
+                    END AS "conNextConSeq"
+                FROM TB_CONTENT A
+                JOIN LETTCCMMNDETAILCODE B ON A.CON_TYPE = B.CODE
+                WHERE 1=1
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'CON_NM'">
+                            AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <otherwise>
+                            AND CAST(A.CON_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
+                <if test="conType != null">
+                    AND A.CON_TYPE = #{conType}
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
@@ -79,7 +78,7 @@
                     WITH RECURSIVE cte AS (
                     SELECT GROUP_ID, PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                     UNION ALL
                     SELECT g.GROUP_ID, g.PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO g
@@ -89,7 +88,7 @@
                     )
                 </when>
                 <otherwise>
-                    AND CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    AND CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                 </otherwise>
             </choose>
         </if>
@@ -108,7 +107,7 @@
                     WITH RECURSIVE cte AS (
                     SELECT GROUP_ID, PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                     UNION ALL
                     SELECT g.GROUP_ID, g.PARENT_GROUP_ID
                     FROM LETTNAUTHORGROUPINFO g
@@ -118,7 +117,7 @@
                     )
                 </when>
                 <otherwise>
-                    AND CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    AND CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                 </otherwise>
             </choose>
         </if>

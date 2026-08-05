@@ -108,6 +108,13 @@ logging:
     # 표준 logging.level 프로퍼티로 대체(로그 설정 전체 정리는 20절 후속 과제로 남겨둠)
     com.common.backoffice: debug
     egovframework.let: debug
+    jdbc.sqlonly: off         # sqlonly는 꺼두고 sqltiming과 포매터 조합을 주로 사용합니다
+    jdbc.sqltiming: debug     # 실행 시간과 함께 실제 바인딩된 쿼리 출력
+    jdbc.audit: off
+    jdbc.resultset: off
+    jdbc.resultsettable: off
+    # log4jdbc 내부 구현 로거 레벨 조정
+    jdbc.connection: off
 # 구동 서버 정보
 server:
   port : 7004

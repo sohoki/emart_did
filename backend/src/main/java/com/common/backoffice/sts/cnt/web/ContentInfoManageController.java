@@ -17,6 +17,8 @@ import egovframework.com.cmm.service.ResultVO;
 import egovframework.com.cmm.util.ResultHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -71,7 +73,13 @@ public class ContentInfoManageController {
 	private final ContentInfoManageService contentService;
 	private final fileMultiService uploadFile;
 
-	@Operation(summary = "콘텐츠 리스트 조회")
+	@Operation(summary = "콘텐츠 리스트 조회",
+                tags = {"ContentInfoManageController"}
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "500", description = "실패")
+    })
 	@PostMapping("/list.do")
 	public ResultVO selectContentlLst(@RequestBody ContentInfoVO searchVO, HttpServletRequest request) throws Exception {
 		ResultVO resultVO = new ResultVO();

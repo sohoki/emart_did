@@ -16,10 +16,10 @@ const ProgrameInfo = lazy(() => import('@/pages/backoffice/Basic/ProgrameInfo.js
 
 {/* 인사 관리 */}
 const ManagerListPage = lazy(() => import('@/pages/backoffice/HrInfo/ManagerListPage.jsx'));
+const GroupListPage = lazy(() => import('@/pages/backoffice/HrInfo/GroupListPage.jsx'));
 
 {/* 기초(매장) 관리 */}
 const CenterListPage = lazy(() => import('@/pages/backoffice/BasicManage/CenterListPage.jsx'));
-const CenterAnniListPage = lazy(() => import('@/pages/backoffice/BasicManage/CenterAnniListPage.jsx'));
 
 {/* 운영 관리 */}
 const XmlListPage = lazy(() => import('@/pages/backoffice/OperManage/XmlListPage.jsx'));
@@ -27,6 +27,9 @@ const SendMsgListPage = lazy(() => import('@/pages/backoffice/OperManage/SendMsg
 const DidPicListPage = lazy(() => import('@/pages/backoffice/OperManage/DidPicListPage.jsx'));
 
 {/* 장비 관리 */}
+const DidInfoList = lazy(() => import('@/pages/backoffice/equiManage/DidInfoList.jsx'));
+const DIdGroupInfo = lazy(() => import('@/pages/backoffice/equiManage/DIdGroupInfo.jsx'));
+const DidSendMessageList = lazy(() => import('@/pages/backoffice/equiManage/DidSendMessageList.jsx'));
 const ContentMessageListPage = lazy(() => import('@/pages/backoffice/ConManage/ContentMessageListPage.jsx'));
 
 {/* 문화센터 관리 */}
@@ -61,16 +64,20 @@ export default function RouterConfig() {
 
                         {/* 인사 관리 */}
                         <Route path="/backoffice/hr/manager" element={<ManagerListPage />} />
+                        <Route path="/backoffice/sub/basicManage/group" element={<GroupListPage />} />
 
                         {/* 기초(매장) 관리 */}
                         <Route path="/backoffice/sub/basicManage/cnt" element={<CenterListPage />} />
-                        <Route path="/backoffice/sub/basicManage/cnt/anni" element={<CenterAnniListPage />} />
 
                         {/* 운영 관리 */}
                         <Route path="/backoffice/sub/operManage/xml" element={<XmlListPage />} />
                         <Route path="/backoffice/sub/operManage/snd" element={<SendMsgListPage />} />
 
                         {/* 장비 관리 */}
+                        <Route path="/backoffice/sub/equiManage/did" element={<DidInfoList />} />
+                        <Route path="/backoffice/sub/equiManage/did_group" element={<DIdGroupInfo />} />
+                        <Route path="/backoffice/sub/equiManage/message_list" element={<DidSendMessageList />} />
+                        { /* did 모니터 캡처 화면 */}
                         <Route path="/backoffice/sub/equiManage/pic" element={<DidPicListPage />} />
                         <Route path="/backoffice/sub/equiManage/message" element={<ContentMessageListPage />} />
 

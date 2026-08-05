@@ -2,38 +2,35 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentMessageInfoManagerMapper">
     <select id="selectContentMessageInfoListByPagination" resultType="ContentMessageInfoVO">
-        SELECT * FROM
-        (
-        SELECT ROW_NUMBER() OVER (ORDER BY A.SEND_REGDATE DESC) AS RNUM, TB.* FROM
-        (
-        SELECT
-        A.SEND_DIDID AS "sendDidId",
-        B.DID_NM AS "didNm",
-        C.GROUP_NM AS "groupNm",
-        A.SEND_MESSAGESTARTDAY AS "sendMessageStartDay",
-        A.SEND_MESSAGE AS "sendMessage",
-        A.SEND_MESSAGEENDDAY AS "sendMessageEndDay",
-        A.SEND_MESSAGESTARTTIME AS "sendMessageStartTime",
-        A.SEND_MESSAGEENDTIME AS "sendMessageEndTime",
-        A.SEND_REGDATE AS sendRegDate,
-        A.SEND_DIDCHECKDATE AS sendDidCheckDate,
-        A.SEND_MSGID AS sendMsgId
-        FROM TB_DIDSENDMESSAGE A
-        JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
-        JOIN TB_GROUPDID D ON B.DID_ID = D.DID_ID
-        JOIN TB_GROUP C ON C.GROUP_CODE = D.GROUP_CODE
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'SEND_MESSAGE'">
-                    AND A.SEND_MESSAGE LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND C.GROUP_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        ) TB
+        SELECT TA.* FROM (
+            SELECT
+                ROW_NUMBER() OVER (ORDER BY A.SEND_REGDATE DESC) AS RNUM,
+                A.SEND_DIDID AS "sendDidId",
+                B.DID_NM AS "didNm",
+                C.GROUP_NM AS "groupNm",
+                A.SEND_MESSAGESTARTDAY AS "sendMessageStartDay",
+                A.SEND_MESSAGE AS "sendMessage",
+                A.SEND_MESSAGEENDDAY AS "sendMessageEndDay",
+                A.SEND_MESSAGESTARTTIME AS "sendMessageStartTime",
+                A.SEND_MESSAGEENDTIME AS "sendMessageEndTime",
+                A.SEND_REGDATE AS "sendRegDate",
+                A.SEND_DIDCHECKDATE AS "sendDidCheckDate",
+                A.SEND_MSGID AS "sendMsgId"
+            FROM TB_DIDSENDMESSAGE A
+            JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+            JOIN TB_GROUPDID D ON B.DID_ID = D.DID_ID
+            JOIN TB_GROUP C ON C.GROUP_CODE = D.GROUP_CODE
+            WHERE 1=1
+            <if test="searchKeyword != ''">
+                <choose>
+                    <when test="searchCondition == 'SEND_MESSAGE'">
+                        AND A.SEND_MESSAGE LIKE '%' || #{searchKeyword} || '%'
+                    </when>
+                    <otherwise>
+                        AND C.GROUP_NM LIKE '%' || #{searchKeyword} || '%'
+                    </otherwise>
+                </choose>
+            </if>
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>

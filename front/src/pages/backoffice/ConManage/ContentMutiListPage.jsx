@@ -1,190 +1,267 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
+import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
-import { getCookie } from '@/lib/cookie.jsx';
+import { useResetForm } from '@/hooks/use-form.jsx';
+import { useCommonDelete } from '@/hooks/use-common-delete.js';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
 
-const PAGE_UNIT = 20;
-const emptyForm = {
-    mode: 'Ins', conSeq: '', conNm: '', conType: '', conScreen: '',
-    conWidth: '1080', conHeight: '1980', conMid: '540', conUseYn: 'Y',
+const ContentMutiFormModal = lazy(() => import('./components/ContentMutiFormModal.jsx'));
+
+const INITIAL_SEARCH_FORM = {
+    searchCondition: '',
+    searchKeyword: '',
 };
 
+const EMPTY_MUTI_FORM = {
+    mode: 'Ins',
+    conSeq: '',
+    conNm: '',
+    conScreen: '',
+    conType: '',
+    conUseYn: 'Y',
+    conWidth: '1080',
+    conHeight: '1980',
+    conMid: '540',
+    conNextSeq: '',
+};
+
+// 화면 구성(멀티페이지 콘텐츠) 관리 — 레거시 conMutiList.jsp 참고.
 export default function ContentMutiListPage() {
     const navigate = useNavigate();
-    const [rowData, setRowData] = useState([]);
-    const [totalCnt, setTotalCnt] = useState(0);
-    const [searchKeyword, setSearchKeyword] = useState('');
+    const gridApiRef = useRef(null);
+
+    const [modalOpen, setModalOpen] = useState(false);
+    const [mutiForm, setMutiForm] = useState(EMPTY_MUTI_FORM);
     const [conTypeOptions, setConTypeOptions] = useState([]);
     const [screenTypeOptions, setScreenTypeOptions] = useState([]);
-    const [form, setForm] = useState(emptyForm);
-    const [loading, setLoading] = useState(false);
+    const [nextSeqOptions, setNextSeqOptions] = useState([]);
+
+    // 화면타입/가로세로 콤보는 페이지 최초 진입 시 한 번만 조회한다.
+    useEffect(() => {
+        let active = true;
+        (async () => {
+            const res = await fnAjaxFetch({
+                url: URL.CON_MUTI_FORM_DATA, method: 'GET', param: { mode: 'Ins' }, showLoading: false,
+            });
+            if (!active) return;
+            const result = res?.data?.result || {};
+            setConTypeOptions(result.selectConType || []);
+            setScreenTypeOptions(result.selectScreenType || []);
+        })();
+        return () => { active = false; };
+    }, []);
+
+    const fetchMutiList = useCallback(async (query) => {
+        const res = await fnAjaxFetch({ url: URL.CON_MUTI_LIST, method: 'POST', data: query });
+        const data = res?.data;
+        return {
+            rows: data?.result?.resultList || [],
+            total: data?.result?.totalCnt || 0,
+        };
+    }, []);
+
+    const {
+        onGridReady,
+        defaultColDef,
+        tempParams,
+        setTempParams,
+        handleSearch,
+        refreshGrid,
+    } = useGridInfinite({
+        fetchApi: fetchMutiList,
+        pageUnit: 20,
+        initialFilters: INITIAL_SEARCH_FORM,
+    });
+
+    const handleInputChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setTempParams((prev) => ({ ...prev, [name]: value }));
+    }, [setTempParams]);
+
+    const onSearch = useCallback((pageIndex) => {
+        handleSearch(pageIndex || 1);
+    }, [handleSearch]);
+
+    const onSearchKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') onSearch(1);
+    }, [onSearch]);
+
+    const { handleReset } = useResetForm(setTempParams, INITIAL_SEARCH_FORM);
+
+    const handleOpenMutiModal = useCallback(async (conSeq) => {
+        if (!conSeq) {
+            setNextSeqOptions([]);
+            setMutiForm(EMPTY_MUTI_FORM);
+            setModalOpen(true);
+            return;
+        }
+        const res = await fnAjaxFetch({
+            url: URL.CON_MUTI_FORM_DATA, method: 'GET', param: { mode: 'Edt', conSeq },
+        });
+        const result = res?.data?.result || {};
+        const obj = result.regist;
+        if (obj) {
+            setNextSeqOptions(result.selectNextSeq || []);
+            setMutiForm({
+                mode: 'Edt',
+                conSeq: obj.conSeq || '',
+                conNm: obj.conNm || '',
+                conScreen: obj.conScreen || '',
+                conType: obj.conType || '',
+                conUseYn: obj.conUseYn || 'Y',
+                conWidth: obj.conWidth || '',
+                conHeight: obj.conHeight || '',
+                conMid: obj.conMid || '',
+                conNextSeq: obj.conNextSeq || '',
+            });
+            setModalOpen(true);
+        }
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
+        if (!mutiForm.conNm) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '화면명을 입력해 주세요.' });
+            return;
+        }
+        if (!mutiForm.conType) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '가로/세로 타입을 선택해 주세요.' });
+            return;
+        }
+
+        const action = mutiForm.mode === 'Ins' ? '등록' : '수정';
+        const ok = await Swal.fire({
+            icon: 'question', title: `화면 구성 ${action}`,
+            html: `<b>${mutiForm.conNm}</b> ${action} 하시겠습니까?`,
+            showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
+        });
+        if (!ok.isConfirmed) return;
+
+        const res = await fnAjaxFetch({ url: URL.CON_MUTI_UPDATE, method: 'POST', data: mutiForm });
+        const json = res?.data;
+        if (json?.resultCodeInfo === 'SUCCESS') {
+            await Swal.fire({ icon: 'success', title: '완료', text: json?.resultMessage || `${action}되었습니다.` });
+            setModalOpen(false);
+            refreshGrid();
+        } else {
+            await Swal.fire({ icon: 'error', title: '오류', text: json?.resultMessage || `${action} 중 오류가 발생했습니다.` });
+        }
+    }, [mutiForm, refreshGrid]);
+
+    const { handleDelete } = useCommonDelete({
+        gridApiRef,
+        URL: URL.CON_MUTI_INFO,
+        MESSAGE: '화면 구성(연결된 파일/상세페이지가 함께 삭제됩니다)',
+        reloadFunction: 'grid',
+    });
 
     const columnDefs = useMemo(() => ([
         { field: 'conSeq', headerName: '순번', width: 90 },
-        { field: 'conNm', headerName: '콘텐츠명', flex: 1, minWidth: 200 },
-        { field: 'codeNm', headerName: '유형', width: 120 },
-        { field: 'conWidth', headerName: '가로', width: 80 },
-        { field: 'conHeight', headerName: '세로', width: 80 },
-        { field: 'schCnt', headerName: '연결 스케줄', width: 100 },
         {
-            headerName: '', width: 220,
+            field: 'conNm', headerName: '화면명', flex: 1, minWidth: 180,
             cellRenderer: (p) => (
-                <>
-                    <button type="button" onClick={() => handleEdit(p.data.conSeq)}>수정</button>{' '}
-                    <button type="button" onClick={() => navigate(`/backoffice/sub/conManage/muti/edit?conSeq=${p.data.conSeq}`)}>편성</button>{' '}
-                    <button type="button" onClick={() => handleDelete(p.data.conSeq)}>삭제</button>
-                </>
+                <button className="btn btn-link p-0" onClick={() => handleOpenMutiModal(p.data?.conSeq)}>{p.value}</button>
             ),
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    ]), []);
-
-    const loadList = useCallback(async (keyword) => {
-        setLoading(true);
-        try {
-            const res = await fnAjaxFetch({
-                url: URL.CON_MUTI_LIST,
-                method: 'POST',
-                data: { searchCondition: 'conNm', searchKeyword: keyword ?? '', pageIndex: 1, pageUnit: PAGE_UNIT },
-                showLoading: false,
-            });
-            const list = res?.data?.result?.resultList ?? [];
-            setRowData(list);
-            setTotalCnt(res?.data?.result?.totalCnt ?? list.length);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    const loadFormCombo = useCallback(async () => {
-        const res = await fnAjaxFetch({ url: URL.CON_MUTI_FORM_DATA, method: 'GET', param: { mode: 'Ins' }, showLoading: false });
-        setConTypeOptions(res?.data?.result?.selectConType ?? []);
-        setScreenTypeOptions(res?.data?.result?.selectScreenType ?? []);
-    }, []);
-
-    useEffect(() => {
-        if (!getCookie('accessToken')) {
-            navigate('/login', { replace: true });
-            return;
-        }
-        loadList('');
-        loadFormCombo();
-    }, [loadList, loadFormCombo, navigate]);
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        loadList(searchKeyword);
-    };
-
-    const handleNew = () => setForm(emptyForm);
-
-    const handleEdit = async (conSeq) => {
-        const res = await fnAjaxFetch({ url: URL.CON_MUTI_FORM_DATA, method: 'GET', param: { mode: 'Edt', conSeq } });
-        const detail = res?.data?.result?.regist;
-        if (detail) setForm(detail);
-    };
-
-    const handleDelete = async (conSeq) => {
-        const result = await Swal.fire({
-            icon: 'question', title: '콘텐츠 삭제', text: '연결된 파일/상세페이지가 함께 삭제됩니다. 삭제하시겠습니까?',
-            showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
-        });
-        if (!result.isConfirmed) return;
-
-        await fnAjaxFetch({ url: `${URL.CON_MUTI_INFO}/${conSeq}.do`, method: 'DELETE' });
-        loadList(searchKeyword);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!form.conNm || !form.conType) {
-            Swal.fire({ icon: 'warning', title: '입력 확인', text: '콘텐츠명/유형을 입력해 주세요.' });
-            return;
-        }
-        await fnAjaxFetch({ url: URL.CON_MUTI_UPDATE, method: 'POST', data: form });
-        setForm(emptyForm);
-        loadList(searchKeyword);
-    };
+        { field: 'codeNm', headerName: '화면타입', width: 120 },
+        { field: 'conWidth', headerName: '가로', width: 90 },
+        { field: 'conHeight', headerName: '세로', width: 90 },
+        {
+            field: 'schCnt', headerName: '연결 스케줄', width: 110,
+            valueFormatter: (p) => `${p.value ?? 0}개`,
+        },
+        { field: 'frstRegistPnttm', headerName: '등록일', width: 150 },
+        {
+            headerName: '편성', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                    onClick={() => navigate(`/backoffice/sub/conManage/muti/edit?conSeq=${p.data.conSeq}`)}
+                >편성</button>
+            ),
+        },
+        {
+            headerName: '삭제', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button className="btn btn-outline-danger btn-outline__gray btn-sm"
+                    onClick={() => handleDelete({ code: p.data?.conSeq, name: p.data?.conNm })}
+                >삭제</button>
+            ),
+        },
+    ]), [navigate, handleOpenMutiModal, handleDelete]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 16, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h2 style={{ margin: 0 }}>멀티페이지 콘텐츠 관리</h2>
-                <button type="button" onClick={handleNew}>신규 등록</button>
+        <div className="row g-0 main-contents">
+            <div className="col-12 content-header">
+                <div className="content-header__title">화면 구성 관리</div>
+                <div className="content-header__breadcrumb">
+                    <ol className="breadcrumb">
+                        <li className="breadcrumb-item">콘텐츠 관리</li>
+                        <li className="breadcrumb-item">화면 구성 관리</li>
+                    </ol>
+                </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0 }}>
-                <div style={{ flex: 1.4, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                        <input type="text" placeholder="콘텐츠명 검색" value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} />
-                        <button type="submit">검색</button>
-                        <span style={{ marginLeft: 'auto', alignSelf: 'center', color: '#64748b' }}>
-                            총 {totalCnt}건{loading ? ' (조회 중...)' : ''}
-                        </span>
-                    </form>
-                    <div style={{ flex: 1, minHeight: 0 }}>
-                        <AppAgGrid
-                            theme={gridTheme}
-                            rowData={rowData}
-                            columnDefs={columnDefs}
-                            defaultColDef={{ sortable: true, resizable: true }}
-                            pagination
-                            paginationPageSize={PAGE_UNIT}
+            <div className="col-12 content-search">
+                <div className="row g-0 w-100 justify-content-between">
+                    <div className="col-auto content-search__option">
+                        <select id="searchCondition" name="searchCondition"
+                            value={tempParams.searchCondition} onChange={handleInputChange}>
+                            <option value="">선택</option>
+                            <option value="conNm">콘텐츠명</option>
+                            <option value="conSeq">순번</option>
+                        </select>
+                        <input type="text" id="searchKeyword" name="searchKeyword" placeholder="검색어를 입력하세요"
+                            value={tempParams.searchKeyword}
+                            onChange={handleInputChange}
+                            onKeyDown={onSearchKeyDown}
                         />
                     </div>
-                </div>
-
-                <div style={{ flex: 1, borderLeft: '1px solid #e2e8f0', paddingLeft: 16, overflowY: 'auto' }}>
-                    <h3>{form.mode === 'Ins' ? '신규 등록' : `수정 — ${form.conSeq}`}</h3>
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <label>
-                            콘텐츠명
-                            <input type="text" value={form.conNm} onChange={(e) => setForm((p) => ({ ...p, conNm: e.target.value }))} />
-                        </label>
-                        <label>
-                            유형
-                            <select value={form.conType} onChange={(e) => setForm((p) => ({ ...p, conType: e.target.value }))}>
-                                <option value="">선택</option>
-                                {conTypeOptions.map((o) => (
-                                    <option key={o.code} value={o.code}>{o.codeNm || o.code}</option>
-                                ))}
-                            </select>
-                        </label>
-                        <label>
-                            화면분할
-                            <select value={form.conScreen || ''} onChange={(e) => setForm((p) => ({ ...p, conScreen: e.target.value }))}>
-                                <option value="">선택</option>
-                                {screenTypeOptions.map((o) => (
-                                    <option key={o.code} value={o.code}>{o.codeNm || o.code}</option>
-                                ))}
-                            </select>
-                        </label>
-                        <label>
-                            가로(px)
-                            <input type="text" value={form.conWidth || ''} onChange={(e) => setForm((p) => ({ ...p, conWidth: e.target.value }))} />
-                        </label>
-                        <label>
-                            세로(px)
-                            <input type="text" value={form.conHeight || ''} onChange={(e) => setForm((p) => ({ ...p, conHeight: e.target.value }))} />
-                        </label>
-                        <label>
-                            사용여부
-                            <select value={form.conUseYn || 'Y'} onChange={(e) => setForm((p) => ({ ...p, conUseYn: e.target.value }))}>
-                                <option value="Y">사용</option>
-                                <option value="N">미사용</option>
-                            </select>
-                        </label>
-                        <button type="submit">{form.mode === 'Ins' ? '등록' : '수정'}</button>
-                    </form>
-                    <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 12 }}>
-                        페이지별 파일 배치/편성(순서·재생시간)은 별도 편집 화면에서 진행합니다.
-                    </p>
+                    <div className="col-auto content-search__action">
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={() => onSearch(1)}>검색</button>
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={handleReset}>검색 초기화</button>
+                        <button type="button" className="btn btn-primary btn-default__blue"
+                            onClick={() => handleOpenMutiModal()}>화면 등록</button>
+                    </div>
                 </div>
             </div>
+
+            <div className="col-12 content-table content-table__main">
+                <div className="ag-theme-material" style={{ height: 760, width: '100%' }}>
+                    <AppAgGrid
+                        columnDefs={columnDefs}
+                        theme={gridTheme}
+                        defaultColDef={defaultColDef}
+                        rowModelType="infinite"
+                        pagination={true}
+                        paginationPageSize={20}
+                        cacheBlockSize={20}
+                        maxBlocksInCache={2}
+                        onGridReady={(params) => { gridApiRef.current = params.api; onGridReady(params); }}
+                        overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
+                        overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
+                    />
+                </div>
+            </div>
+
+            <Suspense fallback={null}>
+                {modalOpen && (
+                    <ContentMutiFormModal
+                        open={modalOpen}
+                        form={mutiForm}
+                        setForm={setMutiForm}
+                        conTypeOptions={conTypeOptions}
+                        screenTypeOptions={screenTypeOptions}
+                        nextSeqOptions={nextSeqOptions}
+                        onClose={() => setModalOpen(false)}
+                        onSubmit={handleSubmit}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }

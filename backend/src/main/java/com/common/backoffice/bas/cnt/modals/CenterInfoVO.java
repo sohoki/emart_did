@@ -56,6 +56,6 @@ public class CenterInfoVO extends  CenterInfo implements Serializable{
 	private String mhsParentbrandcd;
     private String mhsBrandlv;
     private String mhsBrandnm;
-
+    private String codeNm;
 
 }

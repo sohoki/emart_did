@@ -133,6 +133,23 @@ const URL = {
     SND_CENTER_COMBO: "/api/backoffice/sub/operManage/snd/centerCombo.do",
     SND_PROCESS_COMBO: "/api/backoffice/sub/operManage/snd/processCombo.do",
 
+    //DID 단말기 관리
+    DID_LIST: "/api/backoffice/sub/equiManage/did/list.do",
+    DID_INFO: "/api/backoffice/sub/equiManage/did",
+    DID_UPDATE: "/api/backoffice/sub/equiManage/did/update.do",
+    DID_FORM_DATA: "/api/backoffice/sub/equiManage/did/formData.do",
+    DID_RESTART: "/api/backoffice/sub/equiManage/did/restart.do",
+
+    //DID 그룹 관리(TB_GROUP + TB_GROUPDID) — 부서 개념인 LETTNAUTHORGROUPINFO(GROUP_COMBO)와는 별개
+    DID_GROUP_LIST: "/api/backoffice/sub/equiManage/group/didGroupList.do",
+    DID_GROUP_ID_CHECK: "/api/backoffice/sub/equiManage/group/IdCheck",
+    DID_GROUP_UPDATE: "/api/backoffice/sub/equiManage/group/didgroupUpdate.do",
+    DID_GROUP_DELETE: "/api/backoffice/sub/equiManage/group/del",
+    DID_GROUP_MEMBER_LIST: "/api/backoffice/sub/equiManage/group/didgroupLst",
+    DID_GROUP_MEMBER_DELETE: "/api/backoffice/sub/equiManage/group/didgroupDel",
+    DID_GROUP_MEMBER_COMBO: "/api/backoffice/sub/equiManage/group/didcomboLst.do",
+    DID_GROUP_MEMBER_INSERT: "/api/backoffice/sub/equiManage/group/didgroupInsret.do",
+
     //DID 캡처화면(모니터링 사진)
     DID_PIC_LIST: "/api/backoffice/sub/equiManage/pic/list.do",
     DID_PIC_UPLOAD: "/api/backoffice/sub/equiManage/pic/upload.do",
@@ -162,6 +179,7 @@ const URL = {
     //콘텐츠 파일(이미지/영상/음원) 라이브러리
     CON_FILE_LIST: "/api/backoffice/sub/conManage/file/list.do",
     CON_FILE_INFO: "/api/backoffice/sub/conManage/file",
+    CON_FILE_UPLOAD: "/api/backoffice/sub/conManage/file/upload.do",
     CON_FILE_USEYN_BULK: "/api/backoffice/sub/conManage/file/useYnBulk.do",
     CON_FILE_DELETE_BULK: "/api/backoffice/sub/conManage/file/deleteBulk.do",
     CON_FILE_CONN_CHECK: "/api/backoffice/sub/conManage/file/connCheck.do",
@@ -234,12 +252,13 @@ const URL = {
     BASIC_BROD_PLAY_INFO: "/api/backoffice/sub/brodManage/basic/playInfo.do",
 
     //부서 정보
+    /*
     PART_LIST: "/api/backoffice/hr/part/partList.do",
     PART_UPDATE: "/api/backoffice/hr/part/partUpdate.do",
     PART_DELETE:"/api/backoffice/hr/part",
     PART_COMBO:"/api/backoffice/hr/part/partCombo.do",
     PART_PARENT_COMBO:"/api/backoffice/hr/part/parentPartCombo.do",
-
+    */
     //부서 관리(LETTNAUTHORGROUPINFO, 레거시 "부서관리"/selectGroupLst.do)
     GROUP_LIST: "/api/backoffice/sub/basicManage/group/list.do",
     GROUP_COMBO: "/api/backoffice/sub/basicManage/group/combo.do",

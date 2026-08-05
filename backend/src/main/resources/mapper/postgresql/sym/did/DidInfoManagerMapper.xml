@@ -7,62 +7,64 @@
         X.codeNm, X.RNUM
         FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.DID_ID AS didId,
-        A.DID_NM AS didNm,
-        B.GROUP_NM AS groupNm,
-        (
-        SELECT C.SCH_NAME
-        FROM TB_SCHEDULE C
-        JOIN TB_GROUPDID G ON C.GROUP_CODE = G.GROUP_CODE
-        JOIN TB_CONTENTSENDHISTORY F ON C.SCH_CODE = F.SCH_CODE
-        WHERE TO_CHAR(NOW(), 'YYYYMMDD') BETWEEN C.SCH_STARTDAY AND C.SCH_ENDDAY
-        AND C.GROUP_CODE = E.GROUP_CODE
-        AND F.DID_ID = A.DID_ID
-        <if test="searchschCode != ''">
-            AND C.SCH_CODE = #{searchschCode}
-        </if>
-        AND F.DID_UPDATECHECK = 'Y'
-        LIMIT 1
-        ) AS schName,
-        A.DID_STTUS AS didSttus,
-        A.DID_MAC AS didMac,
-        FN_DETAILCODENM(A.DID_SWVER) AS codeNm
-        FROM TB_DIDINFO A
-        JOIN TB_GROUP B ON 1=1
-        JOIN TB_GROUPDID E ON A.DID_ID = E.DID_ID AND B.GROUP_CODE = E.GROUP_CODE
-        WHERE 1=1
-        <if test="searchdidSwver != ''">
-            AND A.DID_SWVER = #{searchdidSwver}
-        </if>
-        <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
-            <choose>
-                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
-                    AND A.GROUP_ID IN
-                    (
-                    WITH RECURSIVE cte AS (
-                    SELECT GROUP_ID, PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = #{groupId}
-                    UNION ALL
-                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO g
-                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
-                    )
-                    SELECT GROUP_ID FROM cte
-                    )
-                </when>
-                <otherwise>
-                    AND A.CENTER_ID = #{centerId}
-                </otherwise>
-            </choose>
-        </if>
-        ) TB
+            SELECT
+                TB.*
+            FROM
+                (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
+                    A.DID_ID AS didId,
+                    A.DID_NM AS didNm,
+                    B.GROUP_NM AS groupNm,
+                    SCH.SCH_NAME AS schName,
+                    A.DID_STTUS AS didSttus,
+                    A.DID_MAC AS didMac,
+                    FN_DETAILCODENM(A.DID_SWVER) AS codeNm
+                FROM TB_DIDINFO A
+                JOIN TB_GROUP B ON 1=1
+                JOIN TB_GROUPDID E ON A.DID_ID = E.DID_ID AND B.GROUP_CODE = E.GROUP_CODE
+                LEFT JOIN LATERAL (
+                    SELECT C.SCH_NAME
+                    FROM TB_SCHEDULE C
+                    JOIN TB_GROUPDID G ON C.GROUP_CODE = G.GROUP_CODE
+                    JOIN TB_CONTENTSENDHISTORY F ON C.SCH_CODE = F.SCH_CODE
+                    WHERE TO_CHAR(NOW(), 'YYYYMMDD') BETWEEN C.SCH_STARTDAY AND C.SCH_ENDDAY
+                        AND C.GROUP_CODE = E.GROUP_CODE
+                        AND F.DID_ID = A.DID_ID
+                        <if test="searchschCode != ''">
+                            AND C.SCH_CODE = #{searchschCode}
+                        </if>
+                        AND F.DID_UPDATECHECK = 'Y'
+                    ORDER BY C.SCH_STARTDAY DESC -- 필요에 따라 정렬 기준 추가 (최신순 등)
+                    LIMIT 1
+                ) SCH ON TRUE
+                WHERE 1=1
+                <if test="searchdidSwver != ''">
+                    AND A.DID_SWVER = #{searchdidSwver}
+                </if>
+                <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
+                    <choose>
+                        <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                            AND A.GROUP_ID IN
+                            (
+                                WITH RECURSIVE cte AS (
+                                    SELECT GROUP_ID, PARENT_GROUP_ID
+                                    FROM LETTNAUTHORGROUPINFO
+                                    WHERE GROUP_ID = #{groupId}
+                                    UNION ALL
+                                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                                    FROM LETTNAUTHORGROUPINFO g
+                                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                                )
+                                SELECT GROUP_ID FROM cte
+                            )
+                        </when>
+                        <otherwise>
+                            AND A.CENTER_ID = #{centerId}
+                        </otherwise>
+                    </choose>
+                </if>
+            ) TB
         ) X
         WHERE X.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
@@ -103,72 +105,72 @@
     <select id="selectDidInfoManageListByPagination" resultType="DidInfoVO">
         SELECT * FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.DID_ID AS "didId",
-        A.DID_NM AS "didNm",
-        A.DID_IPADDR AS "didIpaddr",
-        B.CENTER_NM AS "centerNm",
-        CASE A.DID_STTUS
-        WHEN 'N' THEN 'OFF'
-        ELSE 'ON'
-        END AS didSttus,
-        A.DID_USEYN AS "didUseYn",
-        FN_DETAILCODENM(A.DID_OS) AS DIDOS,
-        A.DID_MAC AS DIDMAC,
-        <![CDATA[
-                (
-                   SELECT COUNT(*)
-                   FROM TB_SCHEDULE
-                   WHERE GROUP_CODE =
-                   (
-                      SELECT GROUP_CODE
-                      FROM TB_GROUPDID
-                      WHERE DID_ID = A.DID_ID
-                   )
-                   AND TO_CHAR(NOW(), 'YYYYMMDD') <= SCH_ENDDAY
-                ) AS schCnt
-                ]]>
-        FROM TB_DIDINFO A
-        JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'didId'">
-                    AND A.DID_ID LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND A.DID_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        <choose>
-            <when test="author_Code == 'ROLE_ADMIN' and groupCode == 'EMART_00000000000009'">
-                AND A.DID_MODELTYPE = 'DIDRMODELTYPE03'
-            </when>
-            <when test="author_Code == 'ROLE_ANONYMOUS' and parentGroupId == 'EMART_00000000000001'">
-                AND A.ROLE_CODE IN
-                (
-                SELECT GROUP_ID
-                FROM LETTNAUTHORGROUPINFO
-                WHERE PARENT_GROUP_ID = #{groupCode}
-                )
-            </when>
-            <when test="author_Code == 'ROLE_USER_MEMBER'">
-                AND A.ROLE_CODE = #{groupCode}
-            </when>
-        </choose>
-        <if test="centerId != ''">
-            AND A.CENTER_ID = #{centerId}
-        </if>
-        <if test="didModelType != ''">
-            AND A.DID_MODELTYPE = #{didModelType}
-        </if>
-        ) TB
+            SELECT
+                TB.*
+            FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
+                    A.DID_ID AS "didId",
+                    A.DID_NM AS "didNm",
+                    A.DID_IPADDR AS "didIpaddr",
+                    B.CENTER_NM AS "centerNm",
+                    CASE A.DID_STTUS  WHEN 'N' THEN 'OFF'
+                    ELSE 'ON'
+                    END AS didSttus,
+                    A.DID_USEYN AS "didUseYn",
+                    FN_DETAILCODENM(A.DID_OS) AS DIDOS,
+                    A.DID_MAC AS DIDMAC,
+                    COALESCE(SCH.schCnt, 0) AS schCnt
+                FROM TB_DIDINFO A
+                JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+                LEFT JOIN LATERAL (
+                    SELECT COUNT(*) AS schCnt
+                    FROM TB_SCHEDULE S
+                    WHERE S.GROUP_CODE = (
+                        SELECT GD.GROUP_CODE
+                        FROM TB_GROUPDID GD
+                        WHERE GD.DID_ID = A.DID_ID
+                        LIMIT 1
+                    )
+                    <![CDATA[
+                        AND TO_CHAR(NOW(), 'YYYYMMDD') <= S.SCH_ENDDAY
+                    ]]>
+                ) SCH ON TRUE
+                WHERE 1=1
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'didId'">
+                            AND A.DID_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <otherwise>
+                            AND A.DID_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
+                <choose>
+                    <when test="author_Code == 'ROLE_ADMIN' and groupCode == 'EMART_00000000000009'">
+                        AND A.DID_MODELTYPE = 'DIDRMODELTYPE03'
+                    </when>
+                    <when test="author_Code == 'ROLE_ANONYMOUS' and parentGroupId == 'EMART_00000000000001'">
+                        AND A.ROLE_CODE IN
+                        (
+                        SELECT GROUP_ID
+                        FROM LETTNAUTHORGROUPINFO
+                        WHERE PARENT_GROUP_ID = #{groupCode}
+                        )
+                    </when>
+                    <when test="author_Code == 'ROLE_USER_MEMBER'">
+                        AND A.ROLE_CODE = #{groupCode}
+                    </when>
+                </choose>
+                <if test="centerId != ''">
+                    AND A.CENTER_ID = #{centerId}
+                </if>
+                <if test="didModelType != ''">
+                    AND A.DID_MODELTYPE = #{didModelType}
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
@@ -183,49 +185,44 @@
 
     <select id="selectDidrInfoManageDetail" resultType="DidInfoVO">
         SELECT
-            DID_ID AS didId,
-            DID_NM AS didNm,
-            DID_MAC AS didMac,
-            DID_IPADDR AS didIpaddr,
-            DID_SWVER AS didSwver,
-            CENTER_ID AS centerId,
-            DID_TYPE AS didType,
-            DID_RESOLUTION AS didResolution,
-            DID_WIDTH AS didWidth,
-            DID_HEIGHT AS didHeight,
-            DID_IPTYPE AS didIptype,
-            DID_MODELTYPE AS didModelType,
-            DID_USEYN AS didUseYn,
-            TO_CHAR(DID_ENDCONTIME, 'YYYY-MM-DD HH24:MI:SS') AS didEndContime,
-            DID_ENDTIME AS didEndTime,
-            FRST_REGIST_PNTTM AS frstRegistPnttm,
-            FRST_REGISTER_ID AS frstRegisterId,
-            LAST_UPDT_PNTTM AS lastRegistPnttm,
-            LAST_UPDUSR_ID AS lastRegisterId,
-            DID_REMARK AS didRemark,
-            ROLE_CODE AS roleCode,
-            DID_STTUS AS didSttus,
-            DID_OS AS didOs,
-            DID_SERIALTYPE AS didSerialtype,
-            DID_SERIALPORT AS didSerialport,
-            DID_MONITERCNT AS didMonitercnt,
-            DID_STAETTIME AS didStartTime,
-            DID_TIMEINTERVAL AS didTimeInterval,
-            DID_SERIALJAVASCRIPT AS didSerialjavascript,
-            (
-                SELECT E.GROUP_NM
-                FROM TB_GROUPDID D
-                         JOIN TB_GROUP E ON D.GROUP_CODE = E.GROUP_CODE
-                WHERE D.DID_ID = A.DID_ID
-            ) AS groupNm,
-            (
-                SELECT E.GROUP_CODE
-                FROM TB_GROUPDID D
-                         JOIN TB_GROUP E ON D.GROUP_CODE = E.GROUP_CODE
-                WHERE D.DID_ID = A.DID_ID
-            ) AS groupId
+            A.DID_ID AS didId,
+            A.DID_NM AS didNm,
+            A.DID_MAC AS didMac,
+            A.DID_IPADDR AS didIpaddr,
+            A.DID_SWVER AS didSwver,
+            A.CENTER_ID AS centerId,
+            A.DID_TYPE AS didType,
+            A.DID_RESOLUTION AS didResolution,
+            A.DID_WIDTH AS didWidth,
+            A.DID_HEIGHT AS didHeight,
+            A.DID_IPTYPE AS didIptype,
+            A.DID_MODELTYPE AS didModelType,
+            A.DID_USEYN AS didUseYn,
+            TO_CHAR(A.DID_ENDCONTIME, 'YYYY-MM-DD HH24:MI:SS') AS didEndContime,
+            A.DID_ENDTIME AS didEndTime,
+            A.FRST_REGIST_PNTTM AS frstRegistPnttm,
+            A.FRST_REGISTER_ID AS frstRegisterId,
+            A.LAST_UPDT_PNTTM AS lastRegistPnttm,
+            A.LAST_UPDUSR_ID AS lastRegisterId,
+            A.DID_REMARK AS didRemark,
+            A.ROLE_CODE AS roleCode,
+            A.DID_STTUS AS didSttus,
+            A.DID_OS AS didOs,
+            A.DID_SERIALTYPE AS didSerialtype,
+            A.DID_SERIALPORT AS didSerialport,
+            A.DID_MONITERCNT AS didMonitercnt,
+            A.DID_STAETTIME AS didStartTime,
+            A.DID_TIMEINTERVAL AS didTimeInterval,
+            A.DID_SERIALJAVASCRIPT AS didSerialjavascript,
+            B.GROUP_NM AS groupNm,
+            B.GROUP_CODE AS groupId
         FROM TB_DIDINFO A
-        WHERE DID_ID = #{didId}
+        LEFT JOIN (
+            SELECT D.DID_ID, E.GROUP_NM, E.GROUP_CODE
+            FROM TB_GROUPDID D
+            JOIN TB_GROUP E ON D.GROUP_CODE = E.GROUP_CODE
+        ) B ON A.DID_ID = B.DID_ID
+        WHERE A.DID_ID = #{didId}
     </select>
 
     <select id="selectDidrInfoManageDetailView" resultType="DidInfoVO">
@@ -255,34 +252,27 @@
             DID_STAETTIME AS didStartTime,
             DID_TIMEINTERVAL AS didTimeInterval,
             DID_SERIALJAVASCRIPT AS didSerialjavascript,
-            (
-                SELECT E.GROUP_NM
-                FROM TB_GROUPDID D
-                         JOIN TB_GROUP E ON D.GROUP_CODE = E.GROUP_CODE
-                WHERE D.DID_ID = A.DID_ID
-            ) AS groupNm,
-            (
-                SELECT E.GROUP_CODE
-                FROM TB_GROUPDID D
-                         JOIN TB_GROUP E ON D.GROUP_CODE = E.GROUP_CODE
-                WHERE D.DID_ID = A.DID_ID
-            ) AS groupCode,
-          <![CDATA[
-            (
-                SELECT COUNT(*)
-                FROM TB_SCHEDULE
-                WHERE GROUP_CODE =
-                      (
-                          SELECT GROUP_CODE
-                          FROM TB_GROUPDID
-                          WHERE DID_ID = A.DID_ID
-                      )
-                  AND TO_CHAR(NOW(), 'YYYYMMDD') <= SCH_ENDDAY
-            ) AS schCnt
-          ]]>
-       FROM TB_DIDINFO A
-                 JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
-                 JOIN LETTNAUTHORGROUPINFO C ON A.ROLE_CODE = C.GROUP_ID
+            G.GROUP_NM AS groupNm,
+            G.GROUP_CODE AS groupCode,
+            COALESCE(SCH.schCnt, 0) AS schCnt
+        FROM TB_DIDINFO A
+        JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+        JOIN LETTNAUTHORGROUPINFO C ON A.ROLE_CODE = C.GROUP_ID
+        -- 1. 그룹 정보(이름, 코드)를 한 번의 조인으로 처리
+        LEFT JOIN (
+            SELECT D.DID_ID, E.GROUP_NM, E.GROUP_CODE
+            FROM TB_GROUPDID D
+            JOIN TB_GROUP E ON D.GROUP_CODE = E.GROUP_CODE
+        ) G ON A.DID_ID = G.DID_ID
+        -- 2. 스케줄 카운트를 LATERAL 조인으로 안전하고 깔끔하게 처리
+        LEFT JOIN LATERAL (
+            SELECT COUNT(*) AS schCnt
+            FROM TB_SCHEDULE S
+            WHERE S.GROUP_CODE = G.GROUP_CODE
+                <![CDATA[
+                AND TO_CHAR(NOW(), 'YYYYMMDD') <= S.SCH_ENDDAY
+                ]]>
+        ) SCH ON TRUE
         WHERE A.DID_ID = #{didId}
     </select>
 
@@ -310,14 +300,13 @@
         <if test="groupCode != 'EMART_00000000000002'">
             AND
             (
-            A.ROLE_CODE IN
-            (
-            SELECT GROUP_ID
-            FROM LETTNAUTHORGROUPINFO
-            WHERE PARENT_GROUP_ID = #{groupCode}
-            )
-            OR
-            A.ROLE_CODE = #{groupCode}
+                A.ROLE_CODE IN  (
+                    SELECT GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE PARENT_GROUP_ID = #{groupCode}
+                    )
+                OR
+                A.ROLE_CODE = #{groupCode}
             )
         </if>
         <choose>
@@ -345,9 +334,9 @@
             D.CON_SEQ AS conSeq,
             D.CON_NM AS conNm
         FROM TB_DIDINFO A
-                 JOIN TB_GROUPDID B ON A.DID_ID = B.DID_ID
-                 JOIN TB_SCHEDULE C ON B.GROUP_CODE = C.GROUP_CODE
-                 JOIN TB_CONTENTMUTIL D ON C.CONTENT_CODE = D.CON_SEQ
+        JOIN TB_GROUPDID B ON A.DID_ID = B.DID_ID
+        JOIN TB_SCHEDULE C ON B.GROUP_CODE = C.GROUP_CODE
+        JOIN TB_CONTENTMUTIL D ON C.CONTENT_CODE = D.CON_SEQ
         WHERE A.DID_ID = #{didId}
        <![CDATA[
           AND TO_CHAR(NOW(), 'YYYYMMDD') <= C.SCH_ENDDAY
@@ -396,8 +385,8 @@
                 #{centerId},
                 #{didType},
                 #{didResolution},
-                #{didWidth},
-                #{didHeight},
+                #{didWidth}::numeric,
+                #{didHeight}::numeric,
                 #{didIptype},
                 #{didModelType},
                 #{didUseYn,jdbcType=CHAR},
@@ -451,8 +440,8 @@
                               CENTER_ID = #{centerId},
                               DID_TYPE = #{didType},
                               DID_RESOLUTION = #{didResolution},
-                              DID_WIDTH = #{didWidth},
-                              DID_HEIGHT = #{didHeight},
+                              DID_WIDTH = #{didWidth}::numeric,
+                              DID_HEIGHT = #{didHeight}::numeric,
                               DID_IPTYPE = #{didIptype},
                               DID_MODELTYPE = #{didModelType},
                               DID_USEYN = #{didUseYn},
@@ -480,97 +469,96 @@
     <select id="selectIntegrateManageListByPagination" resultType="DidInfoVO">
         SELECT * FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.DID_ID AS "didId",
-        A.DID_NM AS "didNm",
-        A.DID_IPADDR AS "didIpaddr",
-        B.CENTER_NM AS "centerNm",
-        CASE A.DID_STTUS WHEN 'N' THEN 'OFF'
-        ELSE 'ON'
-        END AS didSttus,
-        A.DID_USEYN AS "didUseYn",
-        FN_DETAILCODENM(A.DID_OS) AS didOs,
-        A.DID_MAC AS didMac,
-        C.GROUP_NM AS roleNm,
-        <![CDATA[
-                (
-                   SELECT COUNT(*)
-                   FROM TB_SCHEDULE
-                   WHERE GROUP_CODE =
-                   (
-                      SELECT GROUP_CODE
-                      FROM TB_GROUPDID
-                      WHERE DID_ID = A.DID_ID
-                   )
-                   AND TO_CHAR(NOW(), 'YYYYMMDD') <= SCH_ENDDAY
-                ) AS schCnt
-                ]]>
-        FROM TB_DIDINFO A
-        JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
-        JOIN LETTNAUTHORGROUPINFO C ON A.ROLE_CODE = C.GROUP_ID
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'didId'">
-                    AND A.DID_ID LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND A.DID_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-
-        <if test="groupCode != 'EMART_00000000000002'">
-            AND
+            SELECT
+            TB.*
+            FROM
             (
-            A.ROLE_CODE IN (SELECT GROUP_ID FROM LETTNAUTHORGROUPINFO WHERE PARENT_GROUP_ID = #{groupCode})
-            OR
-            A.ROLE_CODE = #{groupCode}
-            )
-        </if>
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
+                    A.DID_ID AS "didId",
+                    A.DID_NM AS "didNm",
+                    A.DID_IPADDR AS "didIpaddr",
+                    B.CENTER_NM AS "centerNm",
+                    CASE A.DID_STTUS WHEN 'N' THEN 'OFF'
+                        ELSE 'ON'
+                    END AS didSttus,
+                    A.DID_USEYN AS "didUseYn",
+                    FN_DETAILCODENM(A.DID_OS) AS didOs,
+                    A.DID_MAC AS didMac,
+                    C.GROUP_NM AS roleNm,
+                    COALESCE(SCH.schCnt, 0) AS schCnt
+                FROM TB_DIDINFO A
+                JOIN TB_CENTERINFO B ON A.CENTER_ID = B.CENTER_ID
+                JOIN LETTNAUTHORGROUPINFO C ON A.ROLE_CODE = C.GROUP_ID
+                LEFT JOIN LATERAL (
+                    SELECT COUNT(*) AS schCnt
+                    FROM TB_SCHEDULE S
+                    WHERE S.GROUP_CODE = (
+                    SELECT GD.GROUP_CODE
+                    FROM TB_GROUPDID GD
+                    WHERE GD.DID_ID = A.DID_ID
+                    LIMIT 1
+                    )
+                    <![CDATA[
+                    AND TO_CHAR(NOW(), 'YYYYMMDD') <= S.SCH_ENDDAY
+                    ]]>
+                ) SCH ON TRUE
+                WHERE 1=1
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'didId'">
+                            AND A.DID_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <otherwise>
+                            AND A.DID_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
 
-        <choose>
-            <when test="author_Code == 'ROLE_DID_ADMIN' or author_Code == 'ROLE_DID_USER'">
-                AND A.DID_MODELTYPE IN ('DIDRMODELTYPE01', 'DIDRMODELTYPE02')
-            </when>
-            <when test="author_Code == 'ROLE_MUSIC_ADMIN' or author_Code == 'ROLE_MUSIC_USER'">
-                AND A.DID_MODELTYPE = 'DIDRMODELTYPE03'
-            </when>
-        </choose>
-        <if test="centerId != ''">
-            AND A.CENTER_ID = #{centerId}
-        </if>
-        ) TB
+                <if test="groupCode != 'EMART_00000000000002'">
+                    AND
+                    (
+                    A.ROLE_CODE IN (SELECT GROUP_ID FROM LETTNAUTHORGROUPINFO WHERE PARENT_GROUP_ID = #{groupCode})
+                    OR
+                    A.ROLE_CODE = #{groupCode}
+                    )
+                </if>
+
+                <choose>
+                    <when test="author_Code == 'ROLE_DID_ADMIN' or author_Code == 'ROLE_DID_USER'">
+                        AND A.DID_MODELTYPE IN ('DIDRMODELTYPE01', 'DIDRMODELTYPE02')
+                    </when>
+                    <when test="author_Code == 'ROLE_MUSIC_ADMIN' or author_Code == 'ROLE_MUSIC_USER'">
+                        AND A.DID_MODELTYPE = 'DIDRMODELTYPE03'
+                    </when>
+                </choose>
+                <if test="centerId != ''">
+                    AND A.CENTER_ID = #{centerId}
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
 
     <select id="selectIntegrateRoleList" resultType="DidInfoVO">
         WITH RECURSIVE cte AS (
-        SELECT
-        1 AS groupLevel,
-        group_nm AS roleNm,
-        GROUP_ID AS groupId,
-        parent_group_id as parentGroupId
-        FROM LETTNAUTHORGROUPINFO
-        WHERE parent_group_id = 'EMART_00000000000001'
-
-        UNION ALL
-
-        SELECT
-        cte.groupLevel + 1,
-        g.group_nm,
-        g.GROUP_ID,
-        g.parent_group_id
-        FROM LETTNAUTHORGROUPINFO g
-        JOIN cte ON g.parent_group_id = cte.groupId
-        )
-        SELECT groupLevel, roleNm, groupId, parentGroupId
+            SELECT
+                1 AS groupLevel,
+                group_nm AS roleNm,
+                GROUP_ID AS groupId,
+                parent_group_id as parentGroupId
+            FROM LETTNAUTHORGROUPINFO
+            WHERE parent_group_id = 'EMART_00000000000001'
+            UNION ALL
+            SELECT
+                cte.groupLevel + 1,
+                g.group_nm,
+                g.GROUP_ID,
+                g.parent_group_id
+            FROM LETTNAUTHORGROUPINFO g
+            JOIN cte ON g.parent_group_id = cte.groupId
+            )
+            SELECT groupLevel, roleNm, groupId, parentGroupId
         FROM cte
         WHERE
         <choose>

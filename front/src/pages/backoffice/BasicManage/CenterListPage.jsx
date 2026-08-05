@@ -1,75 +1,100 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
+import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
+import { useCustomReqDataCombo } from '@/hooks/use-combo-data.js';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
-import { getCookie } from '@/lib/cookie.jsx';
+import { useResetForm } from '@/hooks/use-form.jsx';
+import { useCommonDelete } from '@/hooks/use-common-delete.js';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
+import { useCommonCodeData } from '@/hooks/use-combo-data.js';
 
-const PAGE_UNIT = 20;
+const CenterFormModal = lazy(() => import('./components/CenterFormModal.jsx'));
+const CenterAnniModal = lazy(() => import('./components/CenterAnniModal.jsx'));
+
+const GROUP_MAPPING = { id: 'groupId', text: 'groupNm' };
+const BROD_MAPPING = { id: 'brodCode', text: 'brodName' };
+
+const INITIAL_SEARCH_FORM = {
+    searchCondition: '',
+    searchKeyword: '',
+};
+
+const EMPTY_CENTER_FORM = {
+    mode: 'Ins',
+    centerId: '',
+    centerNm: '',
+    roleCode: '',
+    centerStartTime: '',
+    centerEndTime: '',
+    centerZipcode1: '',
+    centerZipcode2: '',
+    centerAddr1: '',
+    centerAddr2: '',
+    centerGubun: '',
+    brodCode: '',
+    centerUseYn: 'Y',
+    centerImgFile: null,
+};
 
 export default function CenterListPage() {
-    const navigate = useNavigate();
+
+    //지점 구분 combo 만들기
+    const { options: centerCodeOptions } = useCommonCodeData('EMT022');
+
+    const gridApiRef = useRef(null);
     const fileInputRef = useRef(null);
-    const [rowData, setRowData] = useState([]);
-    const [totalCnt, setTotalCnt] = useState(0);
-    const [searchKeyword, setSearchKeyword] = useState('');
-    const [loading, setLoading] = useState(false);
 
-    const columnDefs = useMemo(() => ([
-        { field: 'centerId', headerName: '매장 ID', width: 130 },
-        { field: 'centerNm', headerName: '매장명', flex: 1, minWidth: 200 },
-        { field: 'centerGubun', headerName: '구분', width: 110 },
-        { field: 'centerStartTime', headerName: '운영시작', width: 100 },
-        { field: 'centerEndTime', headerName: '운영종료', width: 100 },
-        { field: 'centerUseYn', headerName: '사용유무', width: 90 },
-        { field: 'centerRegdate', headerName: '등록일', width: 150 },
-        {
-            headerName: '기념일', width: 100,
-            cellRenderer: (p) => (
-                <button type="button" onClick={() => navigate(`/backoffice/sub/basicManage/cnt/anni?centerId=${p.data.centerId}`)}>
-                    기념일
-                </button>
-            ),
-        },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    ]), [navigate]);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [centerForm, setCenterForm] = useState(EMPTY_CENTER_FORM);
 
-    const loadList = useCallback(async (keyword) => {
-        setLoading(true);
-        try {
-            const res = await fnAjaxFetch({
-                url: URL.CENTER_LIST,
-                method: 'POST',
-                data: {
-                    searchKeyword: keyword ?? '',
-                    pageIndex: 1,
-                    pageUnit: PAGE_UNIT,
-                },
-                showLoading: false,
-            });
-            const list = res?.data?.result?.resultList ?? [];
-            const cnt = res?.data?.result?.totalCnt ?? list.length;
-            setRowData(list);
-            setTotalCnt(cnt);
-        } finally {
-            setLoading(false);
-        }
+    const [anniModalOpen, setAnniModalOpen] = useState(false);
+    const [anniCenterId, setAnniCenterId] = useState('');
+
+    const { options: groupOptions } = useCustomReqDataCombo({
+        url: URL.GROUP_COMBO, method: 'GET', params: {}, mapping: GROUP_MAPPING,
+    });
+    const { options: brodOptions } = useCustomReqDataCombo({
+        url: URL.BROD_CONTENT_COMBO, method: 'GET', params: {}, mapping: BROD_MAPPING,
+    });
+
+    const fetchCenterList = useCallback(async (query) => {
+        const res = await fnAjaxFetch({ url: URL.CENTER_LIST, method: 'POST', data: query });
+        const data = res?.data;
+        return {
+            rows: data?.result?.resultList || [],
+            total: data?.result?.totalCnt || 0,
+        };
     }, []);
 
-    useEffect(() => {
-        if (!getCookie('accessToken')) {
-            navigate('/login', { replace: true });
-            return;
-        }
-        loadList('');
-    }, [loadList, navigate]);
+    const {
+        onGridReady,
+        defaultColDef,
+        tempParams,
+        setTempParams,
+        handleSearch,
+        refreshGrid,
+    } = useGridInfinite({
+        fetchApi: fetchCenterList,
+        pageUnit: 20,
+        initialFilters: INITIAL_SEARCH_FORM,
+    });
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        loadList(searchKeyword);
-    };
+    const handleInputChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setTempParams((prev) => ({ ...prev, [name]: value }));
+    }, [setTempParams]);
+
+    const onSearch = useCallback((pageIndex) => {
+        handleSearch(pageIndex || 1);
+    }, [handleSearch]);
+
+    const onSearchKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') onSearch(1);
+    }, [onSearch]);
+
+    const { handleReset } = useResetForm(setTempParams, INITIAL_SEARCH_FORM);
 
     const handleExcelUploadClick = () => {
         fileInputRef.current?.click();
@@ -95,48 +120,208 @@ export default function CenterListPage() {
             title: '엑셀 업로드 완료',
             text: `성공 ${successCount ?? 0}건, 실패 ${failCount ?? 0}건`,
         });
-        loadList(searchKeyword);
+        refreshGrid();
     };
 
+    const handleOpenCenterModal = useCallback(async (centerId) => {
+        if (!centerId) {
+            setCenterForm(EMPTY_CENTER_FORM);
+            setModalOpen(true);
+            return;
+        }
+        const res = await fnAjaxFetch({ url: `${URL.CENTER_INFO}/${centerId}.do`, method: 'GET' });
+        const obj = res?.data?.result?.result || null;
+        if (obj) {
+            setCenterForm({
+                mode: 'Edt',
+                centerId: obj.centerId || '',
+                centerNm: obj.centerNm || '',
+                roleCode: obj.roleCode || '',
+                centerStartTime: obj.centerStartTime || '',
+                centerEndTime: obj.centerEndTime || '',
+                centerZipcode1: obj.centerZipcode1 || '',
+                centerZipcode2: obj.centerZipcode2 || '',
+                centerAddr1: obj.centerAddr1 || '',
+                centerAddr2: obj.centerAddr2 || '',
+                centerGubun: obj.centerGubun || '',
+                brodCode: obj.brodCode || '',
+                centerUseYn: obj.centerUseYn || 'Y',
+                centerImgFile: null,
+            });
+            setModalOpen(true);
+        }
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
+        if (!centerForm.centerNm) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '지점명을 입력해 주세요.' });
+            return;
+        }
+        if (centerForm.centerStartTime && centerForm.centerEndTime
+            && centerForm.centerStartTime >= centerForm.centerEndTime) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '영업 시작 시간이 종료 시간보다 빠르거나 같습니다.' });
+            return;
+        }
+
+
+
+        
+        const action = centerForm.mode === 'Ins' ? '등록' : '수정';
+        const ok = await Swal.fire({
+            icon: 'question', title: `매장 ${action}`,
+            html: `<b>${centerForm.centerNm}</b> ${action} 하시겠습니까?`,
+            showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
+        });
+        if (!ok.isConfirmed) return;
+
+        // 백엔드가 MultipartRequest + 폼 바인딩(CenterInfo vo)을 쓰므로 JSON이 아니라 FormData로 전송
+        const formData = new FormData();
+        Object.entries(centerForm).forEach(([key, value]) => {
+            if (key === 'centerImgFile') return;
+            if (value !== null && value !== undefined) formData.append(key, value);
+        });
+        if (centerForm.centerImgFile) {
+            formData.append('centerImg', centerForm.centerImgFile);
+        }
+
+        const res = await fnAjaxFetch({ url: URL.CENTER_UPDATE, method: 'POST', data: formData });
+        const json = res?.data;
+        if (json?.resultCodeInfo === 'SUCCESS') {
+            await Swal.fire({ icon: 'success', title: '완료', text: json?.resultMessage || `${action}되었습니다.` });
+            setModalOpen(false);
+            refreshGrid();
+        } else {
+            await Swal.fire({ icon: 'error', title: '오류', text: json?.resultMessage || `${action} 중 오류가 발생했습니다.` });
+        }
+    }, [centerForm, refreshGrid]);
+
+    const { handleDelete } = useCommonDelete({
+        gridApiRef,
+        URL: URL.CENTER_INFO,
+        MESSAGE: '매장 정보',
+        reloadFunction: 'grid',
+    });
+
+    const columnDefs = useMemo(() => ([
+        {
+            field: 'centerId', headerName: '매장 ID', width: 130,
+            cellRenderer: (p) => (
+                <button className="btn btn-link p-0" onClick={() => handleOpenCenterModal(p.data?.centerId)}>{p.value}</button>
+            ),
+        },
+        { field: 'centerNm', headerName: '매장명', flex: 1, minWidth: 200 },
+        { field: 'codeNm', headerName: '구분', width: 110 },
+        { field: 'centerStartTime', headerName: '운영시작', width: 100 },
+        { field: 'centerEndTime', headerName: '운영종료', width: 100 },
+        { field: 'centerUseYn', headerName: '사용유무', width: 90 },
+        { field: 'centerRegdate', headerName: '등록일', width: 150 },
+        {
+            headerName: '기념일', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                    onClick={() => { setAnniCenterId(p.data.centerId); setAnniModalOpen(true); }}
+                >기념일</button>
+            ),
+        },
+        {
+            headerName: '삭제', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button className="btn btn-outline-danger btn-outline__gray btn-sm"
+                    onClick={() => handleDelete({ code: p.data?.centerId, name: p.data?.centerNm })}
+                >삭제</button>
+            ),
+        },
+    ]), [handleOpenCenterModal, handleDelete]);
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 16, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h2 style={{ margin: 0 }}>매장(센터) 리스트</h2>
-                <div>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".xls,.xlsx"
-                        style={{ display: 'none' }}
-                        onChange={handleExcelFileChange}
-                    />
-                    <button type="button" onClick={handleExcelUploadClick}>엑셀 일괄등록</button>
+        <div className="row g-0 main-contents">
+            <div className="col-12 content-header">
+                <div className="content-header__title">매장(센터) 관리</div>
+                <div className="content-header__breadcrumb">
+                    <ol className="breadcrumb">
+                        <li className="breadcrumb-item">기초 관리</li>
+                        <li className="breadcrumb-item">매장(센터) 관리</li>
+                    </ol>
                 </div>
             </div>
 
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                <input
-                    type="text"
-                    placeholder="매장 ID/매장명 검색"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                />
-                <button type="submit">검색</button>
-                <span style={{ marginLeft: 'auto', alignSelf: 'center', color: '#64748b' }}>
-                    총 {totalCnt}건{loading ? ' (조회 중...)' : ''}
-                </span>
-            </form>
-
-            <div style={{ flex: 1, minHeight: 0 }}>
-                <AppAgGrid
-                    theme={gridTheme}
-                    rowData={rowData}
-                    columnDefs={columnDefs}
-                    defaultColDef={{ sortable: true, resizable: true }}
-                    pagination
-                    paginationPageSize={PAGE_UNIT}
-                />
+            <div className="col-12 content-search">
+                <div className="row g-0 w-100 justify-content-between">
+                    <div className="col-auto content-search__option">
+                        <select id="searchCondition" name="searchCondition"
+                            value={tempParams.searchCondition} onChange={handleInputChange}>
+                            <option value="">선택</option>
+                            <option value="centerId">매장 ID</option>
+                            <option value="centerNm">매장명</option>
+                        </select>
+                        <input type="text" id="searchKeyword" name="searchKeyword" placeholder="검색어를 입력하세요"
+                            value={tempParams.searchKeyword}
+                            onChange={handleInputChange}
+                            onKeyDown={onSearchKeyDown}
+                        />
+                    </div>
+                    <div className="col-auto content-search__action">
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={() => onSearch(1)}>검색</button>
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={handleReset}>검색 초기화</button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".xls,.xlsx"
+                            style={{ display: 'none' }}
+                            onChange={handleExcelFileChange}
+                        />
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={handleExcelUploadClick}>엑셀 일괄등록</button>
+                        <button type="button" className="btn btn-primary btn-default__blue"
+                            onClick={() => handleOpenCenterModal()}>매장 등록</button>
+                    </div>
+                </div>
             </div>
+
+            <div className="col-12 content-table content-table__main">
+                <div className="ag-theme-material" style={{ height: 760, width: '100%' }}>
+                    <AppAgGrid
+                        columnDefs={columnDefs}
+                        theme={gridTheme}
+                        defaultColDef={defaultColDef}
+                        rowModelType="infinite"
+                        pagination={true}
+                        paginationPageSize={20}
+                        cacheBlockSize={20}
+                        maxBlocksInCache={2}
+                        onGridReady={(params) => { gridApiRef.current = params.api; onGridReady(params); }}
+                        overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
+                        overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
+                    />
+                </div>
+            </div>
+
+            <Suspense fallback={null}>
+                {modalOpen && (
+                    <CenterFormModal
+                        open={modalOpen}
+                        form={centerForm}
+                        setForm={setCenterForm}
+                        groupOptions={groupOptions}
+                        brodOptions={brodOptions}
+                        centerCodeOptions={centerCodeOptions}
+                        onClose={() => setModalOpen(false)}
+                        onSubmit={handleSubmit}
+                    />
+                )}
+            </Suspense>
+
+            <Suspense fallback={null}>
+                {anniModalOpen && (
+                    <CenterAnniModal
+                        open={anniModalOpen}
+                        centerId={anniCenterId}
+                        onClose={() => setAnniModalOpen(false)}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }

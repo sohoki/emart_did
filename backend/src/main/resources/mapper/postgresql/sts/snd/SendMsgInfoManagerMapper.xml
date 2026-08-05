@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<!--
-    ⚠️ 이 파일은 postgresql 폴더에 있었지만 내용은 전부 Oracle 문법(ROWNUM/NVL/SYSDATE/
-    시퀀스.NEXTVAL)이었음 — 실제로 Postgres용으로 변환된 적이 없던 파일. did_emart 리팩토링
-    과정에서 전체를 Postgres 문법으로 변환함(2026-07-26).
-    - ROWNUM → ROW_NUMBER() OVER(...)  (다른 이미 변환된 매퍼들과 동일 패턴)
-    - NVL(...) → COALESCE(...)
-    - SYSDATE → NOW()
-    - MSG_SEQ.NEXTVAL → #{msgSeq} (해당 시퀀스가 DB에 없어 Service단에서 애플리케이션 레벨 채번)
-    - "WHERE ROWNUM = 1" 패턴 → "ORDER BY ... LIMIT 1"
--->
 <mapper namespace="com.common.backoffice.sts.snd.mapper.SendMsgInfoManagerMapper">
 	<select id="selectSendMsgInfoManageListByPagination" resultType="SendMsgInfoVO">
 		SELECT * FROM
 		(
-			SELECT ROW_NUMBER() OVER (ORDER BY A.MSG_SEQ DESC) AS RNUM, TB.* FROM
+			SELECT  TB.*
+			FROM
 			(
 				SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.MSG_SEQ DESC) AS RNUM,
 					A.MSG_SEQ AS "msgSeq",
 					A.XML_PROCESS_NAME AS "xmlProcessName",
 					C.PROCESS_REMARK AS "processRemark",
@@ -28,11 +20,12 @@
 					A.DID_MACADDRESS AS "didMacAddress",
 					B.DID_IPADDR AS "didIpAddr",
 					A.ERROR_MESSAGE AS "errorMessage"
-				FROM TB_MESSAGEHISTORY A, TB_DIDINFO B, TB_SENDMESSAGETYPR C, TB_GROUP D, TB_GROUPDID E
-				WHERE A.DID_ID = B.DID_ID
-				AND A.XML_PROCESS_NAME = C.XML_PROCESS_NAME
-				AND E.DID_ID = A.DID_ID
-				AND D.GROUP_CODE = E.GROUP_CODE
+				FROM TB_MESSAGEHISTORY A
+                INNER JOIN TB_DIDINFO B  ON A.DID_ID = B.DID_ID
+                INNER JOIN TB_SENDMESSAGETYPR C  ON A.XML_PROCESS_NAME = C.XML_PROCESS_NAME
+                INNER JOIN TB_GROUPDID E  ON A.DID_ID = E.DID_ID
+                INNER JOIN TB_GROUP D  ON D.GROUP_CODE = E.GROUP_CODE
+				WHERE 1=1
 				<if test="searchKeyword != ''">
 					<choose>
 						<when test="searchCondition == 'XML_PROCESS_NAME'">
@@ -82,11 +75,12 @@
 	<select id="selectSendMsgInfoManageListTotCnt_S" resultType="java.lang.Integer">
 		SELECT
 			COALESCE(COUNT(*),0)
-		FROM TB_MESSAGEHISTORY A, TB_DIDINFO B, TB_SENDMESSAGETYPR C, TB_GROUP D , TB_GROUPDID E
-		WHERE a.DID_ID = b.DID_ID
-		AND A.XML_PROCESS_NAME = C.XML_PROCESS_NAME
-		AND E.DID_ID = A.DID_ID
-		AND D.GROUP_CODE = E.GROUP_CODE
+        FROM TB_MESSAGEHISTORY A
+        INNER JOIN TB_DIDINFO B  ON A.DID_ID = B.DID_ID
+        INNER JOIN TB_SENDMESSAGETYPR C  ON A.XML_PROCESS_NAME = C.XML_PROCESS_NAME
+        INNER JOIN TB_GROUPDID E  ON A.DID_ID = E.DID_ID
+        INNER JOIN TB_GROUP D  ON D.GROUP_CODE = E.GROUP_CODE
+        WHERE 1=1
 		<if test="searchKeyword != ''">
 			<choose>
 				<when test="searchCondition == 'XML_PROCESS_NAME'">
@@ -164,9 +158,9 @@
 
 	<select id="selectDIDOrderCount" resultType="java.lang.Integer">
 		SELECT COALESCE(COUNT(A.MSG_SEQ),0)
-		FROM TB_MESSAGEHISTORY A , TB_SENDMESSAGETYPR B
-		WHERE A.XML_PROCESS_NAME = B.XML_PROCESS_NAME
-		AND B.WORK_GUBUN = 'WORKGUBUN02'
+		FROM TB_MESSAGEHISTORY A
+        INNER JOIN TB_SENDMESSAGETYPR B ON A.XML_PROCESS_NAME = B.XML_PROCESS_NAME
+		WHERE  B.WORK_GUBUN = 'WORKGUBUN02'
 		AND A.SEND_RESULT = 'N'
 		AND A.DID_ID = #{didId}
 		AND TRIM(A.DID_MACADDRESS) = #{didMacAddress}
@@ -174,9 +168,9 @@
 
 	<select id="selectDIDMessageCount" resultType="java.lang.Integer">
 		SELECT COALESCE(COUNT(*),0)
-		FROM TB_DIDSENDMESSAGE A, TB_DIDINFO B
+		FROM TB_DIDSENDMESSAGE A
+        INNER JOIN  TB_DIDINFO B ON A.DID_ID = B.DID_ID
 		WHERE A.SEND_DIDCHECKDATE IS NULL
-		AND A.DID_ID = B.DID_ID
 		AND A.DID_ID = #{didId}
 		AND B.DID_MAC= #{didMacAddress}
 	</select>
@@ -187,9 +181,9 @@
 			A.XML_PROCESS_NAME AS xmlProcessName,
 			A.SEND_REGDATE AS sendRegdate,
 			A.SEND_RESULT AS sendResult
-		FROM TB_MESSAGEHISTORY A, TB_SENDMESSAGETYPR B
-		WHERE A.XML_PROCESS_NAME = B.XML_PROCESS_NAME
-		AND B.WORK_GUBUN = 'WORKGUBUN02'
+		FROM TB_MESSAGEHISTORY A
+        INNER JOIN  TB_SENDMESSAGETYPR B ON A.XML_PROCESS_NAME = B.XML_PROCESS_NAME
+		WHERE  B.WORK_GUBUN = 'WORKGUBUN02'
 		AND A.SEND_RESULT = 'N'
 		AND A.DID_ID = #{didId}
 		AND TRIM(A.DID_MACADDRESS) = #{didMacAddress}
@@ -212,9 +206,6 @@
 
 	<!-- MSG_SEQ는 DB 시퀀스 msg_seq로 채번함(08_create_missing_sequences.sql 참고) -->
 	<insert id="insertSendMsgInfoManage">
-		<selectKey keyProperty="msgSeq" resultType="java.lang.String" order="BEFORE">
-			SELECT NEXTVAL('msg_seq')
-		</selectKey>
 		INSERT INTO TB_MESSAGEHISTORY
 		(
 			MSG_SEQ, DID_ID, XML_PROCESS_NAME, SEND_RESULT, SEND_REGDATE,
@@ -222,15 +213,12 @@
 		)
 		VALUES
 		(
-			#{msgSeq}, #{didId}, #{xmlProcessName}, #{sendResult}, NOW(),
+            NEXTVAL('msg_seq'), #{didId}, #{xmlProcessName}, #{sendResult}, NOW(),
 			#{didMacAddress}, #{errorMessage, jdbcType=VARCHAR}
 		)
 	</insert>
 
 	<insert id="insertSendMsgInfoManageState">
-		<selectKey keyProperty="msgSeq" resultType="java.lang.String" order="BEFORE">
-			SELECT NEXTVAL('msg_seq')
-		</selectKey>
 		INSERT INTO TB_MESSAGEHISTORY
 		(
 			MSG_SEQ, DID_ID, XML_PROCESS_NAME, SEND_RESULT, SEND_REGDATE,
@@ -238,22 +226,19 @@
 		)
 		VALUES
 		(
-			#{msgSeq}, #{didId}, 'SP_DIDSTATE' , 'OK', NOW(),
+            NEXTVAL('msg_seq'), #{didId}, 'SP_DIDSTATE' , 'OK', NOW(),
 			#{didMacAddress}, NOW()
 		)
 	</insert>
 
 	<insert id="insertSendMessageInsertManage">
-		<selectKey keyProperty="msgSeq" resultType="java.lang.String" order="BEFORE">
-			SELECT NEXTVAL('msg_seq')
-		</selectKey>
 		INSERT INTO TB_MESSAGEHISTORY
 		(
 			MSG_SEQ, DID_ID, XML_PROCESS_NAME, SEND_RESULT, SEND_REGDATE,
 			DID_MACADDRESS, SEND_DIDID
 		)
 		SELECT
-			#{msgSeq}, #{didId}, 'SP_MESSAGEUPDATE', 'N', NOW(),
+            NEXTVAL('msg_seq'), #{didId}, 'SP_MESSAGEUPDATE', 'N', NOW(),
 			#{didMacAddress}, a.SEND_DIDID
 		FROM TB_DIDSENDMESSAGE A
 		WHERE SEND_DIDID = #{sendDidId}
@@ -265,6 +250,6 @@
 			DID_MACADDRESS = #{didMacAddress},
 			DID_PLAYTIME = NOW(),
 			ERROR_MESSAGE = #{errorMessage}
-		WHERE MSG_SEQ = #{msgSeq}
+		WHERE MSG_SEQ = #{msgSeq}::numeric
 	</update>
 </mapper>

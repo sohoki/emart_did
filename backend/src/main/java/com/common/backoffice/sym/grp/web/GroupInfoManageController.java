@@ -1,8 +1,8 @@
 package com.common.backoffice.sym.grp.web;
 
 
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import com.common.backoffice.bas.uni.service.UtilInfoService;
@@ -40,7 +40,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/backoffice/sub/equiManage/group")
+@RequestMapping("/api/backoffice/sub/equiManage/group")
 public class GroupInfoManageController {
 
 
@@ -82,12 +82,16 @@ public class GroupInfoManageController {
 		try{
             if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
             LoginVO loginVO = AuthHelper.getLoginVO();
-            searchVO.put("roldId", loginVO.getRoleId());
+            //searchVO.put("roleId", loginVO.getRoleId());
+            searchVO.put("roleId", "ROLE_ADMIN");
             searchVO.put("mberId", loginVO.getManagerId());
+
+
 
             PaginationInfo paginationInfo = PaginationHelper.buildInfo(searchVO,
                     propertiesService.getInt(Globals.PAGE_UNIT),
                     propertiesService.getInt(Globals.PAGE_SIZE));
+            log.info("roleId:" + searchVO.get("roleId"));
             List<GroupInfoVO> groupList = didgroupInfoManageService.selectGroupInfoManageListByPagination(searchVO);
             int totCnt = groupList.isEmpty() ? 0 : groupList.get(0).getTotalRecordCount();
             PaginationHelper.setResult(resultVO, groupList, paginationInfo, searchVO, totCnt);
@@ -514,7 +518,7 @@ public class GroupInfoManageController {
 		try{
             if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
             LoginVO loginVO = AuthHelper.getLoginVO();
-            searchVO.put("roldId", loginVO.getRoleId());
+            searchVO.put("roleId", loginVO.getRoleId());
             searchVO.put("mberId", loginVO.getManagerId());
 
             PaginationInfo paginationInfo = PaginationHelper.buildInfo(searchVO,

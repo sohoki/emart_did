@@ -231,3 +231,90 @@ java 파일에서는 줄간격을 space 가 아니라 tab 형태로 해서 최�
 특이사항:
 - [없으면 "없음"]
 ```
+
+---
+
+## 11. 프론트엔드 리스트(관리) 화면 기본 골격
+
+`AppLayout`(사이드바/헤더) 하위에서 렌더링되는 관리자 리스트류 화면은 아래 골격을 기본으로
+따른다. (2026-08-04부터 적용, `ManagerListPage.jsx`부터 시작해 순차 적용 중)
+
+```jsx
+<div className="row g-0 main-contents">
+    <div className="col-12 content-header">
+        <div className="content-header__title">관리자 관리</div>
+        <div className="content-header__breadcrumb">
+            <ol className="breadcrumb">
+                <li className="breadcrumb-item">인사 관리</li>
+                <li className="breadcrumb-item">관리자 관리</li>
+            </ol>
+        </div>
+    </div>
+
+    <div className="col-12 content-search">
+        <div className="row g-0 w-100 justify-content-between">
+            <div className="col-auto content-search__option">
+                <select id="searchCondition" name="searchCondition" value={tempParams.searchCondition}
+                    onChange={handleInputChange}>
+                    <option value="">선택</option>
+                    <option value="adminNm">이름</option>
+                    <option value="adminId">아이디</option>
+                    <option value="adminEmail">이메일</option>
+                </select>
+                <input type="text" id="searchKeyword" name="searchKeyword" placeholder="검색어를 입력하세요"
+                    value={tempParams.searchKeyword}
+                    onChange={handleInputChange}
+                    onKeyDown={onSearchKeyDown}
+                />
+            </div>
+            <div className="col-auto content-search__action">
+                <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                    onClick={() => onSearch(1)}>검색</button>
+                <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                    onClick={handleReset}>검색 초기화</button>
+                <button type="button" className="btn btn-primary btn-default__blue"
+                    onClick={() => handleOpenManagerModal()}>관리자 등록</button>
+            </div>
+        </div>
+    </div>
+
+    <div className="col-12 content-table content-table__main">
+        <div className="ag-theme-material" style={{ height: 760, width: '100%' }}>
+            <AppAgGrid
+                columnDefs={columnDefs}
+                theme={gridTheme}
+                defaultColDef={defaultColDef}
+                rowModelType="infinite"
+                pagination={true}
+                paginationPageSize={pageUnit}
+                cacheBlockSize={pageUnit}
+                maxBlocksInCache={2}
+                rowSelection={{ mode: 'singleSelect' }}
+                onGridReady={onGridReady}
+                overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
+                overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
+            />
+        </div>
+    </div>
+</div>
+```
+
+### 규칙
+- 최상위는 `<div className="row g-0 main-contents">` 하나로 감싼다. `content-header`(제목 +
+  breadcrumb) / `content-search`(검색조건 select+input, 검색/초기화/등록 버튼) /
+  `content-table content-table__main`(그리드) 3단 구성을 그대로 따른다.
+- 클래스명(`content-header__title`, `content-search__option`, `btn-outline__gray`,
+  `btn-default__blue` 등)은 전부 `public/resource/css/common.css`(index.html에서 전역 로드)에
+  이미 정의돼 있으므로 별도 CSS 파일을 새로 만들지 않는다.
+- 검색조건 `select`/`input`은 **className 없이 순수 태그**로 둔다 — `common.css`의
+  `.content-search__option select/input` 규칙이 부모 클래스 기준으로 스타일을 입힌다.
+- 그리드는 클라이언트 사이드 배열이 아니라 `hooks/grid/use-grid-infinite.js`의
+  `useGridInfinite({ fetchApi, pageUnit, initialFilters })`로 무한스크롤(rowModelType="infinite")
+  방식을 쓴다. `fetchApi(query)`는 `{ rows, total }`을 반환해야 한다.
+- breadcrumb 상위 항목(`인사 관리` 등)은 해당 화면이 속한 그룹명으로 채운다(사이드바 메뉴
+  그룹과 맞출 것).
+- 이 골격을 기준으로 새 리스트 화면을 만들 때는 `pages/backoffice/Basic/RoleInfo.jsx` 또는
+  `ProgrameInfo.jsx`를 실제 동작 예시로 참고한다(동일 골격 + `useGridInfinite` + 등록/수정
+  모달 패턴이 이미 구현돼 있음).
+
+---

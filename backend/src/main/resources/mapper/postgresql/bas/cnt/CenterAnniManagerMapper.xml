@@ -4,7 +4,9 @@
     <select id="selectCenterAnniManageListByPagination" resultType="CenterInfoAnniversaryVo">
         SELECT * FROM
             (
-                SELECT ROW_NUMBER() OVER (ORDER BY A.CENTER_ANNIDAY DESC) AS RNUM, TB.* FROM
+                SELECT ROW_NUMBER() OVER (ORDER BY "centerAnniday" DESC) AS RNUM,
+                TB.*
+                FROM
                     (
                         SELECT
                             A.CENTER_ID AS "centerId",
@@ -15,12 +17,9 @@
                             A.END_TIME AS "endTime",
                             A.TIME_OVER AS "timeOver",
                             A.BROD_CODE AS "brodCode",
-                            (
-                                SELECT BROD_NAME
-                                FROM TB_BRODSCHEDULE B
-                                WHERE A.BROD_CODE = B.BROD_CODE
-                            ) AS "brodName"
+                            B.BROD_NAME AS "brodName"
                         FROM TB_CENTERANNIVERSARY A
+                        LEFT OUTER JOIN TB_BRODSCHEDULE B  ON A.BROD_CODE = B.BROD_CODE
                         WHERE 1=1
                           AND A.CENTER_ID = #{centerId}
                     ) TB
@@ -40,16 +39,12 @@
         SELECT COALESCE(COUNT(*), 0)
         FROM TB_CENTERANNIVERSARY
         WHERE CENTER_ID = #{centerId}
-        AND
-        (
-        (
-        CENTER_ANNISTARTDAY BETWEEN #{centerAnniStartDay} AND #{centerAnniEndDay}
-        )
-        OR
-        (
-        CENTER_ANNIENDDAY BETWEEN #{centerAnniStartDay} AND #{centerAnniEndDay}
-        )
-        )
+        <!-- 표준 구간 겹침 조건(existing.start <= new.end AND existing.end >= new.start).
+             기존엔 기존 행의 시작/종료일이 새 구간 "안에" 들어오는 경우만 잡아서, 새 구간이 기존
+             구간을 완전히 포함하거나 완전히 그 안에 중첩되는 경우(양쪽 끝점 다 새 구간 밖)를
+             놓쳐 중복 등록이 가능했음 -->
+        AND CENTER_ANNISTARTDAY <![CDATA[<=]]> #{centerAnniEndDay}
+        AND CENTER_ANNIENDDAY <![CDATA[>=]]> #{centerAnniStartDay}
         <if test="centerAnniday != 'null'">
             AND CENTER_ANNIDAY != #{centerAnniday, jdbcType=VARCHAR}
         </if>

@@ -1,236 +1,278 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
+import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
-import { getCookie } from '@/lib/cookie.jsx';
+import { useResetForm } from '@/hooks/use-form.jsx';
+import { useCommonDelete } from '@/hooks/use-common-delete.js';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
+import { useCommonCodeData } from '@/hooks/use-combo-data.js';
 
-const PAGE_UNIT = 20;
-const emptyForm = {
+const XmlFormModal = lazy(() => import('./components/XmlFormModal.jsx'));
+const XmlPreviewModal = lazy(() => import('./components/XmlPreviewModal.jsx'));
+
+const INITIAL_SEARCH_FORM = {
+    searchCondition: '',
+    searchKeyword: '',
+};
+
+const EMPTY_XML_FORM = {
     mode: 'Ins',
     xmlSeq: '',
     workGubun: '',
     xmlProcessName: '',
     processRemark: '',
     xmlInputParam: '',
-    xmlOutputParam: '',
     xmlInputParamSample: '',
+    xmlOutputParam: '',
     xmlExplain: '',
+    testOk: 'N',
+    idCheck: 'N',
 };
 
+// XML(장비 통신 명령) 정보 관리 — 레거시 xmlList.jsp 참고.
 export default function XmlListPage() {
-    const navigate = useNavigate();
-    const [rowData, setRowData] = useState([]);
-    const [totalCnt, setTotalCnt] = useState(0);
-    const [searchKeyword, setSearchKeyword] = useState('');
-    const [workGubunOptions, setWorkGubunOptions] = useState([]);
-    const [form, setForm] = useState(emptyForm);
-    const [preview, setPreview] = useState('');
-    const [loading, setLoading] = useState(false);
+    const gridApiRef = useRef(null);
 
-    const columnDefs = useMemo(() => ([
-        { field: 'xmlProcessName', headerName: '명령어(Process Name)', width: 200 },
-        { field: 'codeNm', headerName: '업무구분', width: 130 },
-        { field: 'processRemark', headerName: '설명', flex: 1, minWidth: 200 },
-        {
-            headerName: '', width: 160,
-            cellRenderer: (p) => (
-                <>
-                    <button type="button" onClick={() => handleEdit(p.data.xmlSeq)}>수정</button>{' '}
-                    <button type="button" onClick={() => handleDelete(p.data.xmlSeq)}>삭제</button>
-                </>
-            ),
-        },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    ]), []);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [xmlForm, setXmlForm] = useState(EMPTY_XML_FORM);
 
-    const loadList = useCallback(async (keyword) => {
-        setLoading(true);
-        try {
-            const res = await fnAjaxFetch({
-                url: URL.XML_LIST,
-                method: 'POST',
-                data: { searchKeyword: keyword ?? '', pageIndex: 1, pageUnit: PAGE_UNIT },
-                showLoading: false,
-            });
-            const list = res?.data?.result?.resultList ?? [];
-            const cnt = res?.data?.result?.totalCnt ?? list.length;
-            setRowData(list);
-            setTotalCnt(cnt);
-        } finally {
-            setLoading(false);
-        }
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [previewTitle, setPreviewTitle] = useState('');
+    const [previewContent, setPreviewContent] = useState('');
+
+    const { options: workGubunOptions } = useCommonCodeData('EMT006');
+
+    const fetchXmlList = useCallback(async (query) => {
+        const res = await fnAjaxFetch({ url: URL.XML_LIST, method: 'POST', data: query });
+        const data = res?.data;
+        return {
+            rows: data?.result?.resultList || [],
+            total: data?.result?.totalCnt || 0,
+        };
     }, []);
 
-    const loadWorkGubunCombo = useCallback(async () => {
-        const res = await fnAjaxFetch({ url: URL.XML_WORK_GUBUN_COMBO, method: 'GET', showLoading: false });
-        setWorkGubunOptions(res?.data?.result?.resultList ?? []);
-    }, []);
+    const {
+        onGridReady,
+        defaultColDef,
+        tempParams,
+        setTempParams,
+        handleSearch,
+        refreshGrid,
+    } = useGridInfinite({
+        fetchApi: fetchXmlList,
+        pageUnit: 20,
+        initialFilters: INITIAL_SEARCH_FORM,
+    });
 
-    useEffect(() => {
-        if (!getCookie('accessToken')) {
-            navigate('/login', { replace: true });
+    const handleInputChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setTempParams((prev) => ({ ...prev, [name]: value }));
+    }, [setTempParams]);
+
+    const onSearch = useCallback((pageIndex) => {
+        handleSearch(pageIndex || 1);
+    }, [handleSearch]);
+
+    const onSearchKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') onSearch(1);
+    }, [onSearch]);
+
+    const { handleReset } = useResetForm(setTempParams, INITIAL_SEARCH_FORM);
+
+    const handleOpenXmlModal = useCallback(async (xmlSeq) => {
+        if (!xmlSeq) {
+            setXmlForm(EMPTY_XML_FORM);
+            setModalOpen(true);
             return;
         }
-        loadList('');
-        loadWorkGubunCombo();
-    }, [loadList, loadWorkGubunCombo, navigate]);
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        loadList(searchKeyword);
-    };
-
-    const handleEdit = async (xmlSeq) => {
         const res = await fnAjaxFetch({ url: `${URL.XML_INFO}/${xmlSeq}.do`, method: 'GET' });
-        const detail = res?.data?.result?.result;
-        if (detail) {
-            setForm({ ...detail, mode: 'Edt' });
-            setPreview('');
+        const obj = res?.data?.result?.result;
+        if (obj) {
+            setXmlForm({
+                mode: 'Edt',
+                xmlSeq: obj.xmlSeq || '',
+                workGubun: obj.workGubun || '',
+                xmlProcessName: obj.xmlProcessName || '',
+                processRemark: obj.processRemark || '',
+                xmlInputParam: obj.xmlInputParam || '',
+                xmlInputParamSample: obj.xmlInputParamSample || '',
+                xmlOutputParam: obj.xmlOutputParam || '',
+                xmlExplain: obj.xmlExplain || '',
+                testOk: obj.testOk || 'N',
+                idCheck: 'Y',
+            });
+            setModalOpen(true);
         }
-    };
+    }, []);
 
-    const handleNew = () => {
-        setForm(emptyForm);
-        setPreview('');
-    };
+    const handleSubmit = useCallback(async () => {
+        if (!xmlForm.workGubun) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '전문구분을 선택해 주세요.' });
+            return;
+        }
+        if (!xmlForm.xmlProcessName) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '명령어(Process Name)를 입력해 주세요.' });
+            return;
+        }
+        if (xmlForm.mode === 'Ins' && xmlForm.idCheck !== 'Y') {
+            await Swal.fire({ icon: 'warning', title: '확인 필요', text: '명령어 중복확인이 안되었습니다.' });
+            return;
+        }
 
-    const handleDelete = async (xmlSeq) => {
-        const result = await Swal.fire({
-            icon: 'question', title: 'XML 정보 삭제', text: '삭제하시겠습니까?',
+        const action = xmlForm.mode === 'Ins' ? '등록' : '수정';
+        const ok = await Swal.fire({
+            icon: 'question', title: `전문 ${action}`,
+            html: `<b>${xmlForm.xmlProcessName}</b> ${action} 하시겠습니까?`,
             showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
         });
-        if (!result.isConfirmed) return;
+        if (!ok.isConfirmed) return;
 
-        await fnAjaxFetch({ url: `${URL.XML_INFO}/${xmlSeq}.do`, method: 'DELETE' });
-        loadList(searchKeyword);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!form.workGubun || !form.xmlProcessName) {
-            Swal.fire({ icon: 'warning', title: '입력 확인', text: '업무구분/명령어(Process Name)를 입력해 주세요.' });
-            return;
+        const res = await fnAjaxFetch({ url: URL.XML_UPDATE, method: 'POST', data: xmlForm });
+        const json = res?.data;
+        if (json?.resultCodeInfo === 'SUCCESS') {
+            await Swal.fire({ icon: 'success', title: '완료', text: json?.resultMessage || `${action}되었습니다.` });
+            setModalOpen(false);
+            refreshGrid();
+        } else {
+            await Swal.fire({ icon: 'error', title: '오류', text: json?.resultMessage || `${action} 중 오류가 발생했습니다.` });
         }
+    }, [xmlForm, refreshGrid]);
 
-        if (form.mode === 'Ins') {
-            const checkRes = await fnAjaxFetch({
-                url: URL.XML_PROCESS_CHECK,
-                method: 'GET',
-                param: { xmlProcessName: form.xmlProcessName },
-            });
-            const dupCnt = Number(checkRes?.data?.result?.result ?? 0);
-            if (dupCnt > 0) {
-                Swal.fire({ icon: 'warning', title: '중복', text: '이미 등록된 명령어입니다.' });
-                return;
-            }
-        }
+    const { handleDelete } = useCommonDelete({
+        gridApiRef,
+        URL: URL.XML_INFO,
+        MESSAGE: '전문 정보',
+        reloadFunction: 'grid',
+    });
 
-        await fnAjaxFetch({ url: URL.XML_UPDATE, method: 'POST', data: form });
-        setForm(emptyForm);
-        loadList(searchKeyword);
-    };
-
-    const handlePreview = async (type) => {
-        if (!form.xmlSeq) {
-            Swal.fire({ icon: 'warning', title: '미리보기 불가', text: '저장된 항목만 미리보기가 가능합니다.' });
-            return;
-        }
+    const handlePreview = useCallback(async (type, xmlSeq, xmlProcessName) => {
         const base = type === 'json' ? URL.XML_PREVIEW_JSON : URL.XML_PREVIEW_XML;
-        const res = await fnAjaxFetch({ url: `${base}/${form.xmlSeq}.do`, method: 'GET' });
-        setPreview(res?.data?.result?.result ?? '');
-    };
+        const res = await fnAjaxFetch({ url: `${base}/${xmlSeq}.do`, method: 'GET' });
+        setPreviewTitle(`${type === 'json' ? 'JSON' : 'XML'} 미리보기 — ${xmlProcessName}`);
+        setPreviewContent(res?.data?.result?.result ?? '');
+        setPreviewOpen(true);
+    }, []);
+
+    const columnDefs = useMemo(() => ([
+        { field: 'codeNm', headerName: '구분', width: 110 },
+        {
+            field: 'xmlProcessName', headerName: '프로세스 ID', flex: 1, minWidth: 200,
+            cellRenderer: (p) => (
+                <button className="btn btn-link p-0" onClick={() => handleOpenXmlModal(p.data?.xmlSeq)}>{p.value}</button>
+            ),
+        },
+        { field: 'processRemark', headerName: '프로세스 업무', flex: 1, minWidth: 200 },
+        {
+            headerName: 'JSON 미리보기', width: 130, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                    onClick={() => handlePreview('json', p.data?.xmlSeq, p.data?.xmlProcessName)}
+                >미리보기</button>
+            ),
+        },
+        {
+            headerName: 'XML 미리보기', width: 130, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                    onClick={() => handlePreview('xml', p.data?.xmlSeq, p.data?.xmlProcessName)}
+                >미리보기</button>
+            ),
+        },
+        {
+            field: 'testOk', headerName: '확인', width: 90,
+            valueFormatter: (p) => (p.value === 'Y' ? '확인' : '미확인'),
+        },
+        {
+            headerName: '삭제', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button className="btn btn-outline-danger btn-outline__gray btn-sm"
+                    onClick={() => handleDelete({ code: p.data?.xmlSeq, name: p.data?.xmlProcessName })}
+                >삭제</button>
+            ),
+        },
+    ]), [handleOpenXmlModal, handlePreview, handleDelete]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 16, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h2 style={{ margin: 0 }}>XML(장비 통신 명령) 정보 관리</h2>
-                <button type="button" onClick={handleNew}>신규 등록</button>
+        <div className="row g-0 main-contents">
+            <div className="col-12 content-header">
+                <div className="content-header__title">전문 관리</div>
+                <div className="content-header__breadcrumb">
+                    <ol className="breadcrumb">
+                        <li className="breadcrumb-item">운영 관리</li>
+                        <li className="breadcrumb-item">전문 관리</li>
+                    </ol>
+                </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0 }}>
-                <div style={{ flex: 1.4, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                        <input
-                            type="text"
-                            placeholder="명령어/설명 검색"
-                            value={searchKeyword}
-                            onChange={(e) => setSearchKeyword(e.target.value)}
-                        />
-                        <button type="submit">검색</button>
-                        <span style={{ marginLeft: 'auto', alignSelf: 'center', color: '#64748b' }}>
-                            총 {totalCnt}건{loading ? ' (조회 중...)' : ''}
-                        </span>
-                    </form>
-                    <div style={{ flex: 1, minHeight: 0 }}>
-                        <AppAgGrid
-                            theme={gridTheme}
-                            rowData={rowData}
-                            columnDefs={columnDefs}
-                            defaultColDef={{ sortable: true, resizable: true }}
-                            pagination
-                            paginationPageSize={PAGE_UNIT}
+            <div className="col-12 content-search">
+                <div className="row g-0 w-100 justify-content-between">
+                    <div className="col-auto content-search__option">
+                        <select id="searchCondition" name="searchCondition"
+                            value={tempParams.searchCondition} onChange={handleInputChange}>
+                            <option value="">선택</option>
+                            <option value="XML_PROCESS_NAME">전문명</option>
+                            <option value="processRemark">전문설명</option>
+                        </select>
+                        <input type="text" id="searchKeyword" name="searchKeyword" placeholder="검색어를 입력하세요"
+                            value={tempParams.searchKeyword}
+                            onChange={handleInputChange}
+                            onKeyDown={onSearchKeyDown}
                         />
                     </div>
-                </div>
-
-                <div style={{ flex: 1, borderLeft: '1px solid #e2e8f0', paddingLeft: 16, overflowY: 'auto' }}>
-                    <h3>{form.mode === 'Ins' ? '신규 등록' : `수정 — ${form.xmlSeq}`}</h3>
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <label>
-                            업무구분
-                            <select value={form.workGubun} onChange={(e) => setForm((p) => ({ ...p, workGubun: e.target.value }))}>
-                                <option value="">선택</option>
-                                {workGubunOptions.map((o) => (
-                                    <option key={o.code} value={o.code}>{o.codeNm || o.code}</option>
-                                ))}
-                            </select>
-                        </label>
-                        <label>
-                            명령어(Process Name)
-                            <input type="text" value={form.xmlProcessName} disabled={form.mode !== 'Ins'}
-                                onChange={(e) => setForm((p) => ({ ...p, xmlProcessName: e.target.value }))} />
-                        </label>
-                        <label>
-                            설명
-                            <input type="text" value={form.processRemark || ''}
-                                onChange={(e) => setForm((p) => ({ ...p, processRemark: e.target.value }))} />
-                        </label>
-                        <label>
-                            입력 파라미터(콤마로 구분, 예: DID_ID,DID_MAC)
-                            <textarea rows={2} value={form.xmlInputParam || ''}
-                                onChange={(e) => setForm((p) => ({ ...p, xmlInputParam: e.target.value }))} />
-                        </label>
-                        <label>
-                            입력 파라미터 샘플값(콤마로 구분)
-                            <textarea rows={2} value={form.xmlInputParamSample || ''}
-                                onChange={(e) => setForm((p) => ({ ...p, xmlInputParamSample: e.target.value }))} />
-                        </label>
-                        <label>
-                            출력 파라미터
-                            <textarea rows={2} value={form.xmlOutputParam || ''}
-                                onChange={(e) => setForm((p) => ({ ...p, xmlOutputParam: e.target.value }))} />
-                        </label>
-                        <label>
-                            비고
-                            <textarea rows={2} value={form.xmlExplain || ''}
-                                onChange={(e) => setForm((p) => ({ ...p, xmlExplain: e.target.value }))} />
-                        </label>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button type="submit">{form.mode === 'Ins' ? '등록' : '수정'}</button>
-                            <button type="button" onClick={() => handlePreview('json')}>JSON 미리보기</button>
-                            <button type="button" onClick={() => handlePreview('xml')}>XML 미리보기</button>
-                        </div>
-                    </form>
-                    {preview && (
-                        <pre style={{ marginTop: 12, background: '#f8fafc', padding: 8, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                            {preview}
-                        </pre>
-                    )}
+                    <div className="col-auto content-search__action">
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={() => onSearch(1)}>검색</button>
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={handleReset}>검색 초기화</button>
+                        <button type="button" className="btn btn-primary btn-default__blue"
+                            onClick={() => handleOpenXmlModal()}>등록</button>
+                    </div>
                 </div>
             </div>
+
+            <div className="col-12 content-table content-table__main">
+                <div className="ag-theme-material" style={{ height: 760, width: '100%' }}>
+                    <AppAgGrid
+                        columnDefs={columnDefs}
+                        theme={gridTheme}
+                        defaultColDef={defaultColDef}
+                        rowModelType="infinite"
+                        pagination={true}
+                        paginationPageSize={20}
+                        cacheBlockSize={20}
+                        maxBlocksInCache={2}
+                        onGridReady={(params) => { gridApiRef.current = params.api; onGridReady(params); }}
+                        overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
+                        overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
+                    />
+                </div>
+            </div>
+
+            <Suspense fallback={null}>
+                {modalOpen && (
+                    <XmlFormModal
+                        open={modalOpen}
+                        form={xmlForm}
+                        setForm={setXmlForm}
+                        workGubunOptions={workGubunOptions}
+                        onClose={() => setModalOpen(false)}
+                        onSubmit={handleSubmit}
+                    />
+                )}
+            </Suspense>
+
+            <Suspense fallback={null}>
+                {previewOpen && (
+                    <XmlPreviewModal
+                        open={previewOpen}
+                        title={previewTitle}
+                        content={previewContent}
+                        onClose={() => setPreviewOpen(false)}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }

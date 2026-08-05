@@ -79,7 +79,7 @@ public class GroupManagerController {
 		return resultVO;
 	}
 
-	@Operation(summary = "부서 콤보박스", description = "성공시 부서 계층 콤보 목록을 조회합니다.")
+	@Operation(summary = "부서 콤보박스", description = "성공시 전체 부서 목록을 콤보용으로 조회합니다.")
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "200", description = "성공"),
 			@ApiResponse(responseCode = "500", description = "실패")
@@ -89,11 +89,10 @@ public class GroupManagerController {
 		ResultVO resultVO = new ResultVO();
 		try {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
-			LoginVO loginVO = AuthHelper.getLoginVO();
 
-			GroupVo groupVo = new GroupVo();
-			groupVo.setParentGroupId(loginVO.getPartId());
-			ResultHelper.setSuccess(resultVO, groupManagerService.selectGroupManageCombo(groupVo), Globals.JSON_RETURN_RESULT_LIST);
+			// selectGroupManageCombo(계층 제한 쿼리)는 "관리자 등록/부서 선택"처럼 전체 부서가
+			// 필요한 화면에는 맞지 않아(부모부서 기준으로 좁혀짐) 목록 조회와 동일하게 전체를 내려준다.
+			ResultHelper.setSuccess(resultVO, groupManagerService.selectUserGroupManageListByPagination(new GroupVo()), Globals.JSON_RETURN_RESULT_LIST);
 
 		} catch (Exception e) {
 			ResultHelper.setFailResult(resultVO, "selectGroupManageCombo", e, egovMessageSource);

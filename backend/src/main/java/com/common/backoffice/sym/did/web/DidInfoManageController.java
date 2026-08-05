@@ -404,9 +404,6 @@ public class DidInfoManageController {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
 			LoginVO loginVO = AuthHelper.getLoginVO();
 
-			GroupVo groupVo = new GroupVo();
-			groupVo.setGroupId(loginVO.getPartId());
-
 			CenterInfoVO centerInfoVO = new CenterInfoVO();
 			centerInfoVO.setAuthorCode(loginVO.getRoleId());
 			centerInfoVO.setMberId(loginVO.getManagerId());
@@ -417,10 +414,14 @@ public class DidInfoManageController {
 			groupInfoVO.setMberId(loginVO.getManagerId());
 
 			Map<String, Object> resultMap = new HashMap<>();
-			resultMap.put("selectRole", groupManagerService.selectGroupManageCombo(groupVo));
+			// selectGroupManageCombo(계층 제한 쿼리)는 parentGroupId를 같이 안 넘기면 항상 빈 목록을
+			// 반환함(GroupManagerController.selectGroupManageCombo에서 이미 확인/수정한 것과 동일한
+			// 버그) — 등록/수정 화면처럼 전체 부서가 필요한 곳은 계층 제한 없는 쿼리를 그대로 사용
+			resultMap.put("selectRole", groupManagerService.selectUserGroupManageListByPagination(new GroupVo()));
 			resultMap.put("selectGroup", groupInfoManageService.selectGroupInfoManageCombo(groupInfoVO));
 			resultMap.put("selectCenter", centerInfoManageService.selectCenterInfoManageCombo(centerInfoVO));
-			resultMap.put("selectType", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT001"));
+			/*
+            resultMap.put("selectType", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT001"));
 			resultMap.put("selectResolution", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT002"));
 			resultMap.put("selectIpType", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT003"));
 			resultMap.put("selectModelType", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT004"));
@@ -429,7 +430,7 @@ public class DidInfoManageController {
 			resultMap.put("selectSerialUse", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT012"));
 			resultMap.put("selectComPort", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT013"));
 			resultMap.put("selectMoniterCnt", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT014"));
-
+            */
 			if ("Edt".equals(mode) && !didId.isBlank()) {
 				resultMap.put("regist", didInfoManageService.selectDidrInfoManageDetail(didId));
 			}
@@ -517,6 +518,7 @@ public class DidInfoManageController {
 				resultMap.put(Globals.STATUS_REGINFO, vo);
 				resultVO.setResult(resultMap);
 				resultVO.setResultCode(ResponseCode.SUCCESS.getCode());
+                resultVO.setResultCodeInfo(Globals.STATUS_SUCCESS);
 				resultVO.setResultMessage(egovMessageSource.getMessage(isInsert ? "success.common.insert" : "success.common.update"));
 			} else {
 				throw new Exception("Update failed");
@@ -636,19 +638,17 @@ public class DidInfoManageController {
 		ResultVO resultVO = new ResultVO();
 		try {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
-			LoginVO loginVO = AuthHelper.getLoginVO();
 
 			Map<String, Object> resultMap = new HashMap<>();
 			if ("basicInfo".equals(callType)) {
-				GroupVo groupVo = new GroupVo();
-				groupVo.setGroupId(loginVO.getPartId());
-
 				resultMap.put("selectType", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT001"));
 				resultMap.put("selectResolution", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT002"));
 				resultMap.put("selectIpType", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT003"));
 				resultMap.put("selectModelType", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT004"));
 				resultMap.put("selectOs", cmmnDetailCodeManageService.selectCmmnDetailCombo("EMT011"));
-				resultMap.put("selectRole", groupManagerService.selectGroupManageCombo(groupVo));
+				// selectGroupManageCombo(계층 제한 쿼리)는 parentGroupId 없이 groupId만 넘기면 항상 빈
+				// 목록을 반환하는 버그가 있어(다른 컨트롤러에서 이미 확인/수정) 계층 제한 없는 쿼리로 대체
+				resultMap.put("selectRole", groupManagerService.selectUserGroupManageListByPagination(new GroupVo()));
 			} else if ("centerInfo".equals(callType)) {
 				CenterInfoVO centerInfoVO = new CenterInfoVO();
 				centerInfoVO.setSearchKeyword("");

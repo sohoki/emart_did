@@ -1,5 +1,11 @@
 export const fmtDate     = (v) => (!v ? '-' : String(v).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
 export const fmtDateTime = (v) => (!v ? '-' : String(v).replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:$5:$6'));
+
+// AG Grid 컬럼의 valueFormatter에 바로 꽂는 용도 (colDef: { field: 'xxxDay', valueFormatter: gridDateFormatter })
+// DB가 YYYYMMDD(대시 없음)로 내려주는 값을 그리드에서만 yyyy-MM-dd로 표시할 때 사용 — 이미 대시가
+// 있는 값(yyyy-MM-dd)이 들어와도 정규식이 매칭 안 되어 원본 그대로 반환되므로 안전하게 재사용 가능
+export const gridDateFormatter     = (params) => fmtDate(params?.value);
+export const gridDateTimeFormatter = (params) => fmtDateTime(params?.value);
 export const fmtPhone    = (v) => (!v ? '' : String(v).replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3'));
 export const fmtComma    = (v) => (!v ? '0' : Number(v).toLocaleString());
 export const todayStr    = () => new Date().toISOString().slice(0, 10).replace(/-/g, '');

@@ -11,6 +11,7 @@
         GROUP_NM AS "groupNm",
         GROUP_CREAT_DE AS "groupCreatDe",
         PARENT_GROUP_ID AS "parentGroupId",
+        GROUP_DC AS "groupDc",
         USEYN AS "useYn",
         1 AS "lv",
         ARRAY[ROW_NUMBER() OVER(ORDER BY GROUP_ID)] AS sort_path
@@ -36,6 +37,7 @@
         T.GROUP_NM AS "groupNm",
         T.GROUP_CREAT_DE AS "groupCreatDe",
         T.PARENT_GROUP_ID AS "parentGroupId",
+        T.GROUP_DC AS "groupDc",
         T.USEYN AS "useYn",
         C."lv" + 1 AS "lv",
         C.sort_path || ROW_NUMBER() OVER(ORDER BY T.GROUP_ID)
@@ -59,12 +61,12 @@
         TB."groupNm",
         TB."groupCreatDe",
         TB."parentGroupId",
-        CASE
-        WHEN TB."parentGroupId" = '0' THEN '2'
+        TB."groupDc",
+        CASE   WHEN TB."parentGroupId" = '0' THEN '2'
         ELSE (
-        SELECT B.GROUP_NM
-        FROM LETTNAUTHORGROUPINFO B
-        WHERE B.GROUP_ID = TB."parentGroupId"
+            SELECT B.GROUP_NM
+            FROM LETTNAUTHORGROUPINFO B
+            WHERE B.GROUP_ID = TB."parentGroupId"
         )
         END AS "parentGroupNm",
         TB."useYn",

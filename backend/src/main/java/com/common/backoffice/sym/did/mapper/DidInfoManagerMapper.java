@@ -11,9 +11,12 @@ import java.util.List;
 public interface DidInfoManagerMapper {
 
 	public List<DidInfoVO>  selectDidInfoManageListByPagination(DidInfoVO searchVO);
-	public List<DidInfoVO> selectDidInfoManageCombo();
-	public DidInfoVO selectDidrInfoManageDetail(String didId);
-	public DidInfoVO selectDidrInfoManageDetailView(String didId);
+
+    public List<DidInfoVO> selectDidInfoManageCombo();
+
+    public DidInfoVO selectDidrInfoManageDetail(String didId);
+
+    public DidInfoVO selectDidrInfoManageDetailView(String didId);
 	
 	//DID 현황
 	public List<DidInfoVO>  selectDidManagerInfoManageListByPagination(DidInfoVO searchVO);

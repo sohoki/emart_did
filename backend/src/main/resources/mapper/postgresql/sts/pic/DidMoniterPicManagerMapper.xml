@@ -4,31 +4,31 @@
     <select id="selectDidMoniterPicManageListByPagination" resultType="DidMoniterPicVO">
         SELECT * FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.MSG_SEQ DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.DID_FILENM AS "didFileNm",
-        A.DID_ID AS "didId",
-        A.DID_REGDATE AS "didRegDate",
-        A.DID_MAC AS "didMac",
-        B.DID_NM AS "didNm"
-        FROM TB_DIDSTATEPIC A
-        JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
-        WHERE 1=1
-        <if test="strDate != null">
-            <![CDATA[
-                AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') >= #{strDate}
-             ]]>
-        </if>
-        <if test="endDate != null">
-            <![CDATA[
-                AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') <= #{endDate}
-             ]]>
-        </if>
-        ) TB
+            SELECT
+            TB.*
+            FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.MSG_SEQ DESC) AS RNUM,
+                    A.DID_FILENM AS "didFileNm",
+                    A.DID_ID AS "didId",
+                    A.DID_REGDATE AS "didRegDate",
+                    A.DID_MAC AS "didMac",
+                    B.DID_NM AS "didNm"
+                FROM TB_DIDSTATEPIC A
+                JOIN TB_DIDINFO B ON A.DID_ID = B.DID_ID
+                WHERE 1=1
+                <if test="strDate != null">
+                    <![CDATA[
+                        AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') >= #{strDate}
+                     ]]>
+                </if>
+                <if test="endDate != null">
+                    <![CDATA[
+                        AND TO_CHAR(A.DID_REGDATE, 'YYYYMMDD') <= #{endDate}
+                     ]]>
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>

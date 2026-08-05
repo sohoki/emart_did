@@ -7,8 +7,8 @@
             A.DID_ID AS "didId",
             C.DID_NM AS "didNm"
         FROM TB_GROUPDID A
-                 JOIN TB_GROUP B ON A.GROUP_CODE = B.GROUP_CODE
-                 JOIN TB_DIDINFO C ON A.DID_ID = C.DID_ID
+        JOIN TB_GROUP B ON A.GROUP_CODE = B.GROUP_CODE
+        JOIN TB_DIDINFO C ON A.DID_ID = C.DID_ID
         WHERE A.GROUP_CODE = #{groupCode}
         ORDER BY C.DID_NM ASC
     </select>

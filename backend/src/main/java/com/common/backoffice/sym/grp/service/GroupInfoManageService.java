@@ -24,6 +24,7 @@ public class GroupInfoManageService {
 	public List<GroupInfoVO> selectGroupInfoManageListByPagination(
             Map<String, Object> searchVO) {
 		// TODO Auto-generated method stub
+        log.info("service roleId:" + searchVO.get("roleId"));
 		return groupInfoManagerMapper.selectGroupInfoManageListByPagination(searchVO);
 	}
 

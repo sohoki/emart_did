@@ -14,14 +14,11 @@ import lombok.NoArgsConstructor;
 @Schema(title="GroupDidInfo : DID 정보 상세 " )
 public class GroupInfo {
 
+    private String mode;
 	private String groupCode;
 	private String groupNm;
 	private String groupUseYn;
 	private String didCnt;
 	private String menuGubun;
-	private String mode;
 
-	
-	
-	
 }

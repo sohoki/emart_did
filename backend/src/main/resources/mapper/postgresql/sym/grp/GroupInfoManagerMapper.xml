@@ -5,55 +5,58 @@
     <!-- 페이징 목록 조회 (LIMIT / OFFSET 및 재귀 CTE 적용) -->
     <select id="selectGroupInfoManageListByPagination" resultType="GroupInfoVO">
         SELECT
-        A.GROUP_CODE as "groupCode",
-        A.GROUP_NM as "groupNm",
-        A.GROUP_USEYN as "groupUseYn",
-        (SELECT COUNT(*) FROM TB_GROUPDID b WHERE A.GROUP_CODE = b.GROUP_CODE) AS did_CNT,
-        COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+            A.GROUP_CODE as "groupCode",
+            A.GROUP_NM as "groupNm",
+            A.GROUP_USEYN as "groupUseYn",
+            COALESCE(B.DID_CNT, 0) AS "didCnt",
+            COUNT(*) OVER() AS TOTAL_RECORD_COUNT
         FROM TB_GROUP A
+        LEFT JOIN (
+            SELECT GROUP_CODE, COUNT(*) AS DID_CNT
+            FROM TB_GROUPDID
+            GROUP BY GROUP_CODE
+        ) B ON A.GROUP_CODE = B.GROUP_CODE
         WHERE 1=1
-        <if test="params.roleId != 'ROLE_ADMIN' and params.roleId != 'ROLE_ANONYMOUS'">
+        <if test='params.roleId != "ROLE_ADMIN" and params.roleId != "ROLE_ANONYMOUS"'>
             <choose>
-                <when test="params.roleId == 'ROLE_DID_ADMIN' or params.roleId == 'ROLE_MUSIC_ADMIN'">
+                <when test='params.roleId == "ROLE_DID_ADMIN" or params.roleId == "ROLE_MUSIC_ADMIN"'>
                     AND A.GROUP_ID IN (
-                    WITH RECURSIVE CTE AS (
-                        SELECT GROUP_ID
-                        FROM LETTNAUTHORGROUPINFO
-                        WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
-
-                    UNION ALL
-
-                    SELECT T.GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO T
-                    INNER JOIN CTE C ON T.PARENT_GROUP_ID = C.GROUP_ID
-                    )
-                    SELECT GROUP_ID FROM CTE
+                        WITH RECURSIVE CTE AS (
+                            SELECT GROUP_ID
+                            FROM LETTNAUTHORGROUPINFO
+                            WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{params.mberId})
+                            UNION ALL
+                            SELECT T.GROUP_ID
+                            FROM LETTNAUTHORGROUPINFO T
+                            INNER JOIN CTE C ON T.PARENT_GROUP_ID = C.GROUP_ID
+                        )
+                        SELECT GROUP_ID FROM CTE
                     )
                 </when>
                 <otherwise>
-                    AND A.CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    AND A.CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{params.mberId})
                 </otherwise>
             </choose>
         </if>
         <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
             <choose>
-                <when test="searchCondition == 'GROUP_ID'">
-                    AND A.GROUP_CODE LIKE '%' || #{searchKeyword} || '%'
+                <when test="params.searchCondition == 'GROUP_ID'">
+                    AND A.GROUP_CODE LIKE '%' || #{params.searchKeyword} || '%'
                 </when>
                 <otherwise>
-                    AND A.GROUP_NM LIKE '%' || #{searchKeyword} || '%'
+                    AND A.GROUP_NM LIKE '%' || #{params.searchKeyword} || '%'
                 </otherwise>
             </choose>
         </if>
         ORDER BY A.FRST_REGIST_PNTTM DESC
-        LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+        LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
     </select>
 
     <!-- 콤보박스 목록 조회 -->
     <select id="selectGroupInfoManageCombo" resultType="GroupInfoVO">
         SELECT
-        GROUP_CODE as "groupCode",
-        GROUP_NM as "groupNm"
+            GROUP_CODE as "groupCode",
+            GROUP_NM as "groupNm"
         FROM TB_GROUP
         WHERE GROUP_USEYN = 'Y'
         <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
@@ -63,19 +66,19 @@
                     WITH RECURSIVE CTE AS (
                         SELECT GROUP_ID
                         FROM LETTNAUTHORGROUPINFO
-                        WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
-
-                    UNION ALL
-
-                    SELECT T.GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO T
-                    INNER JOIN CTE C ON T.PARENT_GROUP_ID = C.GROUP_ID
+                        WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
+                        UNION ALL
+                        SELECT T.GROUP_ID
+                        FROM LETTNAUTHORGROUPINFO T
+                        INNER JOIN CTE C ON T.PARENT_GROUP_ID = C.GROUP_ID
                     )
                     SELECT GROUP_ID FROM CTE
                     )
                 </when>
                 <otherwise>
-                    AND CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    AND CENTER_ID = (SELECT CENTER_ID
+                                     FROM TB_MANAGERINFO
+                                     WHERE MANAGER_ID = #{mberId})
                 </otherwise>
             </choose>
         </if>
@@ -114,7 +117,7 @@
                     WITH RECURSIVE CTE AS (
                     SELECT GROUP_ID
                     FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (SELECT GROUP_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
 
                     UNION ALL
 
@@ -126,7 +129,7 @@
                     )
                 </when>
                 <otherwise>
-                    AND A.CENTER_ID = (SELECT CENTER_ID FROM LETTNGNRLMBER WHERE MBER_ID = #{mberId})
+                    AND A.CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
                 </otherwise>
             </choose>
         </if>
