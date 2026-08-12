@@ -1,0 +1,47 @@
+ALTER TABLE public.comtccmmndetailcode ALTER COLUMN code_id TYPE varchar(20) USING code_id::varchar(20);
+
+
+-- 함수 추가                 
+CREATE OR REPLACE FUNCTION FN_DETAIL_CODEID(AS_parentCode VARCHAR(20)) 
+RETURNS VARCHAR(30) 
+LANGUAGE plpgsql
+AS $$
+DECLARE 
+    RTN_Code VARCHAR(30);
+BEGIN 
+    SELECT COALESCE(
+               MAX(
+                   CAST(
+                       REPLACE(code, AS_parentCode || '_', '') AS INTEGER
+                   )
+               ), 0
+           ) + 1 
+    INTO RTN_Code 
+    FROM COMTCCMMNDETAILCODE 
+    WHERE CODE_ID = AS_parentCode;
+
+    -- 접두사(AS_parentCode + '_')와 번호를 결합하여 최종 반환 값 완성
+    RTN_Code := AS_parentCode || '_' || RTN_Code;
+
+    RETURN RTN_Code;
+END;
+$$;
+
+
+    
+                
+CREATE OR REPLACE FUNCTION  FN_ROLE_CNT(AS_ROLE_ID VARCHAR(20))
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    CNT INTEGER;
+BEGIN
+    SELECT COALESCE(COUNT(MENU_NO), 0)
+    INTO CNT
+    FROM COMTNMENUCREATDTLS
+    WHERE ROLE_ID = AS_ROLE_ID;
+    
+    RETURN CNT;
+END;
+$$;

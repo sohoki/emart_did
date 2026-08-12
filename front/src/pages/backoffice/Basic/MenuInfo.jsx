@@ -14,6 +14,7 @@ import {CommonSelect} from '@/components/Common/Select.jsx';
 import { useFileUpload } from '@/hooks/use-file-upload.jsx';
 import UseSwitch from '@/components/Common/IosSwitch.jsx';
 import '@/style/DropZone.css';
+import '@/style/MenuInfo.css';
 
 
 const ProgramSelectModal = React.lazy(() => import('./components/ProgramChoiceModal.jsx'));

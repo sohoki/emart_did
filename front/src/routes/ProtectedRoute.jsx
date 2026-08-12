@@ -13,6 +13,12 @@ async function jwtAuthentication() {
             method: 'POST',
             data: {},
             withCredentials: true,
+            // fnAjaxFetch 자체의 401 처리(Swal + window.location.href 강제 이동)를 여기서는 막는다.
+            // 이 인증확인 호출의 401/refresh-실패 판단은 아래 jwtAuthentication()/ProtectedRoute의
+            // <Navigate>가 유일한 리다이렉트 경로여야 함 — 안 그러면 fnAjaxFetch의 하드 리다이렉트와
+            // ProtectedRoute의 SPA 리다이렉트가 중복 실행되어 로그인 페이지가 두 번 걸리거나
+            // 화면이 깜박이는 현상이 생긴다(리프레시 토큰이 없는 환경에서 특히 매번 발생).
+            suppressErrorHandling: true,
         });
 
         const code = String(res?.data?.resultCode || '');

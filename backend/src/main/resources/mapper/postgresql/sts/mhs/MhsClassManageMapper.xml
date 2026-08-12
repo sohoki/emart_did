@@ -4,41 +4,50 @@
     <select id="selectMhsClassList" resultType="MhsClassInfoVO">
         SELECT * FROM
         (
-        SELECT ROW_NUMBER() OVER (ORDER BY MHS_REGDATE DESC, MHS_CLASSCD DESC) AS RNUM, TB.* FROM
-        (
-        SELECT
-        A.MHS_BRANDCD, A.MHS_CENTERCD, A.MHS_CLASSCD, A.MHS_CLASSROOMNM, A.MHS_CLASSNM,
-        A.MHS_TEACHERNM, A.MHS_CLASSSTARTDAY, A.MHS_CLASSENDDAY, A.MHS_CLASSDAYOFWEEK, A.MHS_CLASSSTARTTIME,
-        A.MHS_CLASSENDTIME, A.MHS_REGID, A.MHS_REGDATE, A.MHS_UPDATEID, A.MHS_UPDATEDATE,
-        A.MHS_CLASSSTATUS, C.GROUP_NM AS mhsBrandnm, B.CENTER_NM AS mhsCenternm, D.MHS_MONITORNM
-        FROM TB_MHSCLASSINFO A
-        JOIN TB_CENTERINFO B ON A.MHS_CENTERCD = B.CENTER_ID
-        JOIN LETTNAUTHORGROUPINFO C ON A.MHS_BRANDCD = C.GROUP_ID
-        JOIN TB_MHSMONITORINFO D ON A.MHS_CLASSROOMNM = D.MHS_MONITORCD
-        WHERE 1=1
-        <if test="authorCode == 'ROLE_MHS_USER'">
-            <if test='mhsCentercd != null and mhsCentercd != "" '>
-                AND A.MHS_CENTERCD = #{mhsCentercd}
-            </if>
-        </if>
-        <if test="searchMhsBramdCd != '' and searchMhsCenterCd != null">
-            AND A.MHS_BRANDCD = #{searchMhsBramdCd}
-        </if>
-        <if test="searchMhsCenterCd != '' and searchMhsCenterCd != null">
-            AND A.MHS_CENTERCD = #{searchMhsCenterCd}
-        </if>
-        <choose>
-            <when test="searchCondition == 'MHS_CLASSROOMNM' and searchKeyword != ''">
-                AND D.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
-            </when>
-            <when test="searchCondition == 'MHS_CLASSNM' and searchKeyword != ''">
-                AND A.MHS_CLASSNM LIKE CONCAT('%', #{searchKeyword}, '%')
-            </when>
-            <when test="searchCondition == 'MHS_TEACHERNM' and searchKeyword != ''">
-                AND A.MHS_TEACHERNM LIKE CONCAT('%', #{searchKeyword}, '%')
-            </when>
-        </choose>
-        ) TB
+            SELECT  TB.* FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY MHS_REGDATE DESC, MHS_CLASSCD DESC) AS RNUM,
+                    A.MHS_BRANDCD,
+                    A.MHS_CENTERCD,
+                    A.MHS_CLASSCD,
+                    A.MHS_CLASSROOMNM,
+                    A.MHS_CLASSNM,
+                    A.MHS_TEACHERNM,
+                    A.MHS_CLASSSTARTDAY,
+                    A.MHS_CLASSENDDAY,
+                    A.MHS_CLASSDAYOFWEEK,
+                    A.MHS_CLASSSTARTTIME,
+                    A.MHS_CLASSENDTIME, A.MHS_REGID, A.MHS_REGDATE, A.MHS_UPDATEID, A.MHS_UPDATEDATE,
+                    A.MHS_CLASSSTATUS, C.GROUP_NM AS mhsBrandnm, B.CENTER_NM AS mhsCenternm, D.MHS_MONITORNM
+                FROM TB_MHSCLASSINFO A
+                JOIN TB_CENTERINFO B ON A.MHS_CENTERCD = B.CENTER_ID
+                JOIN LETTNAUTHORGROUPINFO C ON A.MHS_BRANDCD = C.GROUP_ID
+                JOIN TB_MHSMONITORINFO D ON A.MHS_CLASSROOMNM = D.MHS_MONITORCD
+                WHERE 1=1
+                <if test="authorCode == 'ROLE_MHS_USER'">
+                    <if test='mhsCentercd != null and mhsCentercd != "" '>
+                        AND A.MHS_CENTERCD = #{mhsCentercd}
+                    </if>
+                </if>
+                <if test="searchMhsBramdCd != '' and searchMhsCenterCd != null">
+                    AND A.MHS_BRANDCD = #{searchMhsBramdCd}
+                </if>
+                <if test="searchMhsCenterCd != '' and searchMhsCenterCd != null">
+                    AND A.MHS_CENTERCD = #{searchMhsCenterCd}
+                </if>
+                <choose>
+                    <when test="searchCondition == 'MHS_CLASSROOMNM' and searchKeyword != ''">
+                        AND D.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                    <when test="searchCondition == 'MHS_CLASSNM' and searchKeyword != ''">
+                        AND A.MHS_CLASSNM LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                    <when test="searchCondition == 'MHS_TEACHERNM' and searchKeyword != ''">
+                        AND A.MHS_TEACHERNM LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                </choose>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
@@ -74,13 +83,13 @@
             AND A.MHS_CENTERCD = #{searchMhsCenterCd}
         </if>
         <choose>
-            <when test="searchCondition == 'a.MHS_CLASSROOMNM' and searchKeyword != ''">
+            <when test="searchCondition == 'MHS_CLASSROOMNM' and searchKeyword != ''">
                 AND D.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
             </when>
-            <when test="searchCondition == 'a.MHS_CLASSNM' and searchKeyword != ''">
+            <when test="searchCondition == 'MHS_CLASSNM' and searchKeyword != ''">
                 AND A.MHS_CLASSNM LIKE CONCAT('%', #{searchKeyword}, '%')
             </when>
-            <when test="searchCondition == 'a.MHS_TEACHERNM' and searchKeyword != ''">
+            <when test="searchCondition == 'MHS_TEACHERNM' and searchKeyword != ''">
                 AND A.MHS_TEACHERNM LIKE CONCAT('%', #{searchKeyword}, '%')
             </when>
         </choose>
@@ -123,22 +132,22 @@
 
     <update id="updateMhsClassInfo">
         UPDATE TB_MHSCLASSINFO SET
-        MHS_BRANDCD = #{mhsBrandcd},
-        MHS_CENTERCD = #{mhsCentercd},
-        MHS_CLASSROOMNM = #{mhsClassroomnm},
-        MHS_CLASSNM = #{mhsClassnm},
-        MHS_TEACHERNM = #{mhsTeachernm},
-        MHS_CLASSSTARTDAY = #{mhsClassstartday},
-        MHS_CLASSENDDAY = #{mhsClassendday},
-        MHS_CLASSDAYOFWEEK = #{mhsClassdayofweek,jdbcType=VARCHAR},
-        MHS_CLASSSTARTTIME = #{mhsClassstarttime,jdbcType=VARCHAR},
-        MHS_CLASSENDTIME = #{mhsClassendtime,jdbcType=VARCHAR},
-        MHS_UPDATEID = #{mhsUpdateid,jdbcType=VARCHAR},
-        <if test="mhsClassintro != '' and mhsClassintro != null">
-            MHS_CLASSINTRO = #{mhsClassintro},
-        </if>
-        MHS_UPDATEDATE = NOW(),
-        MHS_CLASSSTATUS = #{mhsClassstatus,jdbcType=VARCHAR}
+                                    MHS_BRANDCD = #{mhsBrandcd},
+                                    MHS_CENTERCD = #{mhsCentercd},
+                                    MHS_CLASSROOMNM = #{mhsClassroomnm},
+                                    MHS_CLASSNM = #{mhsClassnm},
+                                    MHS_TEACHERNM = #{mhsTeachernm},
+                                    MHS_CLASSSTARTDAY = #{mhsClassstartday},
+                                    MHS_CLASSENDDAY = #{mhsClassendday},
+                                    MHS_CLASSDAYOFWEEK = #{mhsClassdayofweek,jdbcType=VARCHAR},
+                                    MHS_CLASSSTARTTIME = #{mhsClassstarttime,jdbcType=VARCHAR},
+                                    MHS_CLASSENDTIME = #{mhsClassendtime,jdbcType=VARCHAR},
+                                    MHS_UPDATEID = #{mhsUpdateid,jdbcType=VARCHAR},
+                                    <if test="mhsClassintro != '' and mhsClassintro != null">
+                                        MHS_CLASSINTRO = #{mhsClassintro},
+                                    </if>
+                                    MHS_UPDATEDATE = NOW(),
+                                    MHS_CLASSSTATUS = #{mhsClassstatus,jdbcType=VARCHAR}
         WHERE MHS_CLASSCD = #{mhsClasscd}
     </update>
 

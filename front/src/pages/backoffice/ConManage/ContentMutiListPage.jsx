@@ -27,6 +27,7 @@ const EMPTY_MUTI_FORM = {
     conHeight: '1980',
     conMid: '540',
     conNextSeq: '',
+    conPlayType: '',
 };
 
 // 화면 구성(멀티페이지 콘텐츠) 관리 — 레거시 conMutiList.jsp 참고.
@@ -38,9 +39,10 @@ export default function ContentMutiListPage() {
     const [mutiForm, setMutiForm] = useState(EMPTY_MUTI_FORM);
     const [conTypeOptions, setConTypeOptions] = useState([]);
     const [screenTypeOptions, setScreenTypeOptions] = useState([]);
+    const [playTypeOptions, setPlayTypeOptions] = useState([]);
     const [nextSeqOptions, setNextSeqOptions] = useState([]);
 
-    // 화면타입/가로세로 콤보는 페이지 최초 진입 시 한 번만 조회한다.
+    // 화면타입/가로세로/분할재생기준 콤보는 페이지 최초 진입 시 한 번만 조회한다.
     useEffect(() => {
         let active = true;
         (async () => {
@@ -51,6 +53,7 @@ export default function ContentMutiListPage() {
             const result = res?.data?.result || {};
             setConTypeOptions(result.selectConType || []);
             setScreenTypeOptions(result.selectScreenType || []);
+            setPlayTypeOptions(result.selectPlayType || []);
         })();
         return () => { active = false; };
     }, []);
@@ -117,6 +120,7 @@ export default function ContentMutiListPage() {
                 conHeight: obj.conHeight || '',
                 conMid: obj.conMid || '',
                 conNextSeq: obj.conNextSeq || '',
+                conPlayType: obj.conPlayType || '',
             });
             setModalOpen(true);
         }
@@ -256,6 +260,7 @@ export default function ContentMutiListPage() {
                         setForm={setMutiForm}
                         conTypeOptions={conTypeOptions}
                         screenTypeOptions={screenTypeOptions}
+                        playTypeOptions={playTypeOptions}
                         nextSeqOptions={nextSeqOptions}
                         onClose={() => setModalOpen(false)}
                         onSubmit={handleSubmit}

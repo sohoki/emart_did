@@ -20,6 +20,7 @@ const ContentMutiFormModal = ({
     setForm,
     conTypeOptions,
     screenTypeOptions,
+    playTypeOptions,
     nextSeqOptions,
     onClose,
     onSubmit,
@@ -139,6 +140,18 @@ const ContentMutiFormModal = ({
                                                     offText="사용안함"
                                                 />
                                             </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-6">
+                                        <div className="input-box">
+                                            <label className="form-label">분할재생기준</label>
+                                            <select id="conPlayType" name="conPlayType" className="form-select"
+                                                value={form.conPlayType} onChange={(e) => updateForm({ conPlayType: e.target.value })}>
+                                                <option value="">선택</option>
+                                                {playTypeOptions.map((o) => (
+                                                    <option key={o.code} value={o.code}>{o.codeNm}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
                                 </div>

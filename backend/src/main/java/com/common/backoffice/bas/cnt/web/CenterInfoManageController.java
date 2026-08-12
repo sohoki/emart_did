@@ -202,7 +202,7 @@ public class CenterInfoManageController {
 			if (mRequest.getFiles("centerImgMap") != null && !mRequest.getFiles("centerImgMap").isEmpty()) {
 				vo.setCenterImgMap(uploadFile.uploadFileNm(mRequest.getFiles("centerImgMap"), filePath));
 			}
-
+            vo.setCenterZipcode(vo.getCenterZipcode1()+""+vo.getCenterZipcode2());
 			boolean isInsert = Globals.SAVE_MODE_INSERT.equals(vo.getMode());
 			int ret = isInsert
 					? centerInfoManageService.insertCenterInfoManage(vo)

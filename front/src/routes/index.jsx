@@ -29,8 +29,10 @@ const DidPicListPage = lazy(() => import('@/pages/backoffice/OperManage/DidPicLi
 {/* 장비 관리 */}
 const DidInfoList = lazy(() => import('@/pages/backoffice/equiManage/DidInfoList.jsx'));
 const DIdGroupInfo = lazy(() => import('@/pages/backoffice/equiManage/DIdGroupInfo.jsx'));
+const ScheduleListPage = lazy(() => import('@/pages/backoffice/equiManage/ScheduleListPage.jsx'));
+const ScheduleStatusPage = lazy(() => import('@/pages/backoffice/equiManage/ScheduleStatusPage.jsx'));
 const DidSendMessageList = lazy(() => import('@/pages/backoffice/equiManage/DidSendMessageList.jsx'));
-const ContentMessageListPage = lazy(() => import('@/pages/backoffice/ConManage/ContentMessageListPage.jsx'));
+// const ContentMessageListPage = lazy(() => import('@/pages/backoffice/ConManage/ContentMessageListPage.jsx')); 사용 안함
 
 {/* 문화센터 관리 */}
 const MhsRoomManagePage = lazy(() => import('@/pages/backoffice/RoomManage/MhsRoomManagePage.jsx'));
@@ -45,6 +47,7 @@ const BrodAnniversaryListPage = lazy(() => import('@/pages/backoffice/BrodManage
 const BrodScheduleStatusPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodScheduleStatusPage.jsx'));
 const BrodContentListPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodContentListPage.jsx'));
 const BasicBrodListPage = lazy(() => import('@/pages/backoffice/BrodManage/BasicBrodListPage.jsx'));
+const BrodMusicFileListPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodMusicFileListPage.jsx'));
 
 export default function RouterConfig() {
     return (
@@ -76,11 +79,12 @@ export default function RouterConfig() {
                         {/* 장비 관리 */}
                         <Route path="/backoffice/sub/equiManage/did" element={<DidInfoList />} />
                         <Route path="/backoffice/sub/equiManage/did_group" element={<DIdGroupInfo />} />
+                        <Route path="/backoffice/sub/equiManage/sch" element={<ScheduleListPage />} />
+                        <Route path="/backoffice/sub/equiManage/sch/status" element={<ScheduleStatusPage />} />
                         <Route path="/backoffice/sub/equiManage/message_list" element={<DidSendMessageList />} />
                         { /* did 모니터 캡처 화면 */}
                         <Route path="/backoffice/sub/equiManage/pic" element={<DidPicListPage />} />
-                        <Route path="/backoffice/sub/equiManage/message" element={<ContentMessageListPage />} />
-
+                       
                         {/* 문화센터 관리 */}
                         <Route path="/backoffice/sub/roomManage/mhs" element={<MhsRoomManagePage />} />
 
@@ -94,6 +98,7 @@ export default function RouterConfig() {
                         <Route path="/backoffice/sub/brodManage/schedule" element={<BrodScheduleStatusPage />} />
                         <Route path="/backoffice/sub/brodManage/content" element={<BrodContentListPage />} />
                         <Route path="/backoffice/sub/brodManage/basic" element={<BasicBrodListPage />} />
+                        <Route path="/backoffice/sub/brodManage/musicFile" element={<BrodMusicFileListPage />} />
                     </Route>
 
                     {/* 인증이 필요 없는 라우트 */}

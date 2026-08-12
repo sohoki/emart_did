@@ -354,8 +354,20 @@
   filter: invert(1) brightness(0.7);
 }
 
+/* ── AG Grid wrapper 배경(라이트/다크 공통) ───────────────────────
+   .ag-theme-material에 height를 고정으로 주는 화면(예: domLayout='autoHeight'인데 바깥
+   div에 height:760을 같이 준 경우, 또는 infinite 그리드인데 로드된 행+페이징 영역이
+   지정한 height보다 짧은 경우)에서, 그리드 콘텐츠가 wrapper의 전체 높이를 못 채우면
+   그 아래 빈 공간에 wrapper 자체 배경(지정 안 하면 투명 → 페이지 배경 그대로 노출)이
+   보이던 문제. 라이트 모드는 흰 배경이라 티가 안 났지만 다크 모드에서는 검게 그대로
+   드러났음 — wrapper 자체에 명시적 배경색을 줘서 항상 그리드 배경과 자연스럽게 이어지게 함. */
+.ag-theme-material {
+  background-color: #fff;
+}
+
 /* ── AG Grid 다크모드 ──────────────────────────────────────────── */
 [data-theme="dark"] .ag-theme-material {
+  background-color: #25262b;
   --ag-background-color: #25262b;
   --ag-foreground-color: #c1c2c5;
   --ag-header-background-color: #2c2e33;

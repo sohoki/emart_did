@@ -20,6 +20,8 @@ import egovframework.com.cmm.service.ResultVO;
 import egovframework.com.cmm.util.ResultHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -176,7 +178,14 @@ public class ContentMutiManageController {
 		return resultVO;
 	}
 
-	@Operation(summary = "콘텐츠 상세페이지 콤보 조회", description = "콘텐츠 유형 공통코드(code)의 페이지 수(codeDc)와 실제 상세페이지 행 수가 다르면 상세페이지 행을 재구성한 뒤 콤보를 반환합니다.")
+	@Operation(summary = "콘텐츠 상세페이지 콤보 조회",
+                description = "콘텐츠 유형 공통코드(code)의 페이지 수(codeDc)와 실제 상세페이지 행 수가 다르면 상세페이지 행을 재구성한 뒤 콤보를 반환합니다."
+
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "500", description = "실패")
+    })
 	@GetMapping("/detailCombo.do")
 	public ResultVO selectComboView(@RequestParam("code") String code, @RequestParam("conSeq") String conSeq,
 									 HttpServletRequest request) throws Exception {

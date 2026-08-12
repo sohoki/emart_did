@@ -1,56 +1,70 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useMemo, useRef, useState, Suspense, lazy } from 'react';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
+import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
+import { useResetForm } from '@/hooks/use-form.jsx';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
-import { getCookie } from '@/lib/cookie.jsx';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
 
+const BrodDeployTimeModal = lazy(() => import('./components/BrodDeployTimeModal.jsx'));
+
 const PAGE_UNIT = 20;
 
+const INITIAL_SEARCH_FORM = {
+    searchCondition: 'CON_NM',
+    searchKeyword: '',
+};
+
+// 방송 배포 스케줄 관리 — 레거시 brodScheduleStatus.jsp 참고. 매장 배포 시간대 입력에
+// 쓰이던 Swal.fire({html:'<input>...'}) 프롬프트를 BrodDeployTimeModal로 교체.
 export default function BrodScheduleStatusPage() {
-    const navigate = useNavigate();
-    const [contentList, setContentList] = useState([]);
-    const [contentTotalCnt, setContentTotalCnt] = useState(0);
-    const [searchKeyword, setSearchKeyword] = useState('');
+    const gridApiRef = useRef(null);
+
     const [selectedBrod, setSelectedBrod] = useState(null);
     const [centerList, setCenterList] = useState([]);
     const [rightSearchKeyword, setRightSearchKeyword] = useState('');
-    const [loading, setLoading] = useState(false);
 
-    const contentColumnDefs = useMemo(() => ([
-        { field: 'brodCode', headerName: '방송코드', width: 150 },
-        { field: 'brodName', headerName: '방송명', flex: 1, minWidth: 160 },
-        { field: 'centerNm', headerName: '매장', width: 120 },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    ]), []);
+    const [deployModalOpen, setDeployModalOpen] = useState(false);
+    const [deployTarget, setDeployTarget] = useState(null);
 
-    const loadContentList = useCallback(async (keyword) => {
-        setLoading(true);
-        try {
-            const res = await fnAjaxFetch({
-                url: URL.BROD_SCHEDULE_LEFT_LIST,
-                method: 'POST',
-                data: { searchCondition: 'CON_NM', searchKeyword: keyword ?? '', pageIndex: 1, pageUnit: PAGE_UNIT },
-                showLoading: false,
-            });
-            const list = res?.data?.result?.resultList ?? [];
-            setContentList(list);
-            setContentTotalCnt(res?.data?.result?.totalCnt ?? list.length);
-        } finally {
-            setLoading(false);
-        }
+    const fetchContentList = useCallback(async (query) => {
+        const res = await fnAjaxFetch({ url: URL.BROD_SCHEDULE_LEFT_LIST, method: 'POST', data: query });
+        const data = res?.data;
+        return {
+            rows: data?.result?.resultList || [],
+            total: data?.result?.totalCnt || 0,
+        };
     }, []);
 
-    useEffect(() => {
-        if (!getCookie('accessToken')) {
-            navigate('/login', { replace: true });
-            return;
-        }
-        loadContentList('');
-    }, [loadContentList, navigate]);
+    const {
+        onGridReady,
+        defaultColDef,
+        tempParams,
+        setTempParams,
+        handleSearch,
+    } = useGridInfinite({
+        fetchApi: fetchContentList,
+        pageUnit: PAGE_UNIT,
+        initialFilters: INITIAL_SEARCH_FORM,
+    });
 
+    const handleInputChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setTempParams((prev) => ({ ...prev, [name]: value }));
+    }, [setTempParams]);
+
+    const onSearch = useCallback((pageIndex) => {
+        handleSearch(pageIndex || 1);
+    }, [handleSearch]);
+
+    const onSearchKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') onSearch(1);
+    }, [onSearch]);
+
+    const { handleReset } = useResetForm(setTempParams, INITIAL_SEARCH_FORM);
+
+    // ===== 배포 매장 패널 =====
     const loadCenterList = useCallback(async (brodCode, keyword) => {
         const res = await fnAjaxFetch({
             url: URL.BROD_SCHEDULE_RIGHT_LIST, method: 'GET',
@@ -59,52 +73,17 @@ export default function BrodScheduleStatusPage() {
         setCenterList(res?.data?.result?.resultList ?? []);
     }, []);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        loadContentList(searchKeyword);
-    };
-
-    const handleSelectContent = (row) => {
+    const handleSelectContent = useCallback((row) => {
         setSelectedBrod(row);
         setRightSearchKeyword('');
         loadCenterList(row.brodCode, '');
-    };
+    }, [loadCenterList]);
 
-    const handleRightSearch = (e) => {
-        e.preventDefault();
+    const handleRightSearch = useCallback(() => {
         if (selectedBrod) loadCenterList(selectedBrod.brodCode, rightSearchKeyword);
-    };
+    }, [selectedBrod, rightSearchKeyword, loadCenterList]);
 
-    const handleToggle = async (center, connect) => {
-        if (!selectedBrod) return;
-
-        let centerStartTime = center.centerStartTime || '0000';
-        let centerEndTime = center.centerEndTime || '2359';
-        if (connect) {
-            const { value: times } = await Swal.fire({
-                title: `${center.centerNm} 배포 시간대`,
-                html: '<input id="swal-start" class="swal2-input" placeholder="시작(HHmm)" value="0000">' +
-                    '<input id="swal-end" class="swal2-input" placeholder="종료(HHmm)" value="2359">',
-                showCancelButton: true,
-                confirmButtonText: '배포',
-                cancelButtonText: '취소',
-                preConfirm: () => {
-                    const start = document.getElementById('swal-start').value;
-                    const end = document.getElementById('swal-end').value;
-                    return { start, end };
-                },
-            });
-            if (!times) return;
-            centerStartTime = times.start;
-            centerEndTime = times.end;
-        } else {
-            const result = await Swal.fire({
-                icon: 'question', title: '배포 해제', text: `${center.centerNm}의 배포를 해제하시겠습니까?`,
-                showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
-            });
-            if (!result.isConfirmed) return;
-        }
-
+    const applyToggle = useCallback(async (center, connect, centerStartTime, centerEndTime) => {
         await fnAjaxFetch({
             url: URL.BROD_SCHEDULE_RIGHT_UPDATE,
             method: 'POST',
@@ -117,75 +96,162 @@ export default function BrodScheduleStatusPage() {
             },
         });
         loadCenterList(selectedBrod.brodCode, rightSearchKeyword);
-    };
+    }, [selectedBrod, rightSearchKeyword, loadCenterList]);
+
+    const handleToggle = useCallback(async (center, connect) => {
+        if (!selectedBrod) return;
+
+        if (connect) {
+            setDeployTarget(center);
+            setDeployModalOpen(true);
+            return;
+        }
+
+        const result = await Swal.fire({
+            icon: 'question', title: '배포 해제', text: `${center.centerNm}의 배포를 해제하시겠습니까?`,
+            showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
+        });
+        if (!result.isConfirmed) return;
+        await applyToggle(center, false, center.centerStartTime || '0000', center.centerEndTime || '2359');
+    }, [selectedBrod, applyToggle]);
+
+    const handleDeploySubmit = useCallback(async ({ start, end }) => {
+        setDeployModalOpen(false);
+        await applyToggle(deployTarget, true, start, end);
+    }, [deployTarget, applyToggle]);
+
+    const columnDefs = useMemo(() => ([
+        {
+            headerName: '방송명', field: 'brodName', flex: 1, minWidth: 160,
+            cellRenderer: (p) => (
+                <button className="btn btn-link p-0" onClick={() => handleSelectContent(p.data)}>{p.value}</button>
+            ),
+        },
+        { field: 'brodCode', headerName: '방송코드', width: 150 },
+        { field: 'centerNm', headerName: '매장', width: 120 },
+    ]), [handleSelectContent]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 16, boxSizing: 'border-box' }}>
-            <h2 style={{ margin: '0 0 12px' }}>방송 배포 스케줄 관리</h2>
-
-            <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0 }}>
-                <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                        <input type="text" placeholder="방송명 검색" value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} />
-                        <button type="submit">검색</button>
-                        <span style={{ marginLeft: 'auto', alignSelf: 'center', color: '#64748b' }}>
-                            총 {contentTotalCnt}건{loading ? ' (조회 중...)' : ''}
-                        </span>
-                    </form>
-                    <div style={{ flex: 1, minHeight: 0 }}>
-                        <AppAgGrid
-                            theme={gridTheme}
-                            rowData={contentList}
-                            columnDefs={contentColumnDefs}
-                            defaultColDef={{ sortable: true, resizable: true }}
-                            pagination
-                            paginationPageSize={PAGE_UNIT}
-                            onRowClicked={(e) => handleSelectContent(e.data)}
-                        />
-                    </div>
-                </div>
-
-                <div style={{ flex: 1, borderLeft: '1px solid #e2e8f0', paddingLeft: 16, overflowY: 'auto' }}>
-                    <h3>{selectedBrod ? `배포 매장 — ${selectedBrod.brodName}` : '방송을 선택해 주세요'}</h3>
-                    {selectedBrod && (
-                        <>
-                            <form onSubmit={handleRightSearch} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                                <input type="text" placeholder="매장명 검색" value={rightSearchKeyword} onChange={(e) => setRightSearchKeyword(e.target.value)} />
-                                <button type="submit">검색</button>
-                            </form>
-                            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                                <thead>
-                                    <tr style={{ background: '#f8fafc' }}>
-                                        <th style={{ border: '1px solid #e2e8f0', padding: 6 }}>매장</th>
-                                        <th style={{ border: '1px solid #e2e8f0', padding: 6 }}>배포시간</th>
-                                        <th style={{ border: '1px solid #e2e8f0', padding: 6 }}>배포여부</th>
-                                        <th style={{ border: '1px solid #e2e8f0', padding: 6 }}></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {centerList.map((center) => (
-                                        <tr key={center.centerId}>
-                                            <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>{center.centerNm}</td>
-                                            <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>{center.centerStartTime} ~ {center.centerEndTime}</td>
-                                            <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>{center.brodCode === 'Y' ? '배포중' : '미배포'}</td>
-                                            <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>
-                                                {center.brodCode === 'Y' ? (
-                                                    <button type="button" onClick={() => handleToggle(center, false)}>해제</button>
-                                                ) : (
-                                                    <button type="button" onClick={() => handleToggle(center, true)}>배포</button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {centerList.length === 0 && (
-                                        <tr><td colSpan={4} style={{ padding: 16, textAlign: 'center', color: '#94a3b8' }}>매장 정보가 없습니다.</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </>
-                    )}
+        <div className="row g-0 main-contents">
+            <div className="col-12 content-header">
+                <div className="content-header__title">방송 배포 스케줄 관리</div>
+                <div className="content-header__breadcrumb">
+                    <ol className="breadcrumb">
+                        <li className="breadcrumb-item">방송 관리</li>
+                        <li className="breadcrumb-item">방송 배포 스케줄 관리</li>
+                    </ol>
                 </div>
             </div>
+
+            <div className="col-12 content-search">
+                <div className="row g-0 w-100 justify-content-between">
+                    <div className="col-auto content-search__option">
+                        <input type="text" name="searchKeyword" placeholder="방송명 검색"
+                            value={tempParams.searchKeyword}
+                            onChange={handleInputChange}
+                            onKeyDown={onSearchKeyDown}
+                        />
+                    </div>
+                    <div className="col-auto content-search__action">
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={() => onSearch(1)}>검색</button>
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={handleReset}>검색 초기화</button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="col-12 content-table content-table__main">
+                <div className="ag-theme-material" style={{ height: 760, width: '100%' }}>
+                    <AppAgGrid
+                        columnDefs={columnDefs}
+                        theme={gridTheme}
+                        defaultColDef={defaultColDef}
+                        rowModelType="infinite"
+                        pagination={true}
+                        paginationPageSize={PAGE_UNIT}
+                        cacheBlockSize={PAGE_UNIT}
+                        maxBlocksInCache={2}
+                        onGridReady={(params) => { gridApiRef.current = params.api; onGridReady(params); }}
+                        overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
+                        overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
+                    />
+                </div>
+            </div>
+
+            {/* 선택한 방송의 배포 매장 관리 — 그리드 하단 상세 패널 */}
+            {selectedBrod && (
+                <div className="col-12 content-table" style={{
+                    marginTop: 20, border: '1px solid #dde2eb', borderRadius: 8,
+                    background: 'var(--bs-body-bg, #fff)', overflow: 'hidden',
+                }}>
+                    <div style={{
+                        padding: '14px 20px 12px', borderBottom: '1px solid #dde2eb',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
+                    }}>
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>배포 매장 관리 — {selectedBrod.brodName}</span>
+                        <div className="content-search__action">
+                            <input type="text" placeholder="매장명 검색"
+                                value={rightSearchKeyword}
+                                onChange={(e) => setRightSearchKeyword(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleRightSearch(); }}
+                            />
+                            <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                                onClick={handleRightSearch}>검색</button>
+                        </div>
+                    </div>
+                    <div style={{ padding: 16 }}>
+                        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
+                            <thead>
+                                <tr style={{ background: '#f8fafc' }}>
+                                    <th style={{ border: '1px solid #e2e8f0', padding: 8, textAlign: 'left' }}>매장</th>
+                                    <th style={{ border: '1px solid #e2e8f0', padding: 8, width: 160 }}>배포시간</th>
+                                    <th style={{ border: '1px solid #e2e8f0', padding: 8, width: 120 }}>배포여부</th>
+                                    <th style={{ border: '1px solid #e2e8f0', padding: 8, width: 100 }} />
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {centerList.map((center) => (
+                                    <tr key={center.centerId}>
+                                        <td style={{ border: '1px solid #e2e8f0', padding: 8 }}>{center.centerNm}</td>
+                                        <td style={{ border: '1px solid #e2e8f0', padding: 8, textAlign: 'center' }}>
+                                            {center.centerStartTime} ~ {center.centerEndTime}
+                                        </td>
+                                        <td style={{ border: '1px solid #e2e8f0', padding: 8, textAlign: 'center' }}>
+                                            {center.brodCode === 'Y' ? '배포중' : '미배포'}
+                                        </td>
+                                        <td style={{ border: '1px solid #e2e8f0', padding: 8, textAlign: 'center' }}>
+                                            {center.brodCode === 'Y' ? (
+                                                <button type="button" className="btn btn-outline-danger btn-outline__gray btn-sm"
+                                                    style={{ fontSize: 12 }}
+                                                    onClick={() => handleToggle(center, false)}>해제</button>
+                                            ) : (
+                                                <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                                                    style={{ fontSize: 12 }}
+                                                    onClick={() => handleToggle(center, true)}>배포</button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {centerList.length === 0 && (
+                                    <tr><td colSpan={4} style={{ padding: 16, textAlign: 'center', color: '#94a3b8' }}>매장 정보가 없습니다.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            <Suspense fallback={null}>
+                {deployModalOpen && (
+                    <BrodDeployTimeModal
+                        open={deployModalOpen}
+                        centerNm={deployTarget?.centerNm}
+                        onClose={() => setDeployModalOpen(false)}
+                        onSubmit={handleDeploySubmit}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }

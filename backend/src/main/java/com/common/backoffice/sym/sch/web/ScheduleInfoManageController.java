@@ -264,6 +264,7 @@ public class ScheduleInfoManageController {
 				resultMap.put(Globals.STATUS_REGINFO, vo);
 				resultVO.setResult(resultMap);
 				resultVO.setResultCode(ResponseCode.SUCCESS.getCode());
+				resultVO.setResultCodeInfo(Globals.STATUS_SUCCESS);
 				resultVO.setResultMessage(egovMessageSource.getMessage(successMsgKey));
 			} else {
 				throw new Exception("Update failed");

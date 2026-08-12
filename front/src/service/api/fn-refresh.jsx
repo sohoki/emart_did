@@ -1,8 +1,11 @@
 import axios from 'axios';
-import Swal from '@/lib/swal.js';
 import { getCookie, setCookie } from '@/lib/cookie.jsx';
 import config from '@/config/index.jsx';
 
+// 리프레시 성공 여부만 반환한다 — 실패 시 사용자 안내/로그인 페이지 이동은 호출부
+// (fn-ajax-fetch.jsx의 handleUnauthorized, ProtectedRoute)에서 한 곳으로만 처리한다.
+// 예전엔 여기서도 자체적으로 Swal + window.location.href('/login')를 실행해서, 호출부의
+// 리다이렉트와 중복 실행되어 로그인 페이지로 두 번 이동하거나 화면이 깜박이는 문제가 있었다.
 export async function fn_Refresh() {
     const refreshToken = getCookie('refreshToken');
 
@@ -31,27 +34,10 @@ export async function fn_Refresh() {
             return true;
         }
 
-        Swal.fire({
-            icon: 'warning',
-            title: '토큰 기간이 만료되었습니다.',
-            text: '다시 로그인 해주세요.',
-            confirmButtonText: '확인',
-            timer: 10000,
-            timerProgressBar: true,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-        }).then(() => { window.location.href = '/login'; });
-
         return false;
 
     } catch (error) {
         console.error('토큰 갱신 실패:', error);
-        Swal.fire({
-            icon: 'warning',
-            title: '토큰 갱신 오류',
-            text: `다시 로그인 해주세요. (${error.message})`,
-            confirmButtonText: '확인',
-        });
         return false;
     }
 }

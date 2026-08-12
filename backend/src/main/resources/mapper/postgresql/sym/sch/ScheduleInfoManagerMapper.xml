@@ -2,14 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sym.sch.mapper.SchedulenfoManagerMapper">
     <select id="selectScheduleInfoManageListByPagination" resultType="ScheduleInfoVO">
-        SELECT * FROM
+        SELECT TA.* FROM
         (
         SELECT
         ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
         A.SCH_CODE AS "schCode",
         A.SCH_NAME AS "schName",
         FN_DAYCONVERT(A.SCH_STARTDAY) AS "schStartDay",
@@ -55,7 +51,6 @@
                 </otherwise>
             </choose>
         </if>
-        ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
@@ -111,7 +106,7 @@
         SELECT COALESCE(COUNT(*), 0)
         FROM TB_SCHEDULE A
         JOIN TB_GROUP B ON A.GROUP_CODE = B.GROUP_CODE
-        JOIN TB_CONTENTMUTIL C ON A.CONTENT_CODE = C.CON_SEQ
+        JOIN TB_CONTENTMUTIL C ON A.CONTENT_CODE = CAST(C.CON_SEQ AS VARCHAR)
         WHERE 1=1
         <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
             <choose>

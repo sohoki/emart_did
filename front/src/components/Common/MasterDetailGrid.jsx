@@ -68,7 +68,10 @@ const MasterDetailGrid = ({
     return (
         <>
             <GlobalDetailStyle />
-            <div className="ag-theme-material" style={{ width: '100%', minHeight: 200 }}>
+            {/* domLayout="autoHeight"는 행이 많아질 때(약 20건 이상) 그리드 높이 계산이
+                어긋나 하단에 배경색 없는 빈 영역(검은 화면)이 노출되는 문제가 있어,
+                다른 화면들과 동일하게 고정 높이로 맞춘다. */}
+            <div className="ag-theme-material" style={{ height: 760, width: '100%' }}>
                 <AppAgGrid
                     modules={GRID_MODULES}
                     getRowId={getRowId}
@@ -85,7 +88,6 @@ const MasterDetailGrid = ({
                     detailCellRenderer={detailCellRenderer}
                     detailRowHeight={detailRowHeight}
                     rowSelection={{ mode: 'multiRow', checkboxes: false, headerCheckbox: false }}
-                    domLayout="autoHeight"
                     overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
                     overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
                     context={context}

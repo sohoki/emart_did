@@ -4,34 +4,36 @@ import Swal from '@/lib/swal.js';
 import config from '@/config/index.jsx';
 import URL from '@/constants/URL.jsx';
 
-const ContentFileUploadModal = lazy(() => import('./components/ContentFileUploadModal.jsx'));
+const ContentFileUploadModal = lazy(() => import('../ConManage/components/ContentFileUploadModal.jsx'));
 
 const PAGE_UNIT = 24;
 
-const INITIAL_SEARCH_FORM = {
-    mediaType: '',
-    searchKeyword: '',
-};
+// ContentFileLibraryPage의 fileThumbSrc와 동일한 규칙으로 실 파일 경로를 만든다.
+const musicFileSrc = (f) => `${config.REACT_APP_IMG_URL}${(f.fileStreCours || '').replace(/^\//, '')}${f.streFileNm}`;
 
-// 콘텐츠 파일(이미지/영상/음원) 라이브러리 — 썸네일 갤러리라 content-table 영역은
-// AppAgGrid 대신 카드형 그리드를 그대로 쓴다(DidPicListPage와 동일한 골격 예외 케이스).
-export default function ContentFileLibraryPage() {
+// 음원 파일 전용 관리 화면 — 레거시 playContentList.jsp("음원파일관리" 탭) 참고.
+// 콘텐츠 파일 라이브러리(ContentFileLibraryPage)와 동일한 API(mediaType=MUSIC 고정)를
+// 쓰되, 미디어 종류 선택 없이 음원만 다루는 전용 화면으로 분리함(썸네일 갤러리라
+// content-table 영역은 AppAgGrid 대신 카드형 그리드를 그대로 쓴다 — ContentFileLibraryPage와
+// 동일한 골격 예외 케이스).
+export default function BrodMusicFileListPage() {
     const [list, setList] = useState([]);
     const [totalCnt, setTotalCnt] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [tempParams, setTempParams] = useState(INITIAL_SEARCH_FORM);
+    const [searchKeyword, setSearchKeyword] = useState('');
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [previewId, setPreviewId] = useState(null); // 현재 미리듣기 재생 중인 atchFileId(한 번에 하나만)
 
-    const loadList = useCallback(async (params) => {
+    const loadList = useCallback(async (keyword) => {
         setLoading(true);
         try {
             const res = await fnAjaxFetch({
                 url: URL.CON_FILE_LIST,
                 method: 'POST',
                 data: {
-                    mediaType: params?.mediaType ?? '',
+                    mediaType: 'MUSIC',
                     searchCondition: 'orignlFileNm',
-                    searchKeyword: params?.searchKeyword ?? '',
+                    searchKeyword: keyword ?? '',
                     pageIndex: 1,
                     pageUnit: PAGE_UNIT,
                 },
@@ -46,25 +48,20 @@ export default function ContentFileLibraryPage() {
     }, []);
 
     useEffect(() => {
-        loadList({});
+        loadList('');
     }, [loadList]);
 
-    const handleInputChange = useCallback((e) => {
-        const { name, value } = e.target;
-        setTempParams((prev) => ({ ...prev, [name]: value }));
-    }, []);
-
     const onSearch = useCallback(() => {
-        loadList(tempParams);
-    }, [loadList, tempParams]);
+        loadList(searchKeyword);
+    }, [loadList, searchKeyword]);
 
     const onSearchKeyDown = useCallback((e) => {
         if (e.key === 'Enter') onSearch();
     }, [onSearch]);
 
     const handleReset = useCallback(() => {
-        setTempParams(INITIAL_SEARCH_FORM);
-        loadList({});
+        setSearchKeyword('');
+        loadList('');
     }, [loadList]);
 
     const handleUseYnToggle = async (atchFileId, currentUseYn) => {
@@ -73,12 +70,12 @@ export default function ContentFileLibraryPage() {
             method: 'POST',
             data: { atchFileIds: [atchFileId], useYn: currentUseYn === 'Y' ? 'N' : 'Y' },
         });
-        loadList(tempParams);
+        loadList(searchKeyword);
     };
 
     const handleDelete = async (atchFileId) => {
         const result = await Swal.fire({
-            icon: 'question', title: '파일 삭제', text: '이 파일을 삭제하시겠습니까? 사용 중인 콘텐츠가 있으면 먼저 확인해 주세요.',
+            icon: 'question', title: '음원 파일 삭제', text: '이 파일을 삭제하시겠습니까? 사용 중인 콘텐츠가 있으면 먼저 확인해 주세요.',
             showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
         });
         if (!result.isConfirmed) return;
@@ -91,17 +88,22 @@ export default function ContentFileLibraryPage() {
         }
 
         await fnAjaxFetch({ url: `${URL.CON_FILE_INFO}/${atchFileId}.do`, method: 'DELETE' });
-        loadList(tempParams);
+        setPreviewId((prev) => (prev === atchFileId ? null : prev));
+        loadList(searchKeyword);
+    };
+
+    const handleTogglePreview = (atchFileId) => {
+        setPreviewId((prev) => (prev === atchFileId ? null : atchFileId));
     };
 
     return (
         <div className="row g-0 main-contents">
             <div className="col-12 content-header">
-                <div className="content-header__title">콘텐츠 파일 라이브러리</div>
+                <div className="content-header__title">음원 파일 관리</div>
                 <div className="content-header__breadcrumb">
                     <ol className="breadcrumb">
-                        <li className="breadcrumb-item">콘텐츠 관리</li>
-                        <li className="breadcrumb-item">콘텐츠 파일 라이브러리</li>
+                        <li className="breadcrumb-item">방송 관리</li>
+                        <li className="breadcrumb-item">음원 파일 관리</li>
                     </ol>
                 </div>
             </div>
@@ -109,16 +111,9 @@ export default function ContentFileLibraryPage() {
             <div className="col-12 content-search">
                 <div className="row g-0 w-100 justify-content-between">
                     <div className="col-auto content-search__option">
-                        <select id="mediaType" name="mediaType"
-                            value={tempParams.mediaType} onChange={handleInputChange}>
-                            <option value="">전체</option>
-                            <option value="IMAGE">이미지</option>
-                            <option value="MEDIA">영상</option>
-                            <option value="MUSIC">음원</option>
-                        </select>
                         <input type="text" id="searchKeyword" name="searchKeyword" placeholder="파일명 검색"
-                            value={tempParams.searchKeyword}
-                            onChange={handleInputChange}
+                            value={searchKeyword}
+                            onChange={(e) => setSearchKeyword(e.target.value)}
                             onKeyDown={onSearchKeyDown}
                         />
                     </div>
@@ -127,11 +122,8 @@ export default function ContentFileLibraryPage() {
                             onClick={onSearch}>검색</button>
                         <button type="button" className="btn btn-outline-dark btn-outline__gray"
                             onClick={handleReset}>검색 초기화</button>
-                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
-                            onClick={() => Swal.fire({ icon: 'info', title: '미디어 파일정리', text: '준비 중인 기능입니다.' })}
-                        >미디어 파일정리</button>
                         <button type="button" className="btn btn-primary btn-default__blue"
-                            onClick={() => setUploadModalOpen(true)}>미디어 파일 등록</button>
+                            onClick={() => setUploadModalOpen(true)}>음원 파일 등록</button>
                     </div>
                 </div>
             </div>
@@ -142,7 +134,7 @@ export default function ContentFileLibraryPage() {
                 </div>
                 {/* 배경을 명시하지 않으면(투명) 목록이 길어질 때 마지막 줄 아래 빈 영역이
                     브라우저/OS의 다크모드 강제 렌더링으로 검게 보이는 문제가 있어, 카드와
-                    래퍼 모두에 명시적 배경색을 준다. */}
+                    래퍼 모두에 명시적 배경색을 준다(ContentFileLibraryPage와 동일). */}
                 <div style={{
                     display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
                     gap: 12, minHeight: 400, background: 'var(--bs-body-bg, #fff)',
@@ -152,19 +144,29 @@ export default function ContentFileLibraryPage() {
                             border: '1px solid #e2e8f0', borderRadius: 8, padding: 8,
                             background: 'var(--bs-body-bg, #fff)',
                         }}>
-                            {file.mediaType === 'IMAGE' ? (
-                                <img
-                                    src={`${config.REACT_APP_IMG_URL}${(file.fileStreCours || '').replace(/^\//, '')}${file.streFileNm}`}
-                                    alt={file.orignlFileNm}
-                                    style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 4, background: '#f1f5f9' }}
-                                />
-                            ) : (
-                                <div style={{
-                                    width: '100%', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: '#f1f5f9', borderRadius: 4, color: '#94a3b8',
-                                }}>
-                                    {file.mediaType || '파일'}
-                                </div>
+                            <button type="button" onClick={() => handleTogglePreview(file.atchFileId)} style={{
+                                width: '100%', height: 110, display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center', gap: 4,
+                                background: previewId === file.atchFileId ? '#e0e7ff' : '#f1f5f9',
+                                borderRadius: 4, color: '#64748b', border: 'none', cursor: 'pointer', padding: 0,
+                            }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                                    {previewId === file.atchFileId ? (
+                                        <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+                                    ) : (
+                                        <path d="M8 5v14l11-7z" />
+                                    )}
+                                </svg>
+                                <span style={{ fontSize: 11 }}>{previewId === file.atchFileId ? '재생 중' : '미리듣기'}</span>
+                            </button>
+                            {previewId === file.atchFileId && (
+                                <audio
+                                    controls autoPlay src={musicFileSrc(file)}
+                                    onEnded={() => setPreviewId(null)}
+                                    style={{ width: '100%', height: 32, marginTop: 6 }}
+                                >
+                                    브라우저가 오디오 재생을 지원하지 않습니다.
+                                </audio>
                             )}
                             <div style={{ marginTop: 6, fontSize: 12, wordBreak: 'break-all' }}>{file.orignlFileNm}</div>
                             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
@@ -180,7 +182,7 @@ export default function ContentFileLibraryPage() {
                         </div>
                     ))}
                     {list.length === 0 && !loading && (
-                        <div style={{ color: '#94a3b8', padding: 24 }}>조회된 파일이 없습니다.</div>
+                        <div style={{ color: '#94a3b8', padding: 24 }}>조회된 음원 파일이 없습니다.</div>
                     )}
                 </div>
             </div>
@@ -189,8 +191,11 @@ export default function ContentFileLibraryPage() {
                 {uploadModalOpen && (
                     <ContentFileUploadModal
                         open={uploadModalOpen}
+                        title="음원 파일 등록"
+                        dragText="음원 파일(mp3/wav/mid)을 클릭하거나 끌어놓으세요 (여러 개 선택 가능)"
+                        accept={{ 'audio/mpeg': ['.mp3'], 'audio/wav': ['.wav'], 'audio/midi': ['.mid'] }}
                         onClose={() => setUploadModalOpen(false)}
-                        onUploaded={() => { setUploadModalOpen(false); loadList(tempParams); }}
+                        onUploaded={() => { setUploadModalOpen(false); loadList(searchKeyword); }}
                     />
                 )}
             </Suspense>

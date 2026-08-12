@@ -5,48 +5,56 @@
         SELECT *
         FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.BROD_CODE DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.BROD_CODE AS brodCode, A.BROD_NAME AS brodName, A.BROD_TOTALTIME AS brodTotalTime, A.BROD_USEYN AS brodUseYn, A.BROD_INTERVAL AS brodInterval,
-        B.CODE_NM AS codeNm, C.BASIC_GROUP_NM AS orignlFileNm,
-        FN_DETAILCODENM(A.SEC_GUBUN) AS secGubun, A.CENTER_ID AS centerId, A.CENTER_RELCNT AS centerRelCnt,
-        D.CENTER_NM AS centerNm
-        FROM TB_BRODSCHEDULE A
-        JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
-        LEFT OUTER JOIN TB_CENTERINFO D ON A.CENTER_ID = D.CENTER_ID
-        LEFT OUTER JOIN TB_BRODBASICGROUP C ON A.BASIC_FILE_ID = C.BASIC_CODE
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'CON_NM'">
-                    AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <when test="searchCondition == 'CENTER_NM'">
-                    AND D.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND C.BASIC_GROUP_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        <if test="secGubun != ''">
-            AND A.SEC_GUBUN = #{secGubun}
-        </if>
-        <if test="centerGubun != ''">
-            <choose>
-                <when test="centerGubun == 'content'">
-                    AND A.CENTER_ID IS NULL
-                </when>
-                <otherwise>
-                    AND A.CENTER_ID IS NOT NULL
-                </otherwise>
-            </choose>
-        </if>
-        ) TB
+            SELECT
+
+            TB.*
+            FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.BROD_CODE DESC) AS RNUM,
+                    A.BROD_CODE AS brodCode,
+                    A.BROD_NAME AS brodName,
+                    A.BROD_TOTALTIME AS brodTotalTime,
+                    A.BROD_USEYN AS brodUseYn,
+                    A.BROD_INTERVAL AS brodInterval,
+                    B.CODE_NM AS codeNm,
+                    C.BASIC_GROUP_NM AS orignlFileNm,
+                    FN_DETAILCODENM(A.SEC_GUBUN) AS secGubun,
+                    A.CENTER_ID AS centerId,
+                    A.CENTER_RELCNT AS centerRelCnt,
+                    D.CENTER_NM AS centerNm
+                FROM TB_BRODSCHEDULE A
+                JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+                LEFT OUTER JOIN TB_CENTERINFO D ON A.CENTER_ID = D.CENTER_ID
+                LEFT OUTER JOIN TB_BRODBASICGROUP C ON A.BASIC_FILE_ID = C.BASIC_CODE
+                WHERE 1=1
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'CON_NM'">
+                            AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <when test="searchCondition == 'CENTER_NM'">
+                            AND D.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <otherwise>
+                            AND C.BASIC_GROUP_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
+                <if test="secGubun != ''">
+                    AND A.SEC_GUBUN = #{secGubun}
+                </if>
+                <if test="centerGubun != ''">
+                    <choose>
+                        <when test="centerGubun == 'content'">
+                            AND A.CENTER_ID IS NULL
+                        </when>
+                        <otherwise>
+                            AND A.CENTER_ID IS NOT NULL
+                        </otherwise>
+                    </choose>
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
@@ -68,7 +76,7 @@
                 WHERE A.BASIC_FILE_ID = C.BASIC_CODE
             ) AS basicGroupNm
         FROM TB_BRODSCHEDULE A
-                 JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+        JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
         WHERE A.BROD_CODE = #{brodCode}
     </select>
 
@@ -86,7 +94,7 @@
                 ELSE TO_CHAR(CAST(B.CODE_DC AS INTEGER) - 10, 'FM999999')
                 END AS codeDc
         FROM TB_BRODSCHEDULE A
-                 JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
+        JOIN LETTCCMMNDETAILCODE B ON A.BROD_INTERVAL = B.CODE
         WHERE A.BROD_CODE = #{brodCode}
     </select>
 

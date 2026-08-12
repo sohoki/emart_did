@@ -74,9 +74,6 @@
 
     <!-- MHS_CONNSEQ는 DB 시퀀스 mhsconn_seq로 채번함(08_create_missing_sequences.sql 참고) -->
     <insert id="insertMoniterClassInfo">
-        <selectKey keyProperty="mhsConnSeq" resultType="java.lang.String" order="BEFORE">
-            SELECT NEXTVAL('mhsconn_seq')
-        </selectKey>
         INSERT INTO TB_MHSVIEWCONNINFO
         (
             MHS_CONNSEQ, MHS_MONITORCD, MHS_CLASSCD, MHS_DATAUPDATEYN, MHSDATAUPDATEPLAYDATE,
@@ -84,7 +81,7 @@
         )
         VALUES
             (
-                #{mhsConnSeq}, #{mhsMonitorcd}, #{mhsClasscd}, 'N', NULL,
+                NEXTVAL('mhsconn_seq'), #{mhsMonitorcd}, #{mhsClasscd}, 'N', NULL,
                 #{mhsDataregid}, NOW(), #{mhsDataregid}, NOW(), 'Y'
             )
     </insert>
@@ -132,6 +129,6 @@
 
     <delete id="deleteMoniterClassInfo">
         DELETE FROM TB_MHSVIEWCONNINFO
-        WHERE MHS_CONNSEQ = #{mhsConnSeq}
+        WHERE MHS_CONNSEQ = #{mhsConnSeq}::numeric
     </delete>
 </mapper>

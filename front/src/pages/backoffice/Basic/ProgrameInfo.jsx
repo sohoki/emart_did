@@ -263,10 +263,9 @@ const ProgramInfo = () => {
                         rowModelType="infinite"
                         pagination={true}
                         paginationPageSize={pageUnit}
-                        paginationPageSizeSelector={[10, 20, 50, 100]} 
+                        paginationPageSizeSelector={[10, 20, 50, 100]}
                         cacheBlockSize={pageUnit}
                         maxBlocksInCache={2}
-                        domLayout='autoHeight' // 데이터 양에 맞춰 그리드 높이 자동 조절
                         overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
                         overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
                         onGridReady={onGridReady}

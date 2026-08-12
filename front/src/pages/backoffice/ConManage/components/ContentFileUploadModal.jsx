@@ -10,7 +10,12 @@ const EMPTY_FORM = { files: [] };
 
 // 미디어 파일(이미지/영상/음원) 등록 모달 — 레거시 mediaLst.jsp의 "미디어 파일 등록"
 // (별도 팝업창 FileUpload.jsp)를 참고, 페이지 이동 없이 모달 + 다중 드래그앤드롭 업로드로 대체.
-const ContentFileUploadModal = ({ open, onClose, onUploaded }) => {
+// accept/title/dragText는 선택 props — 음원 전용 화면(BrodMusicFileListPage)처럼 파일
+// 종류를 제한해서 재사용할 때만 넘긴다. 안 넘기면 기존과 동일하게 제한 없이 동작한다.
+const ContentFileUploadModal = ({
+    open, onClose, onUploaded, accept, title = '미디어 파일 등록',
+    dragText = '이미지/영상/음원 파일을 클릭하거나 끌어놓으세요 (여러 개 선택 가능)',
+}) => {
     const [form, setForm] = useState(EMPTY_FORM);
     const [uploading, setUploading] = useState(false);
 
@@ -23,6 +28,7 @@ const ContentFileUploadModal = ({ open, onClose, onUploaded }) => {
         updateForm,
         fileValue: form.files,
         multiUse: true,
+        accept,
     });
 
     const handleSubmit = useCallback(async () => {
@@ -65,7 +71,7 @@ const ContentFileUploadModal = ({ open, onClose, onUploaded }) => {
                     <div className="modal-content">
                         <div className="modal-header">
                             <div className="modal-title">
-                                <h2 className="modal-title__title">미디어 파일 등록</h2>
+                                <h2 className="modal-title__title">{title}</h2>
                             </div>
                             <button type="button" className="modal-close" aria-label="Close" onClick={onClose} />
                         </div>
@@ -76,7 +82,7 @@ const ContentFileUploadModal = ({ open, onClose, onUploaded }) => {
                                     <div className="col-12">
                                         {renderGalleryDropzone({
                                             label: '업로드 파일',
-                                            dragText: '이미지/영상/음원 파일을 클릭하거나 끌어놓으세요 (여러 개 선택 가능)',
+                                            dragText,
                                             minHeight: 120,
                                         })}
                                     </div>

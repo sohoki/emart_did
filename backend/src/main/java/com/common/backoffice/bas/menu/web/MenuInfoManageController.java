@@ -195,8 +195,10 @@ public class MenuInfoManageController {
 				
 
 		}catch(NullPointerException e1) {
+            System.out.println("=============================== e1");
             ResultHelper.setFailResult(resultVO, "selectMenuLeftInfo", e1, egovMessageSource);
 		}catch(Exception e) {
+            System.out.println("=============================== e");
             ResultHelper.setFailResult(resultVO, "selectMenuLeftInfo", e, egovMessageSource);
 		}
 		return resultVO;

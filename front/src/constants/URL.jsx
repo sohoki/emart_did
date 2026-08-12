@@ -150,6 +150,14 @@ const URL = {
     DID_GROUP_MEMBER_COMBO: "/api/backoffice/sub/equiManage/group/didcomboLst.do",
     DID_GROUP_MEMBER_INSERT: "/api/backoffice/sub/equiManage/group/didgroupInsret.do",
 
+    //발송 스케줄(방송 예약) 관리
+    SCH_LIST: "/api/backoffice/sub/equiManage/sch/list.do",
+    SCH_FORM_DATA: "/api/backoffice/sub/equiManage/sch/formData.do",
+    SCH_CONTENT_SEARCH: "/api/backoffice/sub/equiManage/sch/contentSearch.do",
+    SCH_INFO: "/api/backoffice/sub/equiManage/sch",
+    SCH_DELETE_BULK: "/api/backoffice/sub/equiManage/sch/deleteBulk.do",
+    SCH_UPDATE: "/api/backoffice/sub/equiManage/sch/update.do",
+
     //DID 캡처화면(모니터링 사진)
     DID_PIC_LIST: "/api/backoffice/sub/equiManage/pic/list.do",
     DID_PIC_UPLOAD: "/api/backoffice/sub/equiManage/pic/upload.do",
@@ -198,6 +206,9 @@ const URL = {
     CON_DETAIL_FILE_ORDER_UPDATE: "/api/backoffice/sub/conManage/detailFile/orderUpdate.do",
     CON_DETAIL_FILE_TIME_UPDATE: "/api/backoffice/sub/conManage/detailFile/timeIntervalUpdateAndSum.do",
     CON_DETAIL_FILE_SUM_TIME: "/api/backoffice/sub/conManage/detailFile/sumTime.do",
+    CON_DETAIL_PREVIEW_CHECK: "/api/backoffice/sub/conManage/detailFile/preViewCheck.do",
+    CON_DETAIL_CONTENT_PREVIEW: "/api/backoffice/sub/conManage/detailFile/contentPreview.do",
+    CON_DETAIL_SCHEDULE_SEND: "/api/backoffice/sub/conManage/detailFile/contentScheduleSend.do",
 
     //DID 발송 메시지(자막) 관리
     CON_MESSAGE_LIST: "/api/backoffice/sub/equiManage/message/list.do",
@@ -271,18 +282,6 @@ const URL = {
     VENDOR_INFO : "/api/backoffice/infra/vendor",
     VENDOR_UPDATE: "/api/backoffice/infra/vendor/updateVendor.do",
 
-    //벤더사 사용자 정보
-    VENDOR_USER_LIST : "/api/backoffice/infra/vendor/user/vendorUserListAjax.do",
-    VENDOR_USER_UPDATE :"/api/backoffice/infra/vendor/user/updateVendorUser.do",
-    VENDOR_USER_ID_CHECK : "/api/backoffice/infra/vendor/user/idCheck",
-    VENDOR_USER_INFO: "/api/backoffice/infra/vendor/user",
-    VENDOR_USER_PASSWORD_RESET: "/api/backoffice/infra/vendor/user/passwordReset",
-    VENDOR_USER_ID_SEARCH: "/api/backoffice/infra/vendor/user/idSearch.do", //파트너 로그인 - 아이디 찾기(로그인 전, 인증 불필요)
-    VENDOR_USER_PWD_RESET: "/api/backoffice/infra/vendor/user/pwdReset.do", //파트너 로그인 - 비밀번호 재발급(로그인 전, 본인확인 필수)
-    VENDOR_USER_PWD_CHANGE: "/api/backoffice/infra/vendor/user/pwdChange.do", //로그인 후 프로필 메뉴 - 원하는 비밀번호로 변경(본인확인 포함)
-    VENDOR_COMBO : "/api/backoffice/infra/vendor/vendorCombo.do",
-    VENDOR_STATE_UPDATE : "/api/backoffice/infra/vendor/updateVendorState.do",
-
     //거래처 고객 정보 (백엔드 CustomerInfoManageController 매핑 경로 변경: /api/backoffice/user → /api/user)
     CUSTOMER_LIST : "/api/user/userList.do",
     CUSTOMER_ID_CHECK : "/api/user/idCheck",
@@ -303,54 +302,7 @@ const URL = {
     VENDOR_CONTRACT_UPDATE : "/api/backoffice/infra/vendor/contract/updateVendorContract.do",
     VENDOR_CONTRACT_PROCESS_UPDATE : "/api/backoffice/infra/vendor/contract/updateVendorContractProcess.do",
 
-    //거래처 개인정보 보호 약관
-    VENDOR_PRIVACY_POLICY_LIST : "/api/backoffice/infra/vendor/privacyPolicy/privacyPolicyListAjax.do",
-    VENDOR_PRIVACY_POLICY_INFO : "/api/backoffice/infra/vendor/privacyPolicy",
-    VENDOR_PRIVACY_POLICY_UPDATE : "/api/backoffice/infra/vendor/privacyPolicy/updateVendorPrivacyPolicy.do",
-    CUST_PRIVACY_POLICY_LATEST : "/api/backoffice/infra/vendor/privacyPolicy/cus/latest",
-
-    //거래처 배너(시즌 기획전)
-    VENDOR_BANNER_LIST : "/api/backoffice/infra/vendor/banner/bannerListAjax.do",
-    VENDOR_BANNER_INFO : "/api/backoffice/infra/vendor/banner",
-    VENDOR_BANNER_UPDATE : "/api/backoffice/infra/vendor/banner/updateVendorBanner.do",
-    CUST_BANNER_ACTIVE_LIST : "/api/backoffice/infra/vendor/banner/cus/active",
-
-    //거래처 홈페이지
-    VENDOR_HOMEPAGE_LIST : "/api/backoffice/infra/vendor/homepage/homepageListAjax.do",
-    VENDOR_HOMEPAGE_INFO : "/api/backoffice/infra/vendor/homepage",
-    VENDOR_HOMEPAGE_UPDATE : "/api/backoffice/infra/vendor/homepage/updateVendorHomepage.do",
-    VENDOR_HOMEPAGE_USEYN_UPDATE : "/api/backoffice/infra/vendor/homepage/updateVendorHomepageUseyn.do",
-    CUST_HOMEPAGE_DETAIL : "/api/backoffice/infra/vendor/homepage/cus",
-    CUST_HOMEPAGE_VIEWCNT : "/api/backoffice/infra/vendor/homepage/cus/viewCnt",
-
-    //벤더사 상품 정보
-    VENDOR_PRODUCT_LIST : "/api/backoffice/infra/vendor/product/List.do",
-    VENDOR_PRODUCT_UPDATE : "/api/backoffice/infra/vendor/product/updateVendorProduct.do",
-    VENDOR_PRODUCT_INFO : "/api/backoffice/infra/vendor/product",
-    VENDOR_PRODUCT_ID_CHECK : "/api/backoffice/infra/vendor/product/productCheck",
-    VENDOR_PRODUCT_COMBO : "/api/backoffice/infra/vendor/product/productCodes/combo",
-    VENDOR_PRODUCT_IMAGES : "/api/backoffice/infra/vendor/product/images",
-    VENDOR_PRODUCT_SETTING_INSERT : "/api/backoffice/infra/vendor/product/insertVendorProductSetting.do",
-    VENDOR_PRODUCT_SETTING_DELETE : "/api/backoffice/infra/vendor/product/deleteVendorProductSettingInfo.do",
-    VENDOR_PRODUCT_DETAIL_UPDATE  : "/api/backoffice/infra/vendor/product/updateVendorProductDetail.do",
-    VENDOR_PRODUCT_DETAIL_LIST   : "/api/backoffice/infra/vendor/product/detailList.do",
-    VENDOR_PRODUCT_DETAIL_DELETE : "/api/backoffice/infra/vendor/product/deleteVendorProductDetailInfo.do",
-    VENDOR_PRODUCT_LINKED_CODES : "/api/backoffice/infra/vendor/product/linkedProductCodes",
-
-    //판매사몰 주문 — OrderManageController의 updateOrder.do (실제로는 신규 주문 등록, 인증 불필요)
-    VENDOR_MALL_ORDER_SUBMIT : "/api/backoffice/order/updateOrder.do",
-
-    //판매사몰 고객 찜하기 (인증 불필요)
-    CUST_WISH_STATUS : "/api/backoffice/order/wish/status.do",
-    CUST_WISH_TOGGLE : "/api/backoffice/order/wish/toggle.do",
-    CUST_WISH_LIST : "/api/backoffice/order/wish/listAjax.do",
-
-    //판매사몰 고객 주문내역 — 고객 JWT(CustomerAuthHelper)로 본인 인증 후 본인 주문만 조회.
-    //관리자 전용 orderNewListAjax.do(AuthHelper)와는 별개 엔드포인트.
-    CUST_ORDER_LIST : "/api/backoffice/order/cus/orderListAjax.do",
-    //판매사몰 고객 본인 쿠폰(주문) 취소 — 예약 없는 쿠폰만 취소 가능(관리자 updateCouponStateChange.do와 동일 규칙)
-    CUST_COUPON_CANCEL : "/api/backoffice/order/cus/updateCouponStateChange.do",
-
+  
     //hotel 정보
     HOTEL_LIST: "/api/backoffice/infra/hotel/hotelListAjax.do",
     HOTEL_UPDATE: "/api/backoffice/infra/hotel/updateHotel.do",
@@ -446,65 +398,7 @@ const URL = {
     ROOM_CALENDER_STATE_UPDATE : "/api/backoffice/infra/product/hotel/updateProductRoomUdate.do",
     
 
-    //예약 정보
-    RESERVE_LIST: "/api/backoffice/res/new/resListAjax.do",
-    RESERVE_INFO : "/api/backoffice/res/new/resDetail",
-    RESERVE_DETAIL: "/api/backoffice/reserve/reserveDetail.do",
-    RESERVE_CANCEL: "/api/backoffice/reserve/reserveCancel.do",
-    RESERVE_CANCEL_REASON: "/api/backoffice/reserve/cancelReasonList.do",
-    RESERVE_EXCEL_DOWNLOAD: "/api/backoffice/res/new/resListAjaxAjaxExeldown.do",
-    RESERVE_STAY_UPDATE: "/api/backoffice/res/new/updateReservationStay.do",
-    RESERVE_NUMBER_UPDATE: "/api/backoffice/res/new/updateReservationNumber.do",
 
-    //고객용 객실 예약 팝업(CusResList/CusResForm, 인증 없이 접근)
-    CUS_RES_ORDER_INFO: "/api/backoffice/order/list", // GET /{orderNumberDetail}.do
-    CUS_RES_LIST_USER_AJAX: "/api/backoffice/res/new/resListUserAjax.do",
-    CUS_RES_OPTION: "/api/backoffice/res/option", // GET /{resSeq}.do
-    CUS_RES_CANCEL: "/api/backoffice/res/new/resCancel", // GET /{resSeq}.do
-    CUS_RES_DETAIL_BY_SEQ: "/api/backoffice/res", // GET /{roomSeq}.do
-    CUS_RES_HOTEL_INFO: "/api/backoffice/order/detailHotel/new", // GET /{orderNumberDetail}.do
-    CUS_RES_HOTEL_ROOM_LIST: "/api/backoffice/order/detailHotel/roomList.do",
-    CUS_RES_HOTEL_ROOM_LIST_INTERVAL: "/api/backoffice/order/detailHotel/roomListInterval.do",
-    CUS_RES_HOTEL_ROOM_PRICE: "/api/backoffice/order/detailHotel/roomPrice.do",
-    CUS_RES_HOTEL_NEW_ROOM_PRICE: "/api/backoffice/order/detailHotel/new/roomPrice.do",
-    CUS_RES_DETAIL_ROOM: "/api/backoffice/order/detailRoom", // GET /{hotelCode}.do
-    CUS_RES_UPDATE_RESERVATION: "/api/backoffice/res/new/updateReservation.do",
-    //예약정보 12월 이전 
-    RESERVE_LIST_OLD: "/api/backoffice/res/resListAjax.do",
-    RESERVE_EXCEL_DOWNLOAD_OLD: "/api/backoffice/res/resListAjaxExeldown.do",
-    //위약금 고객 정보 조회
-    RESERVE_PENALTY_CUSTOMER_SEARCH : "/api/backoffice/res/search/penaltyUserList.do",
-    // 판매(개별상품) 콤보박스
-    SELL_COMBO: '/api/backoffice/infra/product/product/productSellCombo.do',
-    
-
-
-    //정산 정보
-    SETTLEMENT_LIST : "/api/backoffice/settle/settleListAjax.do", 
-    SETTLEMENT_UPDATE : "/api/backoffice/settle/updateSettlement.do",
-    SETTLEMENT_INFO : "/api/backoffice/settle",
-    SETTLEMENT_REPORT : "/api/backoffice/settle/settleReport.do",
-    SETTLEMENT_SUMMARY : "/api/backoffice/settle/settleSummary.do",
-
-    //위약금 정보
-    PENALTY_LIST : "/api/backoffice/settle/hotel/pentalty/userListAjax.do",
-    PENALTY_EXCEL_DOWN: "/api/backoffice/settle/hotel/pentalty/userListAjaxExcelDown.do",
-    PENALTY_UPDATE : "/api/backoffice/settle/hotel/pentalty/updateUserPentalty.do",
-    PENALTY_INFO : "/api/backoffice/settle/hotel/pentalty",
-    //위약금 메모 정보: 
-    PENALTY_MEMO_LIST : "/api/backoffice/settle/hotel/pentalty/memo/userListMemoAjax.do",
-    PENALTY_MEMO_INSERT: "/api/backoffice/settle/hotel/pentalty/memo/updateUserPentaltyMemo.do",
-    PENALTY_MEMO_DELETE : "/api/backoffice/settle/hotel/pentalty/memo",
-
-    //호텔 정산 정보
-    HOTEL_SETTLEMENT_LIST : "/api/backoffice/settle/hotel/settle/hotelSettleListAjax.do",
-    HOTEL_SETTLEMENT_UPDATE : "/api/backoffice/settle/hotel/settle/updateHotelSettlement.do",
-    HOTEL_SETTLEMENT_INFO : "/api/backoffice/settle/hotel/settle",
-    HOTEL_SETTLEMENT_SUMMARY_INFO : "/api/backoffice/settle/hotel/settle/summary/",
-    HOTEL_SETTLEMENT_COLLECTION_INFO : "/api/backoffice/settle/hotel/settle/collection/",
-    HOTEL_SETTLEMENT_COMBO: "/api/backoffice/settle/hotel/settle/settleCombobox.do",
-    //정산 
-    HOTEL_REPORT_INFO : "/api/backoffice/settle/hotel",
 
     //Dashboard 정보
     DASHBOARD_LIST : "/api/backoffice/dashboard/productDashListAjax.do",

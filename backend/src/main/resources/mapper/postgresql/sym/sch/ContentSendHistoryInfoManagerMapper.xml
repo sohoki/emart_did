@@ -29,52 +29,46 @@
         )
         VALUES
             (
-                NEXTVAL('conseqhis_seq'), #{didId}, #{schCode}, 'N', 'N', 'N', 'N'
+                NEXTVAL('conSeqHis'), #{didId}, #{schCode}, 'N', 'N', 'N', 'N'
             )
     </insert>
 
     <update id="updateContentSendHistoryInfoManage">
-        UPDATE TB_CONTENTSENDHISTORY
-        SET DID_ID = #{didId},
-            SCH_CODE = #{schCode}
-        WHERE HIS_SEQ = #{hisSeq}
+        UPDATE TB_CONTENTSENDHISTORY  SET DID_ID = #{didId},
+                                        SCH_CODE = #{schCode}
+        WHERE HIS_SEQ = #{hisSeq}::numeric
     </update>
 
     <update id="updateContentSendHistoryDidInfoManage">
-        UPDATE TB_CONTENTSENDHISTORY
-        SET DID_UPDATECHECK = 'Y'
-        WHERE HIS_SEQ = #{hisSeq}
+        UPDATE TB_CONTENTSENDHISTORY  SET DID_UPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}::numeric
     </update>
 
     <update id="updateContentSendHistoryConInfoManage">
-        UPDATE TB_CONTENTSENDHISTORY
-        SET CON_UPDATECHECK = 'Y'
-        WHERE HIS_SEQ = #{hisSeq}
+        UPDATE TB_CONTENTSENDHISTORY SET CON_UPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}::numeric
     </update>
 
     <update id="updateContentSendHistoryConPageInfoManage">
-        UPDATE TB_CONTENTSENDHISTORY
-        SET CON_PAGEUPDATECHECK = 'Y'
-        WHERE HIS_SEQ = #{hisSeq}
+        UPDATE TB_CONTENTSENDHISTORY SET CON_PAGEUPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}::numeric
     </update>
 
     <update id="updateContentSendHistoryConFileInfoManage">
-        UPDATE TB_CONTENTSENDHISTORY
-        SET CON_FILEUPDATECHECK = 'Y'
-        WHERE HIS_SEQ = #{hisSeq}
+        UPDATE TB_CONTENTSENDHISTORY SET CON_FILEUPDATECHECK = 'Y'
+        WHERE HIS_SEQ = #{hisSeq}::numeric
     </update>
 
     <update id="updateContentSchUpdateCheckReset">
-        UPDATE TB_CONTENTSENDHISTORY
-        SET CON_UPDATECHECK = 'N',
-            DID_UPDATECHECK = 'N',
-            CON_FILEUPDATECHECK = 'N'
-        WHERE HIS_SEQ = #{hisSeq}
+        UPDATE TB_CONTENTSENDHISTORY  SET CON_UPDATECHECK = 'N',
+                                        DID_UPDATECHECK = 'N',
+                                        CON_FILEUPDATECHECK = 'N'
+        WHERE HIS_SEQ = #{hisSeq}::numeric
     </update>
 
     <delete id="deleteContentSendHistoryInfoManage">
         DELETE FROM TB_CONTENTSENDHISTORY
-        WHERE SCH_CODE = #{schCode}
+        WHERE SCH_CODE = #{schCode}::numeric
     </delete>
 
 </mapper>

@@ -17,7 +17,7 @@ const DetailCodeFormModal = React.lazy(() => import('./components/DetailCodeForm
 // ── 초기값 ─────────────────────────────────────────────────────────────────
 const INITIAL_CODE_FORM = {
     mode: 'Ins',
-    clCode:'GOV0001',
+    clCode:'EMT',
     codeId: '',
     codeIdNm: '',
     codeIdDc: '',
@@ -27,7 +27,7 @@ const INITIAL_CODE_FORM = {
 
 const INITIAL_DETAIL_FORM = {
     mode: 'Ins',
-    clCode:'GOV0001',
+    clCode:'EMT',
     codeId: '',
     code: '',
     codeNm: '',

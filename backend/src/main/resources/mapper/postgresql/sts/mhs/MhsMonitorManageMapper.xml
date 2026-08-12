@@ -4,57 +4,62 @@
     <select id="selectMhsMonitorList" resultType="MhsMonitorInfoVO">
         SELECT * FROM
         (
-        SELECT ROW_NUMBER() OVER (ORDER BY A.MHS_MREGDATE DESC) AS RNUM, TB.* FROM
-        (
-        SELECT
-        B.GROUP_NM AS "mhsBrandnm", C.CENTER_NM AS "mhsCenternm", A.MHS_MONITORNM AS "mhsMonitornm", A.MHS_MONITORCD AS "mhsMonitorcd", A.MHS_IPADDR AS "mhsIpaddr",
-        A.MHS_MACADDR AS "mhsMacaddr",
-        CASE
-        <![CDATA[
-                   WHEN A.MHS_LASTCONN > (NOW() - INTERVAL '10 minute') AND A.MHS_LASTCONN IS NOT NULL
-                   ]]>
-        THEN 'ON'
-        ELSE 'OFF'
-        END AS mhsLastconn,
-        A.MHS_REMARK AS "mhsRemark"
-        FROM TB_MHSMONITORINFO A
-        JOIN LETTNAUTHORGROUPINFO B ON A.MHS_BRANDCD = B.GROUP_ID
-        JOIN TB_CENTERINFO C ON A.MHS_CENTERCD = C.CENTER_ID
-        JOIN LETTNAUTHORGROUPINFO D ON C.ROLE_CODE = D.GROUP_ID
-        WHERE A.MHS_MONITORSTATUS != 'N'
-        <if test="authorCode == 'ROLE_MHS_USER'">
-            <if test='mhsCentercd != null and mhsCentercd != "" '>
-                AND A.MHS_CENTERCD = #{mhsCentercd}
-            </if>
-            <choose>
-                <when test="searchCondition == 'A.MHS_MONITORNM' and searchKeyword != ''">
-                    AND A.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <when test="searchCondition == 'A.MHS_MONITORCD' and searchKeyword != ''">
-                    AND A.MHS_MONITORCD LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <when test="searchCondition == 'A.MHS_IPADDR' and searchKeyword != ''">
-                    AND A.MHS_IPADDR LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <when test="searchCondition == 'A.MHS_MACADDR' and searchKeyword != ''">
-                    AND A.MHS_MACADDR LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-            </choose>
-            AND A.MHS_BRANDCD IN
+            SELECT  TB.* FROM
             (
-            WITH RECURSIVE cte AS (
-            SELECT GROUP_ID, PARENT_GROUP_ID
-            FROM LETTNAUTHORGROUPINFO
-            WHERE GROUP_ID = #{groupId}
-            UNION ALL
-            SELECT g.GROUP_ID, g.PARENT_GROUP_ID
-            FROM LETTNAUTHORGROUPINFO g
-            JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
-            )
-            SELECT GROUP_ID FROM cte
-            )
-        </if>
-        ) TB
+                SELECT
+                ROW_NUMBER() OVER (ORDER BY A.MHS_MREGDATE DESC) AS RNUM,
+                B.GROUP_NM AS "mhsBrandnm",
+                C.CENTER_NM AS "mhsCenternm",
+                A.MHS_MONITORNM AS "mhsMonitornm",
+                A.MHS_MONITORCD AS "mhsMonitorcd",
+                A.MHS_IPADDR AS "mhsIpaddr",
+                A.MHS_MACADDR AS "mhsMacaddr",
+                CASE
+                <![CDATA[
+                           WHEN A.MHS_LASTCONN > (NOW() - INTERVAL '10 minute') AND A.MHS_LASTCONN IS NOT NULL
+                           ]]>
+                THEN 'ON'
+                ELSE 'OFF'
+                END AS mhsLastconn,
+                A.MHS_REMARK AS "mhsRemark"
+                FROM TB_MHSMONITORINFO A
+                JOIN LETTNAUTHORGROUPINFO B ON A.MHS_BRANDCD = B.GROUP_ID
+                JOIN TB_CENTERINFO C ON A.MHS_CENTERCD = C.CENTER_ID
+                JOIN LETTNAUTHORGROUPINFO D ON C.ROLE_CODE = D.GROUP_ID
+                WHERE A.MHS_MONITORSTATUS != 'N'
+                <if test="authorCode == 'ROLE_MHS_USER'">
+                    <if test='mhsCentercd != null and mhsCentercd != "" '>
+                        AND A.MHS_CENTERCD = #{mhsCentercd}
+                    </if>
+                    <choose>
+                        <when test="searchCondition == 'A.MHS_MONITORNM' and searchKeyword != ''">
+                            AND A.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <when test="searchCondition == 'A.MHS_MONITORCD' and searchKeyword != ''">
+                            AND A.MHS_MONITORCD LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <when test="searchCondition == 'A.MHS_IPADDR' and searchKeyword != ''">
+                            AND A.MHS_IPADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <when test="searchCondition == 'A.MHS_MACADDR' and searchKeyword != ''">
+                            AND A.MHS_MACADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                    </choose>
+                    AND A.MHS_BRANDCD IN
+                    (
+                        WITH RECURSIVE cte AS (
+                            SELECT GROUP_ID, PARENT_GROUP_ID
+                            FROM LETTNAUTHORGROUPINFO
+                            WHERE GROUP_ID = #{groupId}
+                            UNION ALL
+                            SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                            FROM LETTNAUTHORGROUPINFO g
+                            JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                        )
+                        SELECT GROUP_ID FROM cte
+                    )
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>

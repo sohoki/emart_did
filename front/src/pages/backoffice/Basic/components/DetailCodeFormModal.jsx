@@ -105,14 +105,10 @@ const DetailCodeFormModal = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-body">
-                                <div className="modal-body__content">
-                                    <div className="row input-box-wrap mt-3">
-                                        <div className="col-auto ms-auto">
-                                            <button type="button" className="btn btn-secondary me-2" aria-label="Close" onClick={onClose}>닫기</button>
-                                            <button type="button" className="btn btn-primary" onClick={onSubmit}>저장</button>
-                                        </div>
-                                    </div>
+                            <div className="modal-footer">
+                                <div className="modal-footer__right">
+                                    <button type="button" className="btn btn-cancel" aria-label="Close" onClick={onClose}>닫기</button>
+                                    <button type="button" className="btn btn-primary btn-action__blue" onClick={onSubmit}>저장</button>
                                 </div>
                             </div>
                         </div>

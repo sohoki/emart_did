@@ -13,10 +13,10 @@
         COALESCE(B.chk_menu, 0) AS chk_menu
         FROM TB_ROLEINFO A
         LEFT JOIN (
-        -- 메뉴 개수를 미리 계산하여 JOIN (성능 최적화)
-        SELECT ROLE_ID, COUNT(*) AS chk_menu
-        FROM COMTNMENUCREATDTLS
-        GROUP BY ROLE_ID
+            -- 메뉴 개수를 미리 계산하여 JOIN (성능 최적화)
+            SELECT ROLE_ID, COUNT(*) AS chk_menu
+            FROM COMTNMENUCREATDTLS
+            GROUP BY ROLE_ID
         ) B ON A.ROLE_ID = B.ROLE_ID
         WHERE 1=1
         <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
@@ -52,7 +52,8 @@
              , ( SELECT COUNT(B.MENU_NO)
                  FROM COMTNMENUCREATDTLS B
                  WHERE B.MENU_NO = A.MENU_NO
-                   AND B.ROLE_ID = #{roleId}) AS "chkYeoBu"
+                   AND B.ROLE_ID = #{roleId}
+                 ) AS "chkYeoBu"
         FROM COMTNMENUINFO A
         WHERE A.MENU_NO > 0
         ORDER BY A.MENU_ORDR
@@ -121,7 +122,7 @@
     <insert id="insertMenuCreat_S">
        <![CDATA[
         INSERT INTO COMTNMENUCREATDTLS ( ROLE_ID ,MENU_NO , MENU_BASIC_INFO, MENU_CREATE_DATE, MENU_CREATE_ID)
-        VALUES ( #{roleId}, #{menuNo} , #{menuBasicInfo}, NOW(), #{userId})
+        VALUES ( #{roleId}, #{menuNo}::numeric , #{menuBasicInfo}, NOW(), #{userId})
         ]]>
     </insert>
 

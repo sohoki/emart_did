@@ -5,30 +5,31 @@
         SELECT *
         FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.LAST_UPDT_PNTTM DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.BASIC_CODE AS basicCode,
-        A.BASIC_GROUP_NM AS basicGroupNm,
-        A.BASIC_GROUP_CNT AS basicGroupCnt,
-        A.LAST_UPDT_PNTTM AS lastUpdtPnttm,
-        A.LAST_UPDUSR_ID AS lastUpdusrId
-        FROM TB_BRODBASICGROUP A
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'basicCode'">
-                    AND A.BASIC_CODE LIKE CONCAT('%', #{BASIC_CODE}, '%')
-                </when>
-                <otherwise>
-                    AND A.BASIC_GROUP_NM LIKE CONCAT('%', #{basicGroupNm}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        ) TB
+            SELECT
+
+            TB.*
+            FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.LAST_UPDT_PNTTM DESC) AS RNUM,
+                    A.BASIC_CODE AS basicCode,
+                    A.BASIC_GROUP_NM AS basicGroupNm,
+                    A.BASIC_GROUP_CNT AS basicGroupCnt,
+                    A.LAST_UPDT_PNTTM AS lastUpdtPnttm,
+                    A.LAST_UPDUSR_ID AS lastUpdusrId
+                FROM TB_BRODBASICGROUP A
+                WHERE 1=1
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'basicCode'">
+                            AND A.BASIC_CODE LIKE CONCAT('%', #{BASIC_CODE}, '%')
+                        </when>
+                        <otherwise>
+                            AND A.BASIC_GROUP_NM LIKE CONCAT('%', #{basicGroupNm}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>

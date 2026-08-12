@@ -1,161 +1,195 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useMemo, useRef, useState, Suspense, lazy } from 'react';
+import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
+import { gridTheme } from '@/constants/agGridTheme.js';
+import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
-import { getCookie } from '@/lib/cookie.jsx';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
 
-const emptyForm = {
+const BrodAnniversaryFormModal = lazy(() => import('./components/BrodAnniversaryFormModal.jsx'));
+
+const PAGE_UNIT = 20;
+
+const INITIAL_SEARCH_FORM = {
+    brodCode: '',
+    brodDay: '',
+};
+
+const EMPTY_ANNIVER_FORM = {
     mode: 'Ins', brodAnnSeq: '', brodCode: '', anniverName: '', anniversaryGubun: '',
     anniverStartday: '', anniverEndday: '', anniversaryStartTime: '', anniversaryTime: '',
 };
 
+// 방송 기념일 관리 — 레거시 brodAnniverList.jsp 참고. 등록/수정 우측 인라인 폼이었던
+// 것을 다른 목록 화면들과 동일한 모달로 교체. 방송 코드가 있어야 조회되는 화면 특성상
+// 표준 골격의 select+keyword 검색 대신 방송코드/기준일 두 입력을 그대로 둔다.
 export default function BrodAnniversaryListPage() {
-    const navigate = useNavigate();
-    const [brodCode, setBrodCode] = useState('');
-    const [brodDay, setBrodDay] = useState('');
-    const [list, setList] = useState([]);
-    const [totalCnt, setTotalCnt] = useState(0);
-    const [form, setForm] = useState(emptyForm);
-    const [loading, setLoading] = useState(false);
+    const gridApiRef = useRef(null);
 
-    const loadList = useCallback(async (code, day) => {
-        if (!code) {
-            setList([]);
-            setTotalCnt(0);
-            return;
+    const [modalOpen, setModalOpen] = useState(false);
+    const [anniverForm, setAnniverForm] = useState(EMPTY_ANNIVER_FORM);
+
+    const fetchAnniverList = useCallback(async (query) => {
+        if (!query.brodCode) {
+            return { rows: [], total: 0 };
         }
-        setLoading(true);
-        try {
-            const res = await fnAjaxFetch({
-                url: URL.BROD_ANNIVER_LIST,
-                method: 'POST',
-                data: { brodCode: code, brodDay: day || '' },
-                showLoading: false,
-            });
-            const resultList = res?.data?.result?.resultList ?? [];
-            setList(resultList);
-            setTotalCnt(res?.data?.result?.totalCnt ?? resultList.length);
-        } finally {
-            setLoading(false);
-        }
+        const res = await fnAjaxFetch({ url: URL.BROD_ANNIVER_LIST, method: 'POST', data: query });
+        const data = res?.data;
+        return {
+            rows: data?.result?.resultList || [],
+            total: data?.result?.totalCnt || 0,
+        };
     }, []);
 
-    useEffect(() => {
-        if (!getCookie('accessToken')) {
-            navigate('/login', { replace: true });
+    const {
+        onGridReady,
+        defaultColDef,
+        tempParams,
+        setTempParams,
+        handleSearch,
+        refreshGrid,
+    } = useGridInfinite({
+        fetchApi: fetchAnniverList,
+        pageUnit: PAGE_UNIT,
+        initialFilters: INITIAL_SEARCH_FORM,
+    });
+
+    const handleInputChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setTempParams((prev) => ({ ...prev, [name]: value }));
+    }, [setTempParams]);
+
+    const onSearch = useCallback((pageIndex) => {
+        handleSearch(pageIndex || 1);
+    }, [handleSearch]);
+
+    const onSearchKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') onSearch(1);
+    }, [onSearch]);
+
+    // ===== 등록/수정 모달 =====
+    const handleOpenAnniverModal = useCallback(async (brodAnnSeq) => {
+        if (!brodAnnSeq) {
+            if (!tempParams.brodCode) {
+                await Swal.fire({ icon: 'warning', title: '입력 필요', text: '방송 코드를 먼저 입력해 주세요.' });
+                return;
+            }
+            setAnniverForm({ ...EMPTY_ANNIVER_FORM, brodCode: tempParams.brodCode });
+            setModalOpen(true);
+            return;
         }
-    }, [navigate]);
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        loadList(brodCode, brodDay);
-    };
-
-    const handleNew = () => setForm({ ...emptyForm, brodCode });
-
-    const handleEdit = async (brodAnnSeq) => {
         const res = await fnAjaxFetch({ url: URL.BROD_ANNIVER_DETAIL, method: 'POST', data: { brodAnnSeq } });
         const detail = res?.data?.result?.result;
-        if (detail) setForm({ ...detail, mode: 'Edt' });
-    };
+        if (!detail) return;
+        setAnniverForm({ ...detail, mode: 'Edt' });
+        setModalOpen(true);
+    }, [tempParams.brodCode]);
 
-    const handleDelete = async (brodAnnSeq) => {
+    const handleSubmit = useCallback(async () => {
+        const isInsert = anniverForm.mode === 'Ins';
+        const res = await fnAjaxFetch({ url: URL.BROD_ANNIVER_UPDATE, method: 'POST', data: anniverForm });
+        if (res?.data?.resultCodeInfo === 'SUCCESS') {
+            await Swal.fire({ icon: 'success', title: '완료', text: `${isInsert ? '등록' : '수정'}되었습니다.` });
+            setModalOpen(false);
+            refreshGrid();
+        } else {
+            await Swal.fire({ icon: 'error', title: '오류', text: res?.data?.resultMessage || `${isInsert ? '등록' : '수정'} 중 오류가 발생했습니다.` });
+        }
+    }, [anniverForm, refreshGrid]);
+
+    const handleDelete = useCallback(async (brodAnnSeq) => {
         const result = await Swal.fire({
             icon: 'question', title: '기념일 삭제', text: '삭제하시겠습니까?',
             showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
         });
         if (!result.isConfirmed) return;
         await fnAjaxFetch({ url: `${URL.BROD_ANNIVER_DELETE}/${brodAnnSeq}.do`, method: 'DELETE' });
-        loadList(brodCode, brodDay);
-    };
+        refreshGrid();
+    }, [refreshGrid]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!form.brodCode || !form.anniverName) {
-            Swal.fire({ icon: 'warning', title: '입력 확인', text: '방송코드/기념일명을 입력해 주세요.' });
-            return;
-        }
-        await fnAjaxFetch({ url: URL.BROD_ANNIVER_UPDATE, method: 'POST', data: form });
-        setForm({ ...emptyForm, brodCode: form.brodCode });
-        loadList(form.brodCode, brodDay);
-    };
+    const columnDefs = useMemo(() => ([
+        {
+            headerName: '기념일명', field: 'anniverName', flex: 1, minWidth: 160,
+            cellRenderer: (p) => (
+                <button className="btn btn-link p-0" onClick={() => handleOpenAnniverModal(p.data?.brodAnnSeq)}>{p.value}</button>
+            ),
+        },
+        { field: 'codeNm', headerName: '구분', width: 120 },
+        { field: 'anniverStartday', headerName: '시작일', width: 120 },
+        { field: 'anniverEndday', headerName: '종료일', width: 120 },
+        {
+            headerName: '삭제', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button className="btn btn-outline-danger btn-outline__gray btn-sm"
+                    onClick={() => handleDelete(p.data?.brodAnnSeq)}>삭제</button>
+            ),
+        },
+    ]), [handleOpenAnniverModal, handleDelete]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 16, boxSizing: 'border-box' }}>
-            <h2 style={{ margin: '0 0 12px' }}>방송 기념일 관리</h2>
-
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-                <input type="text" placeholder="방송 코드(BROD_...)" value={brodCode} onChange={(e) => setBrodCode(e.target.value)} style={{ width: 160 }} />
-                <input type="text" placeholder="기준일(YYYYMMDD, 선택)" value={brodDay} onChange={(e) => setBrodDay(e.target.value)} style={{ width: 150 }} />
-                <button type="submit">조회</button>
-                <button type="button" onClick={handleNew} disabled={!brodCode}>신규 등록</button>
-                <span style={{ color: '#64748b' }}>총 {totalCnt}건{loading ? ' (조회 중...)' : ''}</span>
-            </form>
-
-            <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0 }}>
-                <div style={{ flex: 1.4, overflowY: 'auto' }}>
-                    <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc' }}>
-                                <th style={{ border: '1px solid #e2e8f0', padding: 6 }}>기념일명</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: 6 }}>구분</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: 6 }}>시작일</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: 6 }}>종료일</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: 6 }}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {list.map((item) => (
-                                <tr key={item.brodAnnSeq}>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>{item.anniverName}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>{item.codeNm}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>{item.anniverStartday}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>{item.anniverEndday}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: 6 }}>
-                                        <button type="button" onClick={() => handleEdit(item.brodAnnSeq)}>수정</button>{' '}
-                                        <button type="button" onClick={() => handleDelete(item.brodAnnSeq)}>삭제</button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {list.length === 0 && (
-                                <tr><td colSpan={5} style={{ padding: 16, textAlign: 'center', color: '#94a3b8' }}>방송 코드를 입력해서 조회해 주세요.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div style={{ flex: 1, borderLeft: '1px solid #e2e8f0', paddingLeft: 16, overflowY: 'auto' }}>
-                    <h3>{form.mode === 'Ins' ? '신규 등록' : `수정 — ${form.brodAnnSeq}`}</h3>
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <label>
-                            방송 코드
-                            <input type="text" value={form.brodCode} onChange={(e) => setForm((p) => ({ ...p, brodCode: e.target.value }))} disabled={form.mode === 'Ins'} />
-                        </label>
-                        <label>
-                            기념일명
-                            <input type="text" value={form.anniverName || ''} onChange={(e) => setForm((p) => ({ ...p, anniverName: e.target.value }))} />
-                        </label>
-                        <label>
-                            시작일(YYYYMMDD)
-                            <input type="text" value={form.anniverStartday || ''} onChange={(e) => setForm((p) => ({ ...p, anniverStartday: e.target.value }))} />
-                        </label>
-                        <label>
-                            종료일(YYYYMMDD)
-                            <input type="text" value={form.anniverEndday || ''} onChange={(e) => setForm((p) => ({ ...p, anniverEndday: e.target.value }))} />
-                        </label>
-                        <label>
-                            시작시간(HHmm)
-                            <input type="text" value={form.anniversaryStartTime || ''} onChange={(e) => setForm((p) => ({ ...p, anniversaryStartTime: e.target.value }))} />
-                        </label>
-                        <label>
-                            재생시간(초)
-                            <input type="text" value={form.anniversaryTime || ''} onChange={(e) => setForm((p) => ({ ...p, anniversaryTime: e.target.value }))} />
-                        </label>
-                        <button type="submit">{form.mode === 'Ins' ? '등록' : '수정'}</button>
-                    </form>
+        <div className="row g-0 main-contents">
+            <div className="col-12 content-header">
+                <div className="content-header__title">방송 기념일 관리</div>
+                <div className="content-header__breadcrumb">
+                    <ol className="breadcrumb">
+                        <li className="breadcrumb-item">방송 관리</li>
+                        <li className="breadcrumb-item">방송 기념일 관리</li>
+                    </ol>
                 </div>
             </div>
+
+            <div className="col-12 content-search">
+                <div className="row g-0 w-100 justify-content-between">
+                    <div className="col-auto content-search__option">
+                        <input type="text" name="brodCode" placeholder="방송 코드(BROD_...)"
+                            value={tempParams.brodCode}
+                            onChange={handleInputChange}
+                            onKeyDown={onSearchKeyDown}
+                        />
+                        <input type="text" name="brodDay" placeholder="기준일(YYYYMMDD, 선택)"
+                            value={tempParams.brodDay}
+                            onChange={handleInputChange}
+                            onKeyDown={onSearchKeyDown}
+                        />
+                    </div>
+                    <div className="col-auto content-search__action">
+                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                            onClick={() => onSearch(1)}>조회</button>
+                        <button type="button" className="btn btn-primary btn-default__blue"
+                            onClick={() => handleOpenAnniverModal()}>신규 등록</button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="col-12 content-table content-table__main">
+                <div className="ag-theme-material" style={{ height: 760, width: '100%' }}>
+                    <AppAgGrid
+                        columnDefs={columnDefs}
+                        theme={gridTheme}
+                        defaultColDef={defaultColDef}
+                        rowModelType="infinite"
+                        pagination={true}
+                        paginationPageSize={PAGE_UNIT}
+                        cacheBlockSize={PAGE_UNIT}
+                        maxBlocksInCache={2}
+                        onGridReady={(params) => { gridApiRef.current = params.api; onGridReady(params); }}
+                        overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>방송 코드를 입력해서 조회해 주세요.</span>"
+                        overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
+                    />
+                </div>
+            </div>
+
+            <Suspense fallback={null}>
+                {modalOpen && (
+                    <BrodAnniversaryFormModal
+                        open={modalOpen}
+                        form={anniverForm}
+                        setForm={setAnniverForm}
+                        onClose={() => setModalOpen(false)}
+                        onSubmit={handleSubmit}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }

@@ -141,8 +141,8 @@ public class MenuInfoManageService {
         return menuRepository.existsByMenuNo( bdMenuNo);
     }
 	
-	@Cacheable(value = "findLeftMenu", key = "#empNo", condition = "#empNo != null") // managerId 대신 실제 파라미터명인 empNo 사용
-	@Transactional(readOnly = true)
+	//@Cacheable(value = "findLeftMenu", key = "#empNo", condition = "#empNo != null") // managerId 대신 실제 파라미터명인 empNo 사용
+	//@Transactional(readOnly = true)
 	public List<Map<String, Object>> selectMainMenuLeft(String empNo, String roleId, String url) throws Exception {
 		try {
 			return menuMapper.selectMainMenuLeft(roleId, url);

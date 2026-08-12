@@ -392,6 +392,6 @@
 
     <delete id="deleteFileConSeq">
         DELETE FROM LETTNFILEDETAIL
-        WHERE CON_SEQ = #{conSeq}
+        WHERE CON_SEQ = #{conSeq,jdbcType=VARCHAR}::numeric
     </delete>
 </mapper>

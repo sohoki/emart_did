@@ -1,0 +1,11 @@
+/* 메뉴 등록/수정 폼 — 라벨(th)과 입력값(input/select/textarea) 폰트 크기를 앱 전역
+   검색폼 컨벤션(14px, common.css .content-search__option select/input 참고)에 맞춘다.
+   :root의 기본 font(18px, index.css)를 그대로 물려받은 Bootstrap .form-control이
+   라벨보다 커 보이던 문제 수정. */
+.main_table th {
+    font-size: 14px;
+}
+.main_table .form-control,
+.main_table .form-select {
+    font-size: 14px;
+}
