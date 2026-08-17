@@ -37,7 +37,7 @@
             A.GROUP_SEQ, A.BASIC_CODE, A.GROUP_STARTTIME, A.GROUP_ENDTIME, A.GROUP_TITLE,
             A.LAST_UPDT_PNTTM, A.LAST_UPDUSR_ID, GROUP_TIMEGUBUN
         FROM TB_BASICFILEGROUP A
-        WHERE A.GROUP_SEQ = #{groupSeq}
+        WHERE A.GROUP_SEQ = #{groupSeq}::numeric
     </select>
 
     <select id="selectBasicGroupInfoCombo" resultType="BasicFileGroupInfoVO">
@@ -86,7 +86,7 @@
                                      LAST_UPDT_PNTTM = NOW(),
                                      LAST_UPDUSR_ID = #{userId,jdbcType=VARCHAR},
                                      GROUP_TIMEGUBUN = #{groupTimegubun,jdbcType=VARCHAR}
-        WHERE GROUP_SEQ = #{groupSeq}
+        WHERE GROUP_SEQ = #{groupSeq}::numeric
     </update>
 
     <insert id="insertBasicGroupCopy">
@@ -113,16 +113,16 @@
         <if test="fileMin != ''">
             , FILE_CNT = FILE_CNT - 1
         </if>
-        WHERE GROUP_SEQ = #{groupSeq}
+        WHERE GROUP_SEQ = #{groupSeq}::numeric
     </update>
 
     <delete id="deleteBasicGroup">
         DELETE FROM TB_BASICFILEGROUP
-        WHERE GROUP_SEQ = #{groupSeq}
+        WHERE GROUP_SEQ = #{groupSeq}::numeric
     </delete>
 
     <delete id="deleteBasicGroupBrodCode">
         DELETE FROM TB_BASICFILEGROUP
-        WHERE BASIC_CODE = #{basicCode}
+        WHERE BASIC_CODE = #{basicCode}::numeric
     </delete>
 </mapper>

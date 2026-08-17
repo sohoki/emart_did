@@ -34,8 +34,13 @@
   }
 }
 
+/* [data-theme] 토글이 아직 붙지 않은 최초 페인트(OS 다크 선호도)에만 적용 — 사용자가
+   화면에서 명시적으로 "Light"를 선택(data-theme="light")하면 이 블록을 건너뛰고 위 :root의
+   기본값(라이트)을 그대로 쓴다. 이 가드가 없으면 콘텐츠가 길어져 .wrapper/.main-contents의
+   흰 배경 아래로 여백이 생길 때, data-theme="light" 상태인데도 html 배경(--bg)이 OS 설정을
+   따라 어둡게 보이는 문제가 생긴다. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --text: #9ca3af;
     --text-h: #f3f4f6;
     --bg: #16171d;
@@ -49,7 +54,7 @@
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
 
-  #social .button-icon {
+  :root:not([data-theme="light"]) #social .button-icon {
     filter: invert(1) brightness(2);
   }
 }

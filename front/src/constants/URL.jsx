@@ -242,6 +242,19 @@ const URL = {
     BROD_CONTENT_COPY_INSERT: "/api/backoffice/sub/brodManage/content/copyInsert.do",
     BROD_CONTENT_DELETE_BULK: "/api/backoffice/sub/brodManage/content/deleteBulk.do",
     BROD_CONTENT_COMBO: "/api/backoffice/sub/brodManage/content/combo.do",
+    BROD_CONTENT_REG_POPUP_DATA: "/api/backoffice/sub/brodManage/content/copyPopupData.do",
+    // 스케줄 음원 관리(brodContentPlayList.jsp) — 음원 파일 하나를 여러 방송(brodCode)에 한 번에 등록
+    BROD_CONTENT_DETAIL_CENTER_UPDATE: "/api/backoffice/sub/brodManage/content/detailCenterUpdate.do",
+    BROD_CONTENT_ANN_DETAIL_CENTER_UPDATE: "/api/backoffice/sub/brodManage/content/annDetailCenterUpdate.do",
+
+    //방송 콘텐츠 편성(시간대별 음원 배치) 관리 — brodContentView.jsp 상세 화면에서 사용
+    BROD_CONTENT_DETAIL_FORM: "/api/backoffice/sub/brodManage/contentDetail/form.do",
+    BROD_CONTENT_DETAIL_UPDATE: "/api/backoffice/sub/brodManage/contentDetail/update.do",
+    BROD_CONTENT_DETAIL_INFO: "/api/backoffice/sub/brodManage/contentDetail",
+    BROD_CONTENT_DETAIL_COPY_COMBO: "/api/backoffice/sub/brodManage/contentDetail/copy",
+    BROD_CONTENT_DETAIL_COPY_INSERT: "/api/backoffice/sub/brodManage/contentDetail/copyInsert.do",
+    BROD_CONTENT_DETAIL_FILE_SEARCH: "/api/backoffice/sub/brodManage/contentDetail/fileSearch.do",
+    BROD_CONTENT_DETAIL_TIME_CHECK: "/api/backoffice/sub/brodManage/contentDetail/timeCheck.do",
 
     //기초 방송(템플릿) 관리
     BASIC_BROD_LIST: "/api/backoffice/sub/brodManage/basic/list.do",

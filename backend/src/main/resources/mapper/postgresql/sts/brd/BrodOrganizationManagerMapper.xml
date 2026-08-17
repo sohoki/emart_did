@@ -4,30 +4,37 @@
     <select id="selectBrodOrganizationLst" resultType="BrodOrganizationVO">
         SELECT * FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY A.ORG_SEQ ASC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.ORG_SEQ AS orgSeq, D.BROD_NAME AS brodName, A.BROD_TIME AS brodTime, A.ATCH_FILE_ID AS atchFileId, B.CODE_NM AS codeNm,
-        B.CODE_DC AS codeDc, D.BASIC_FILE_ID AS basicFileId, C.ORIGNL_FILE_NM AS orignlFileNm, A.BROD_GUBUN AS secGubun
-        FROM TB_BRODORGANIZATION A
-        JOIN LETTCCMMNDETAILCODE B ON A.BROD_GUBUN = B.CODE
-        JOIN LETTNFILEDETAIL C ON A.BASIC_FILE_ID = C.ATCH_FILE_ID
-        JOIN TB_BRODSCHEDULE D ON D.BROD_CODE = A.BROD_CODE
-        WHERE A.BROD_CODE = #{brodCode}
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'CON_NM'">
-                    AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND CAST(A.ORG_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        ) TB
+            SELECT
+
+            TB.*
+            FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY A.ORG_SEQ ASC) AS RNUM,
+                    A.ORG_SEQ AS orgSeq,
+                    D.BROD_NAME AS brodName,
+                    A.BROD_TIME AS brodTime,
+                    A.ATCH_FILE_ID AS atchFileId,
+                    B.CODE_NM AS codeNm,
+                    B.CODE_DC AS codeDc, D.BASIC_FILE_ID AS basicFileId,
+                    C.ORIGNL_FILE_NM AS orignlFileNm,
+                    A.BROD_GUBUN AS secGubun
+                FROM TB_BRODORGANIZATION A
+                JOIN LETTCCMMNDETAILCODE B ON A.BROD_GUBUN = B.CODE
+                JOIN LETTNFILEDETAIL C ON A.BASIC_FILE_ID = C.ATCH_FILE_ID
+                JOIN TB_BRODSCHEDULE D ON D.BROD_CODE = A.BROD_CODE
+                WHERE A.BROD_CODE = #{brodCode}
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'CON_NM'">
+                            AND A.CON_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <otherwise>
+                            AND CAST(A.ORG_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>

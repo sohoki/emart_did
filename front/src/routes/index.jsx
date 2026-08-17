@@ -46,6 +46,7 @@ const ContentDetailEditorPage = lazy(() => import('@/pages/backoffice/ConManage/
 const BrodAnniversaryListPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodAnniversaryListPage.jsx'));
 const BrodScheduleStatusPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodScheduleStatusPage.jsx'));
 const BrodContentListPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodContentListPage.jsx'));
+const BrodContentDetailPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodContentDetailPage.jsx'));
 const BasicBrodListPage = lazy(() => import('@/pages/backoffice/BrodManage/BasicBrodListPage.jsx'));
 const BrodMusicFileListPage = lazy(() => import('@/pages/backoffice/BrodManage/BrodMusicFileListPage.jsx'));
 
@@ -97,6 +98,7 @@ export default function RouterConfig() {
                         <Route path="/backoffice/sub/brodManage/anniver" element={<BrodAnniversaryListPage />} />
                         <Route path="/backoffice/sub/brodManage/schedule" element={<BrodScheduleStatusPage />} />
                         <Route path="/backoffice/sub/brodManage/content" element={<BrodContentListPage />} />
+                        <Route path="/backoffice/sub/brodManage/content/detail" element={<BrodContentDetailPage />} />
                         <Route path="/backoffice/sub/brodManage/basic" element={<BasicBrodListPage />} />
                         <Route path="/backoffice/sub/brodManage/musicFile" element={<BrodMusicFileListPage />} />
                     </Route>

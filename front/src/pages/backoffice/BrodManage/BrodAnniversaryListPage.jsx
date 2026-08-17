@@ -16,8 +16,8 @@ const INITIAL_SEARCH_FORM = {
 };
 
 const EMPTY_ANNIVER_FORM = {
-    mode: 'Ins', brodAnnSeq: '', brodCode: '', anniverName: '', anniversaryGubun: '',
-    anniverStartday: '', anniverEndday: '', anniversaryStartTime: '', anniversaryTime: '',
+    mode: 'Ins', brodAnnSeq: '', brodCode: '', atchFileId: '', anniverName: '', anniversaryGubun: '',
+    anniverStartDay: '', anniverEndDay: '', anniversaryTime: '', anniverOrder: '1',
 };
 
 // 방송 기념일 관리 — 레거시 brodAnniverList.jsp 참고. 등록/수정 우측 인라인 폼이었던
@@ -28,6 +28,8 @@ export default function BrodAnniversaryListPage() {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [anniverForm, setAnniverForm] = useState(EMPTY_ANNIVER_FORM);
+    const [gubunOptions, setGubunOptions] = useState([]);
+    const [fileOptions, setFileOptions] = useState([]);
 
     const fetchAnniverList = useCallback(async (query) => {
         if (!query.brodCode) {
@@ -68,7 +70,22 @@ export default function BrodAnniversaryListPage() {
     }, [onSearch]);
 
     // ===== 등록/수정 모달 =====
+    // 콘텐츠명 검색(음원 파일) — 특정방송 모달에서 공용으로 쓴다.
+    const handleFileSearch = useCallback(async (keyword) => {
+        const res = await fnAjaxFetch({
+            url: URL.BROD_CONTENT_DETAIL_FILE_SEARCH, method: 'GET',
+            param: { orgFileNm: keyword ?? '' }, showLoading: false,
+        });
+        setFileOptions(res?.data?.result?.resultList ?? []);
+    }, []);
+
     const handleOpenAnniverModal = useCallback(async (brodAnnSeq) => {
+        // 특정방송여부 콤보(EMT020)는 content/copyPopupData.do가 함께 내려준다.
+        const popupRes = await fnAjaxFetch({
+            url: URL.BROD_CONTENT_REG_POPUP_DATA, method: 'GET', param: { atchFileId: '' }, showLoading: false,
+        });
+        setGubunOptions(popupRes?.data?.result?.anniversaryGubun ?? []);
+
         if (!brodAnnSeq) {
             if (!tempParams.brodCode) {
                 await Swal.fire({ icon: 'warning', title: '입력 필요', text: '방송 코드를 먼저 입력해 주세요.' });
@@ -80,8 +97,11 @@ export default function BrodAnniversaryListPage() {
         }
         const res = await fnAjaxFetch({ url: URL.BROD_ANNIVER_DETAIL, method: 'POST', data: { brodAnnSeq } });
         const detail = res?.data?.result?.result;
-        if (!detail) return;
-        setAnniverForm({ ...detail, mode: 'Edt' });
+        if (!detail) {
+            await Swal.fire({ icon: 'error', title: '조회 실패', text: res?.data?.resultMessage || '특정방송 상세 조회에 실패했습니다.' });
+            return;
+        }
+        setAnniverForm({ ...EMPTY_ANNIVER_FORM, ...detail, mode: 'Edt' });
         setModalOpen(true);
     }, [tempParams.brodCode]);
 
@@ -115,8 +135,8 @@ export default function BrodAnniversaryListPage() {
             ),
         },
         { field: 'codeNm', headerName: '구분', width: 120 },
-        { field: 'anniverStartday', headerName: '시작일', width: 120 },
-        { field: 'anniverEndday', headerName: '종료일', width: 120 },
+        { field: 'anniverStartDay', headerName: '시작일', width: 120 },
+        { field: 'anniverEndDay', headerName: '종료일', width: 120 },
         {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
@@ -185,6 +205,9 @@ export default function BrodAnniversaryListPage() {
                         open={modalOpen}
                         form={anniverForm}
                         setForm={setAnniverForm}
+                        gubunOptions={gubunOptions}
+                        fileOptions={fileOptions}
+                        onFileSearch={handleFileSearch}
                         onClose={() => setModalOpen(false)}
                         onSubmit={handleSubmit}
                     />

@@ -269,14 +269,17 @@ export default function MhsRoomManagePage() {
         }
     }, [mhsBrandcd, mhsCentercd, classSearchCondition, classSearchKeyword]);
 
+    // 브랜드/매장 선택은 강의 목록의 선택적 필터일 뿐, 백엔드(selectMhsClassList)는 비어 있으면
+    // 필터 없이 전체를 조회한다(authorCode == 'ROLE_MHS_USER'일 때는 서버가 자동으로 소속 매장
+    // 범위로 제한). 그래서 브랜드/매장을 고르지 않아도 탭 진입 시 바로 전체 목록을 보여준다.
     useEffect(() => {
-        if (tab === 'class' && mhsCentercd) loadClassList();
+        if (tab === 'class') loadClassList();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab, mhsCentercd]);
+    }, [tab, mhsBrandcd, mhsCentercd]);
 
     const onClassSearch = useCallback(() => {
-        if (tab === 'class' && mhsCentercd) loadClassList();
-    }, [tab, mhsCentercd, loadClassList]);
+        if (tab === 'class') loadClassList();
+    }, [tab, loadClassList]);
 
     const onClassSearchKeyDown = useCallback((e) => {
         if (e.key === 'Enter') onClassSearch();
@@ -340,17 +343,17 @@ export default function MhsRoomManagePage() {
 
     const classColumnDefs = useMemo(() => ([
         {
-            field: 'mhsClassnm', headerName: '강의명', width: 180,
+            field: 'mhsClassnm', headerName: '강의명', flex: 1, minWidth: 200,
             cellRenderer: (p) => (
                 <button className="btn btn-link p-0" onClick={() => handleOpenClassModal(p.data?.mhsClasscd)}>{p.value}</button>
             ),
         },
         { field: 'mhsMonitornm', headerName: '강의실', width: 140 },
         { field: 'mhsTeachernm', headerName: '강사명', width: 120 },
-        { field: 'mhsClassstartday', headerName: '시작일', width: 100 },
-        { field: 'mhsClassendday', headerName: '종료일', width: 100 },
-        { field: 'mhsClassstarttime', headerName: '시작시간', width: 90 },
-        { field: 'mhsClassendtime', headerName: '종료시간', width: 90 },
+        { field: 'mhsClassstartday', headerName: '시작일', width: 110 },
+        { field: 'mhsClassendday', headerName: '종료일', width: 110 },
+        { field: 'mhsClassstarttime', headerName: '시작시간', width: 100 },
+        { field: 'mhsClassendtime', headerName: '종료시간', width: 100 },
         {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
@@ -461,9 +464,9 @@ export default function MhsRoomManagePage() {
                             ))}
                         </select>
                     </div>
-                    {!mhsCentercd && (
+                    {tab === 'viewConn' && !mhsCentercd && (
                         <div className="col-auto" style={{ alignSelf: 'center', color: '#94a3b8', fontSize: 13 }}>
-                            강의 관리/편성표 탭은 브랜드와 매장을 선택해야 조회됩니다.
+                            편성표 탭은 브랜드와 매장을 선택해야 조회됩니다. (강의 관리는 선택 없이도 전체 목록이 조회됩니다)
                         </div>
                     )}
                 </div>

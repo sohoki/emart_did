@@ -72,50 +72,49 @@
         *
         FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY B.SCHEDULE_SEQ DESC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.BROD_NAME, C.CENTER_NM, B.BROD_DAY AS brodDay, B.CENTER_ID, B.BROD_CODE AS brodCode,
-        B.SCHEDULE_SEQ,
-        CASE B.BROD_DAY
-        WHEN '20991231' THEN CONCAT(C.CENTER_STARTTIME, '/', C.CENTER_ENDTIME)
-        ELSE
-        (
-        SELECT CONCAT(D.START_TIME, '/', D.END_TIME)
-        FROM TB_CENTERANNIVERSARY D
-        WHERE D.CENTER_ID = B.CENTER_ID
-        AND B.BROD_DAY BETWEEN D.CENTER_ANNISTARTDAY AND D.CENTER_ANNIENDDAY
-        LIMIT 1
-        )
-        END AS CENTER_STARTTIME,
-        B.CREATE_CHECK,
-        CASE B.CREATE_CHECK
-        WHEN 'N' THEN '00000000'
-        ELSE TO_CHAR(B.CREATE_REGDATE, 'YYYYMMDD')
-        END AS CREATE_REGDATE,
-        B.DID_DOWNCHECK AS didDownCheck,
-        TO_CHAR(B.DID_DOWNLOADDATE, 'YYYY-MM-DD HH24:MI:SS') AS didDownLoadDate
-        FROM TB_BRODSCHEDULE A
-        JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
-        JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
-        WHERE 1=1
-        <if test="searchKeyword != ''">
-            <choose>
-                <when test="searchCondition == 'CENTER_NM'">
-                    AND C.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
-                </when>
-                <otherwise>
-                    AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
-                </otherwise>
-            </choose>
-        </if>
-        <if test="createCheck != ''">
-            AND B.CREATE_CHECK = #{createCheck}
-        </if>
-        ) TB
+            SELECT
+            TB.*
+            FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY B.SCHEDULE_SEQ DESC) AS RNUM,
+                    A.BROD_NAME, C.CENTER_NM, B.BROD_DAY AS brodDay, B.CENTER_ID, B.BROD_CODE AS brodCode,
+                    B.SCHEDULE_SEQ,
+                    CASE B.BROD_DAY
+                    WHEN '20991231' THEN CONCAT(C.CENTER_STARTTIME, '/', C.CENTER_ENDTIME)
+                    ELSE
+                    (
+                        SELECT CONCAT(D.START_TIME, '/', D.END_TIME)
+                        FROM TB_CENTERANNIVERSARY D
+                        WHERE D.CENTER_ID = B.CENTER_ID
+                        AND B.BROD_DAY BETWEEN D.CENTER_ANNISTARTDAY AND D.CENTER_ANNIENDDAY
+                        LIMIT 1
+                    )
+                    END AS CENTER_STARTTIME,
+                    B.CREATE_CHECK,
+                    CASE B.CREATE_CHECK  WHEN 'N' THEN '00000000'
+                    ELSE TO_CHAR(B.CREATE_REGDATE, 'YYYYMMDD')
+                    END AS CREATE_REGDATE,
+                    B.DID_DOWNCHECK AS didDownCheck,
+                    TO_CHAR(B.DID_DOWNLOADDATE, 'YYYY-MM-DD HH24:MI:SS') AS didDownLoadDate
+                FROM TB_BRODSCHEDULE A
+                JOIN TB_BRODCENTERSCH B ON A.BROD_CODE = B.BROD_CODE
+                JOIN TB_CENTERINFO C ON B.CENTER_ID = C.CENTER_ID
+                WHERE 1=1
+                <if test="searchKeyword != ''">
+                    <choose>
+                        <when test="searchCondition == 'CENTER_NM'">
+                            AND C.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </when>
+                        <otherwise>
+                            AND A.BROD_NAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                        </otherwise>
+                    </choose>
+                </if>
+                <if test="createCheck != ''">
+                    AND B.CREATE_CHECK = #{createCheck}
+                </if>
+            ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
     </select>
@@ -266,7 +265,7 @@
         UPDATE TB_BRODCENTERSCH SET
                                     CREATE_CHECK = #{createCheck},
                                     CREATE_REGDATE = NOW()
-        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}::numeric
     </update>
 
     <update id="updateBrodScheduleReset">
@@ -275,7 +274,7 @@
                                     CREATE_REGDATE = NOW(),
                                     DID_DOWNCHECK = #{didDownCheck},
                                     DID_DOWNLOADDATE = NOW()
-        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}::numeric
     </update>
 
     <update id="updateBrodScheduleCenterBrod">
@@ -284,7 +283,7 @@
                                     CREATE_REGDATE = NOW(),
                                     DID_DOWNCHECK = 'N',
                                     DID_DOWNLOADDATE = NULL
-        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}::numeric
     </update>
 
     <update id="updateBrodScheduleCenter">
@@ -316,7 +315,7 @@
 
     <delete id="deleteBrodScheduleSeq">
         DELETE FROM TB_BRODCENTERSCH
-        WHERE SCHEDULE_SEQ = #{scheduleSeq}
+        WHERE SCHEDULE_SEQ = #{scheduleSeq}::numeric
     </delete>
 
     <delete id="deleteBrodSchedule">

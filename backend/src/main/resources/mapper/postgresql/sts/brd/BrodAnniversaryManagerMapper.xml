@@ -5,24 +5,24 @@
         SELECT *
         FROM
         (
-        SELECT
-        ROW_NUMBER() OVER (ORDER BY ANNIVERSARY_GUBUN DESC, ANNIVER_STARTDAY ASC, ANNIVERSARY_TIME ASC, ANNIVER_ORDER ASC) AS RNUM,
-        TB.*
-        FROM
-        (
-        SELECT
-        A.BROD_ANNSEQ, A.BROD_CODE, A.ATCH_FILE_ID, A.ANNIVERSARY_GUBUN, A.ANNIVERSARY_TIME,
-        A.ANNIVER_STARTDAY AS ANNIVERSTARTDAY, A.ANNIVER_ENDDAY AS anniverEndDay, A.ANNIVER_ORDER,
-        B.ORIGNL_FILE_NM AS orignlFileNm, B.PLAY_TIME AS playTime, B.FILE_THUMNAIL AS fileThumnail,
-        C.CODE_NM AS codeNm, A.ANNIVER_NAME AS anniverName, A.ANNIVERSARY_STARTTIME AS anniversaryStartTime
-        FROM TB_BRODANNIVERSARY A
-        JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
-        JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
-        WHERE A.BROD_CODE = #{brodCode}
-        <if test="brodDay != ''">
-            AND #{brodDay} BETWEEN A.ANNIVER_STARTDAY AND A.ANNIVER_ENDDAY
-        </if>
-        ) TB
+            SELECT
+            TB.*
+            FROM
+            (
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY ANNIVERSARY_GUBUN DESC, ANNIVER_STARTDAY ASC, ANNIVERSARY_TIME ASC, ANNIVER_ORDER ASC) AS RNUM,
+                    A.BROD_ANNSEQ, A.BROD_CODE, A.ATCH_FILE_ID, A.ANNIVERSARY_GUBUN, A.ANNIVERSARY_TIME,
+                    A.ANNIVER_STARTDAY AS ANNIVERSTARTDAY, A.ANNIVER_ENDDAY AS anniverEndDay, A.ANNIVER_ORDER,
+                    B.ORIGNL_FILE_NM AS orignlFileNm, B.PLAY_TIME AS playTime, B.FILE_THUMNAIL AS fileThumnail,
+                    C.CODE_NM AS codeNm, A.ANNIVER_NAME AS anniverName, A.ANNIVERSARY_STARTTIME AS anniversaryStartTime
+                FROM TB_BRODANNIVERSARY A
+                JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+                JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
+                WHERE A.BROD_CODE = #{brodCode}
+                <if test="brodDay != ''">
+                    AND #{brodDay} BETWEEN A.ANNIVER_STARTDAY AND A.ANNIVER_ENDDAY
+                </if>
+            ) TB
         ) TA
         WHERE 1=1
     </select>
@@ -33,16 +33,16 @@
             A.ANNIVER_STARTDAY, A.ANNIVER_ENDDAY, A.ANNIVER_ORDER, A.ANNIVER_NAME, A.ANNIVERSARY_STARTTIME,
             A.ANNIVERSARY_STARTTIME AS anniversaryStartTime
         FROM TB_BRODANNIVERSARY A
-                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
-                 JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
-        WHERE A.BROD_ANNSEQ = #{brodAnnSeq}
+        JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
+        WHERE A.BROD_ANNSEQ = #{brodAnnSeq}::numeric
     </select>
 
     <select id="selectBrodAnniverPageCnt" resultType="java.lang.Integer">
         SELECT COALESCE(COUNT(*), 0)
         FROM TB_BRODANNIVERSARY A
-                 JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
-                 JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
+        JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        JOIN LETTCCMMNDETAILCODE C ON A.ANNIVERSARY_GUBUN = C.CODE
         WHERE A.BROD_CODE = #{brodCode}
     </select>
 
@@ -55,9 +55,6 @@
 
     <!-- BROD_ANNSEQ는 DB 시퀀스 conanniversary_seq로 채번함(08_create_missing_sequences.sql 참고) -->
     <insert id="insertBrodAnniver">
-        <selectKey keyProperty="brodAnnSeq" resultType="java.lang.String" order="BEFORE">
-            SELECT NEXTVAL('conanniversary_seq')
-        </selectKey>
         INSERT INTO TB_BRODANNIVERSARY
         (
             BROD_ANNSEQ, BROD_CODE, ATCH_FILE_ID, ANNIVERSARY_GUBUN, ANNIVERSARY_TIME,
@@ -66,7 +63,7 @@
         )
         VALUES
             (
-                #{brodAnnSeq}, #{brodCode}, #{atchFileId}, #{anniversaryGubun}, #{anniversaryTime},
+                NEXTVAL('conanniversary_seq'), #{brodCode}, #{atchFileId}, #{anniversaryGubun}, #{anniversaryTime},
                 #{anniverStartDay}, #{anniverEndDay}, #{anniverOrder}, NOW(), #{frstRegisterId,jdbcType=VARCHAR},
                 NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{anniverName}, #{anniversaryStartTime,jdbcType=VARCHAR}
             )
@@ -131,12 +128,12 @@
                                       ANNIVER_NAME = #{anniverName},
                                       ANNIVERSARY_STARTTIME = #{anniversaryStartTime,jdbcType=VARCHAR},
                                       LAST_UPDUSR_ID = #{lastUpdusrId,jdbcType=VARCHAR}
-        WHERE BROD_ANNSEQ = #{brodAnnSeq}
+        WHERE BROD_ANNSEQ = #{brodAnnSeq}::numeric
     </update>
 
     <delete id="deleteBrodAnniver">
         DELETE FROM TB_BRODANNIVERSARY
-        WHERE BROD_ANNSEQ = #{brodAnnSeq}
+        WHERE BROD_ANNSEQ = #{brodAnnSeq}::numeric
     </delete>
 
     <delete id="deleteBrodAnniverBrod">

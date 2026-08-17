@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState, Suspense, lazy } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
 import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
@@ -24,6 +25,7 @@ const EMPTY_BROD_FORM = {
 // 방송(음원) 콘텐츠 관리 — 레거시 brodContentList.jsp 참고. 등록/수정 우측 인라인
 // 폼이었던 것을 다른 목록 화면들과 동일한 모달로 교체.
 export default function BrodContentListPage() {
+    const navigate = useNavigate();
     const gridApiRef = useRef(null);
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -69,26 +71,24 @@ export default function BrodContentListPage() {
     const { handleReset } = useResetForm(setTempParams, INITIAL_SEARCH_FORM);
 
     // ===== 등록/수정 모달 =====
-    const loadFormData = useCallback(async (brodCode, mode) => {
+    // 편성(시간대별 음원 배치)·특정방송 관리는 BrodContentDetailPage(방송명 링크)에서
+    // 진행하고, 이 목록 화면의 모달은 방송 자체의 기본 정보(방송명/재생간격/기초방송/
+    // 사용유무) 등록·수정만 빠르게 처리한다.
+    const handleOpenBrodModal = useCallback(async (row) => {
         const res = await fnAjaxFetch({
             url: URL.BROD_CONTENT_FORM_DATA, method: 'GET',
-            param: { brodCode: brodCode ?? '', mode }, showLoading: false,
+            param: { brodCode: row?.brodCode ?? '', mode: row ? 'Edt' : 'Ins' }, showLoading: false,
         });
         setIntervalCombo(res?.data?.result?.brodInterval ?? []);
         setBasicCombo(res?.data?.result?.basicInfo ?? []);
-        return res?.data?.result?.regist;
-    }, []);
-
-    const handleOpenBrodModal = useCallback(async (row) => {
         if (row) {
-            const detail = await loadFormData(row.brodCode, 'Edt');
-            setBrodForm({ ...EMPTY_BROD_FORM, ...(detail ?? row), mode: 'Edt' });
+            const obj = res?.data?.result?.regist;
+            setBrodForm({ ...EMPTY_BROD_FORM, ...(obj ?? row), mode: 'Edt' });
         } else {
-            await loadFormData('', 'Ins');
             setBrodForm(EMPTY_BROD_FORM);
         }
         setModalOpen(true);
-    }, [loadFormData]);
+    }, []);
 
     const handleSubmit = useCallback(async () => {
         const isInsert = brodForm.mode === 'Ins';
@@ -127,7 +127,10 @@ export default function BrodContentListPage() {
         {
             headerName: '방송명', field: 'brodName', flex: 1, minWidth: 160,
             cellRenderer: (p) => (
-                <button className="btn btn-link p-0" onClick={() => handleOpenBrodModal(p.data)}>{p.value}</button>
+                <button className="btn btn-link p-0"
+                    onClick={() => navigate(`/backoffice/sub/brodManage/content/detail?brodCode=${p.data?.brodCode}`)}>
+                    {p.value}
+                </button>
             ),
         },
         { field: 'brodCode', headerName: '방송코드', width: 160 },
@@ -138,7 +141,14 @@ export default function BrodContentListPage() {
             field: 'brodUseYn', headerName: '사용여부', width: 100, cellStyle: { textAlign: 'center' },
             valueFormatter: (p) => (p.value === 'Y' ? '사용' : '미사용'),
         },
-    ]), [handleOpenBrodModal]);
+        {
+            headerName: '수정', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                    onClick={() => handleOpenBrodModal(p.data)}>수정</button>
+            ),
+        },
+    ]), [navigate, handleOpenBrodModal]);
 
     return (
         <div className="row g-0 main-contents">
