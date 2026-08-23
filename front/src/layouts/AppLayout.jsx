@@ -4,7 +4,7 @@ import SideBar from '@/components/Layout/SideBar.jsx';
 import Header from '@/components/Layout/Header.jsx';
 import Footer from '@/components/Layout/Footer.jsx';
 import UserBookmarks from '@/components/Layout/UserBookmarks.jsx';
-import { getCookie } from '@/lib/cookie.jsx';
+import { getCookie, removeCookie } from '@/lib/cookie.jsx';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
 import API_URL from '@/constants/URL.jsx';
 import Swal from '@/lib/swal.js';
@@ -91,6 +91,14 @@ export default function AppLayout() {
                 withCredentials: true,
             });
             const partId = res?.data?.result?.partId;
+
+            // 서버는 JWT라 상태를 갖지 않아 refreshToken 무효화만 하고 클라이언트 쿠키는
+            // 지워주지 않는다 — 여기서 지우지 않으면 accessToken이 브라우저에 그대로 남아
+            // 로그아웃이 안 된 것처럼 보인다(다른 프로젝트와 같은 호스트에서 같이 띄워두면
+            // 쿠키 이름이 겹쳐 증상이 더 헷갈리게 나타날 수 있음). savedManagerId(아이디 저장)는
+            // 로그인 편의 기능이라 그대로 둔다.
+            ['accessToken', 'refreshToken', 'userId', 'userName', 'roleId', 'partId'].forEach(removeCookie);
+
             navigate(partId === 'VENDOR' ? '/parterLogin' : '/login');
         } catch (error) {
             // HandledError: fnAjaxFetch 내부에서 이미 Swal 처리됨 → 중복 표시 방지

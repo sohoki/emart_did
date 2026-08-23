@@ -256,8 +256,7 @@
     </insert>
 
     <update id="updateCenterSchedule">
-        UPDATE TB_CENTERINFO SET
-            BROD_CODE = #{brodCode}
+        UPDATE TB_CENTERINFO SET  BROD_CODE = #{brodCode}
         WHERE CENTER_ID = #{centerId}
     </update>
 
@@ -269,8 +268,7 @@
     </update>
 
     <update id="updateBrodScheduleReset">
-        UPDATE TB_BRODCENTERSCH SET
-                                    CREATE_CHECK = #{createCheck},
+        UPDATE TB_BRODCENTERSCH SET  CREATE_CHECK = #{createCheck},
                                     CREATE_REGDATE = NOW(),
                                     DID_DOWNCHECK = #{didDownCheck},
                                     DID_DOWNLOADDATE = NOW()
@@ -287,8 +285,7 @@
     </update>
 
     <update id="updateBrodScheduleCenter">
-        UPDATE TB_BRODCENTERSCH SET
-                                    CREATE_CHECK = #{createCheck},
+        UPDATE TB_BRODCENTERSCH SET CREATE_CHECK = #{createCheck},
                                     CREATE_REGDATE = NOW(),
                                     DID_DOWNCHECK = 'N',
                                     DID_DOWNLOADDATE = NULL
@@ -297,8 +294,7 @@
     </update>
 
     <update id="updateBrodScheduleCenterNotUse">
-        UPDATE TB_BRODCENTERSCH SET
-                                    CREATE_CHECK = 'Y',
+        UPDATE TB_BRODCENTERSCH SET CREATE_CHECK = 'Y',
                                     CREATE_REGDATE = NOW(),
                                     DID_DOWNCHECK = 'N',
                                     DID_DOWNLOADDATE = NULL
@@ -306,8 +302,7 @@
     </update>
 
     <update id="updateBrodDidCenterID">
-        UPDATE TB_BRODCENTERSCH SET
-                                    DID_DOWNCHECK = #{didDownCheck},
+        UPDATE TB_BRODCENTERSCH SET DID_DOWNCHECK = #{didDownCheck},
                                     DID_DOWNLOADDATE = NOW()
         WHERE CENTER_ID = #{centerId}
           AND BROD_CODE = #{brodCode}

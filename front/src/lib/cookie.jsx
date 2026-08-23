@@ -26,3 +26,9 @@ export function setCookie(name, value, days) {
     const safeValue = (value === undefined || value === null) ? '' : value;
     document.cookie = name + "=" + (encodeURIComponent(safeValue) || "") + expires + "; path=/";
 }
+
+// 쿠키 삭제 — setCookie와 동일하게 path=/로 만료시켜야 실제로 지워진다(path가 다르면
+// 브라우저가 별개 쿠키로 취급해 삭제되지 않는다). 로그아웃 시 인증 쿠키 정리용으로 추가.
+export function removeCookie(name) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+}

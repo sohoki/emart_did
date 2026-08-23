@@ -1,16 +1,20 @@
 package com.common.backoffice.sts.brd.web;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.common.backoffice.bas.code.service.EgovCcmCmmnDetailCodeManageService;
 import com.common.backoffice.sts.brd.modals.BrodAnniversary;
+import com.common.backoffice.sts.brd.modals.BrodAnniversaryVO;
 import com.common.backoffice.sts.brd.modals.BrodContentDetail;
 import com.common.backoffice.sts.brd.modals.BrodContentDetailVO;
 import com.common.backoffice.sts.brd.modals.BrodContentInfo;
 import com.common.backoffice.sts.brd.modals.BrodContentInfoVO;
+import com.common.backoffice.sts.brd.modals.BrodOrganization;
 import com.common.backoffice.sts.brd.service.BasicBrodInfoManageService;
 import com.common.backoffice.sts.brd.service.BrodAnniversaryManagerService;
 import com.common.backoffice.sts.brd.service.BrodContentDetailManagerService;
@@ -52,17 +56,19 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * 원본(1162줄) 대비 축소/변경된 부분:
  * - 세션 기반 LoginVO → JWT(AuthHelper) 기반 인증. getMberId() → getManagerId()로 매핑
- * - **"편성표 생성/조회/엑셀" 클러스터를 이번 범위에서 제외함**(`ContentBrodConfirm.do`,
- *   `ContentBrodReport.do`, `ContentBrodExcel.do`, `playCenterInfo.do`, private 헬퍼
- *   `brodReport()` — 약 410줄). 사유:
- *   1) `ContentBrodConfirm.do`(selectBrodLst)가 `UniSelectInfoManageService`라는, did_emart에
- *      아예 존재하지 않는 유틸리티에 의존함. 이 서비스는 테이블명/컬럼명을 자바 문자열로 조립해서
- *      동적 SQL을 실행하는 패턴이라(`fnBasic.setInTable("TB_BRODSCHEDULE a, LETTCCMMNDETAILCODE b")`
- *      식), 대충 짐작해서 새로 만들면 SQL 인젝션 위험이 있는 코드를 새로 들이는 셈이 됨
- *   2) `playCenterInfo.do`는 `CenterInfoManageService.selectCenterTimeInfo()`를 호출하는데,
- *      이 메서드는 9절(CenterInfoManageController) 작업 때 `FN_CENTERBRODINFO` DB 함수가 없어서
- *      이미 명시적으로 포팅 제외했던 것과 동일함
- *   3) 사용자에게 확인 후 "편성표 생성 제외하고 나머지만 진행"으로 범위를 확정함(후속 작업 필요)
+ * - **"편성표 생성/조회" 중 `centerId`(지점) 기준 배포 케이스는 이번 범위에서도 계속 제외함**
+ *   (`playCenterInfo.do` 및 `ContentBrodConfirm.do`의 centerId 분기). 사유: 이 분기가 호출하는
+ *   `CenterInfoManageService.selectCenterTimeInfo()`는 `FN_CENTERBRODINFO`라는, did_emart DB에
+ *   존재하지 않는 함수에 의존함(9절 CenterInfoManageController 작업 때 이미 포팅 제외했던 것과 동일 사유).
+ * - 반면 `brodContentView.jsp`에서 실제로 쓰는 "편성표생성"/"방송표보기"(둘 다 centerId 없이
+ *   브로드코드 단독 호출하는 "일반 편성표" 케이스)는 `generateBrodOrganization()`/
+ *   `selectBrodOrganizationPage()`로 포팅함. 원본 `ContentBrodConfirm.do`가 재생간격(codeDc) 조회에
+ *   쓰던 `UniSelectInfoManageService`(테이블/컬럼명을 문자열로 조립하는 동적 SQL이라 SQL 인젝션
+ *   위험이 있어 did_emart엔 아예 들이지 않음)는, 이미 `selectBrodContentInfo()`가 같은 값을
+ *   `codeDc`로 정상적으로 내려주고 있어서 그걸 재사용하는 것으로 대체함(원본 로직 변경 없음).
+ *   원본 private 헬퍼 `brodReport()`가 쓰던 `EgovStringUtil.lenReplace/secToMinTimeChart`도
+ *   did_emart 공용 유틸에는 없어서, 공용 파일을 건드리지 않고 이 클래스 안에 로컬로만 옮겨둠
+ *   (`padLeftZero`/`toSlotMinSec`).
  * - 신규 등록/복사 시 원본은 EgovIdGnrService(egovBrodIdGnrService, did_emart 미구성) 빈으로
  *   BROD_CODE를 채번했으나, 11절(BrodScheduleManagerController)에서 이미 추가한
  *   `BrodContentInfoManageService.generateBrodCode()`(MAX+1)를 재사용함
@@ -535,5 +541,323 @@ public class BrodContentInfoManageController {
 			ResultHelper.setFailResult(resultVO, "selectBrodCombo", e, egovMessageSource);
 		}
 		return resultVO;
+	}
+
+	@Operation(summary = "방송 편성표 조회", description = "레거시 ContentBrodReport.do 포팅(centerId 없는 '일반 편성표' 케이스). 확정된 편성(TB_BRODORGANIZATION)을 시간순으로 반환합니다.")
+	@GetMapping("/{brodCode}/organization.do")
+	public ResultVO selectBrodOrganizationPage(@Parameter(description = "방송 코드") @PathVariable String brodCode, HttpServletRequest request) throws Exception {
+		ResultVO resultVO = new ResultVO();
+		try {
+			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
+
+			BrodOrganization vo = new BrodOrganization();
+			vo.setBrodCode(brodCode);
+			vo.setCenterId("");
+
+			Map<String, Object> resultMap = new HashMap<>();
+			resultMap.put("regist", brodContent.selectBrodContentInfo(brodCode));
+			resultMap.put(Globals.JSON_RETURN_RESULT_LIST, brodOrgService.selectBrodOrgnizationPage(vo));
+			ResultHelper.setSuccess(resultVO, resultMap);
+		} catch (Exception e) {
+			ResultHelper.setFailResult(resultVO, "selectBrodOrganizationPage", e, egovMessageSource);
+		}
+		return resultVO;
+	}
+
+	@Operation(summary = "방송 편성표 생성", description = "레거시 ContentBrodConfirm.do 포팅(centerId 없는 '일반 편성표' 케이스). 기존 편성표를 지우고 특정방송(기념일)/일반 편성을 09:00~24:00 시간대에 재배치합니다.")
+	@PostMapping("/scheduleGenerate.do")
+	public ResultVO generateBrodOrganization(@RequestParam("brodCode") String brodCode, HttpServletRequest request) throws Exception {
+		ResultVO resultVO = new ResultVO();
+		try {
+			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
+
+			final String startTime = "0900";
+			final String endTime = "2400";
+			final String brodGubun = "REG01";
+			final String contentPlayDay = "20991231";
+
+			BrodContentInfo info = brodContent.selectBrodContentInfo(brodCode);
+			if (info == null || info.getCodeDc() == null || info.getCodeDc().isBlank()) {
+				ResultHelper.setSuccess(resultVO, false, Globals.JSON_RETURN_RESULT);
+				return resultVO;
+			}
+			String timeInterval = info.getCodeDc();
+			String strToday = new SimpleDateFormat("yyyyMMdd").format(new Date());
+
+			brodOrgService.deleteBrodOrganization(brodCode);
+
+			BrodAnniversary annBrod = new BrodAnniversary();
+			annBrod.setBrodCode(brodCode);
+			annBrod.setBrodDay(strToday);
+			List<BrodAnniversaryVO> annDetail = anniverInfo.selectBrodAnniverLst(annBrod);
+
+			BrodContentDetailVO detail = new BrodContentDetailVO();
+			detail.setBrodCode(brodCode);
+			detail.setIntervalSection("");
+			detail.setBrodDay(strToday);
+			List<BrodContentDetailVO> brodContentList = brodDetail.selectBrodContentDetailLst(detail);
+
+			int hourCount = (Integer.parseInt(endTime) - Integer.parseInt(startTime)) / 100;
+			for (int i = 0; i < hourCount; i++) {
+				for (int a = 0; a < Integer.parseInt(timeInterval) / 10; a++) {
+					if ("30".equals(timeInterval)) {
+						for (int forGubun = 0; forGubun < 2; forGubun++) {
+							brodReport(i, a, annDetail, brodContentList, startTime, timeInterval, forGubun, "", brodGubun, contentPlayDay);
+						}
+					} else {
+						brodReport(i, a, annDetail, brodContentList, startTime, timeInterval, 0, "", brodGubun, contentPlayDay);
+					}
+				}
+			}
+
+			ResultHelper.setSuccess(resultVO, true, Globals.JSON_RETURN_RESULT);
+		} catch (Exception e) {
+			ResultHelper.setFailResult(resultVO, "generateBrodOrganization", e, egovMessageSource);
+		}
+		return resultVO;
+	}
+
+	/**
+	 * 시간대 하나(10분 슬롯)에 대해 특정방송(기념일)/일반 편성 콘텐츠를 TB_BRODORGANIZATION에 채워 넣는다.
+	 * 원본 EMART_CMS BrodContentInfoManageController#brodReport(라인 916~1160)를 그대로 포팅한 것으로,
+	 * 조건식/삽입 규칙(09시대 일반 콘텐츠 제외 등 포함)을 원본과 동일하게 유지한다.
+	 */
+	private int brodReport(int i, int a, List<BrodAnniversaryVO> annDetail, List<BrodContentDetailVO> brodContent, String startTime, String timeInterval, int forGubun, String centerId,
+			String brodGubun, String conPlayDay) {
+
+		int totalTime = 0;
+		int ret = 0;
+		BrodOrganization org = new BrodOrganization();
+		for (int an = 0; an < annDetail.size(); an++) {
+			if (!annDetail.get(an).getAnniversaryGubun().equals("ANNGUBUN01")
+					&& annDetail.get(an).getAnniversaryTime().equals(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i))), 2)
+							+ "" + padLeftZero(String.valueOf(a * 10), 2))
+					&& forGubun == 0) {
+
+				// 특정 시간 방송 먼저
+				org.setBrodCode(annDetail.get(an).getBrodCode());
+				org.setAtchFileId(annDetail.get(an).getAtchFileId());
+				org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+						+ toSlotMinSec(totalTime));
+				org.setBrodGubun(brodGubun);
+				org.setContentPlayDay(conPlayDay);
+				org.setBrodSeq("0");
+				org.setBrodAnnSeq(annDetail.get(an).getBrodAnnSeq());
+				org.setCenterId(centerId);
+
+				try {
+					if (org.getBrodTime().length() < 9) {
+						ret = brodOrgService.insertBrodOrganization(org);
+					}
+				} catch (Exception e) {
+					log.debug("brodReport error: {}", e.toString());
+				}
+
+				totalTime += Integer.parseInt(annDetail.get(an).getPlayTime());
+
+			} else if (!annDetail.get(an).getAnniversaryGubun().equals("ANNGUBUN01")
+					&& annDetail.get(an).getAnniversaryTime().equals(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i))), 2)
+							+ "" + padLeftZero(String.valueOf((a + 3) * 10), 2))
+					&& forGubun == 1) {
+
+				// 특정 시간 방송 먼저
+				org.setBrodCode(annDetail.get(an).getBrodCode());
+				org.setAtchFileId(annDetail.get(an).getAtchFileId());
+				org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+						+ toSlotMinSec(totalTime));
+				org.setBrodGubun(brodGubun);
+				org.setContentPlayDay(conPlayDay);
+				org.setBrodSeq("0");
+				org.setBrodAnnSeq(annDetail.get(an).getBrodAnnSeq());
+				org.setCenterId(centerId);
+
+				try {
+					if (org.getBrodTime().length() < 9) {
+						ret = brodOrgService.insertBrodOrganization(org);
+					}
+				} catch (Exception e) {
+					log.debug("brodReport error: {}", e.toString());
+				}
+
+				totalTime += Integer.parseInt(annDetail.get(an).getPlayTime());
+
+			} else if (annDetail.get(an).getAnniversaryGubun().equals("ANNGUBUN01") && i == 0 && annDetail.get(an).getAnniversaryTime().equals(String.valueOf(a * 10)) && forGubun == 0) {
+				// 나누기 없을때
+				org.setBrodCode(annDetail.get(an).getBrodCode());
+				org.setAtchFileId(annDetail.get(an).getAtchFileId());
+				org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+						+ toSlotMinSec(totalTime));
+				org.setBrodGubun(brodGubun);
+				org.setContentPlayDay(conPlayDay);
+				org.setBrodSeq("0");
+				org.setBrodAnnSeq(annDetail.get(an).getBrodAnnSeq());
+				org.setCenterId(centerId);
+
+				try {
+					if (org.getBrodTime().length() < 9) {
+						ret = brodOrgService.insertBrodOrganization(org);
+					}
+				} catch (Exception e) {
+					log.debug("brodReport error: {}", e.toString());
+				}
+
+				totalTime += Integer.parseInt(annDetail.get(an).getAnniversaryTime());
+			} else if (annDetail.get(an).getAnniversaryGubun().equals("ANNGUBUN01") && i > 0 && (i % (Integer.parseInt(annDetail.get(an).getAnniversaryTime()) / 60)) == 0
+					&& ((a * 10) == Integer.parseInt(annDetail.get(an).getAnniversaryStartTime())) && forGubun == 0) {
+				// 이후 나누기 생각
+				org.setBrodCode(annDetail.get(an).getBrodCode());
+				org.setAtchFileId(annDetail.get(an).getAtchFileId());
+				org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+						+ toSlotMinSec(totalTime));
+				org.setBrodGubun(brodGubun);
+				org.setContentPlayDay(conPlayDay);
+				org.setBrodSeq("0");
+				org.setBrodAnnSeq(annDetail.get(an).getBrodAnnSeq());
+				org.setCenterId(centerId);
+
+				try {
+					if (org.getBrodTime().length() < 9) {
+						ret = brodOrgService.insertBrodOrganization(org);
+					}
+				} catch (Exception e) {
+					log.debug("brodReport error: {}", e.toString());
+				}
+
+				totalTime += Integer.parseInt(annDetail.get(an).getPlayTime());
+
+			} else if (annDetail.get(an).getAnniversaryGubun().equals("ANNGUBUN01") && i == 0 && annDetail.get(an).getAnniversaryTime().equals(String.valueOf((a + 3) * 10)) && forGubun == 1) {
+				// 나누기 없을때
+				org.setBrodCode(annDetail.get(an).getBrodCode());
+				org.setAtchFileId(annDetail.get(an).getAtchFileId());
+				org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+						+ toSlotMinSec(totalTime));
+				org.setBrodGubun(brodGubun);
+				org.setContentPlayDay(conPlayDay);
+				org.setBrodSeq("0");
+				org.setBrodAnnSeq(annDetail.get(an).getBrodAnnSeq());
+				org.setCenterId(centerId);
+
+				try {
+					if (org.getBrodTime().length() < 9) {
+						ret = brodOrgService.insertBrodOrganization(org);
+					}
+				} catch (Exception e) {
+					log.debug("brodReport error: {}", e.toString());
+				}
+				totalTime += Integer.parseInt(annDetail.get(an).getPlayTime());
+			} else if (annDetail.get(an).getAnniversaryGubun().equals("ANNGUBUN01") && i > 0 && (i % (Integer.parseInt(annDetail.get(an).getAnniversaryTime()) / 60)) == 0
+					&& (((a + 3) * 10) == Integer.parseInt(annDetail.get(an).getAnniversaryStartTime())) && forGubun == 1) {
+				// 이후 나누기 생각
+				org.setBrodCode(annDetail.get(an).getBrodCode());
+				org.setAtchFileId(annDetail.get(an).getAtchFileId());
+				org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+						+ toSlotMinSec(totalTime));
+				org.setBrodGubun(brodGubun);
+				org.setContentPlayDay(conPlayDay);
+				org.setBrodSeq("0");
+				org.setBrodAnnSeq(annDetail.get(an).getBrodAnnSeq());
+				org.setCenterId(centerId);
+
+				try {
+					if (org.getBrodTime().length() < 9) {
+						ret = brodOrgService.insertBrodOrganization(org);
+					}
+				} catch (Exception e) {
+					log.debug("brodReport error: {}", e.toString());
+				}
+				totalTime += Integer.parseInt(annDetail.get(an).getPlayTime());
+			}
+		}
+
+		for (int aa = 0; aa < brodContent.size(); aa++) {
+
+			if (brodContent.get(aa).getIntervalSection().equals(padLeftZero(String.valueOf(a * 10), 3))) {
+				// 기념일 정리 해서 넣기
+				if (totalTime <= 600) {
+					if (timeInterval.equals("30")) {
+						// 구분을 넣어야 함 1시간 단위 설정시
+						if (forGubun == 0) {
+							org.setBrodCode(brodContent.get(aa).getBrodCode());
+							org.setAtchFileId(brodContent.get(aa).getAtchFileId());
+							org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+									+ toSlotMinSec(totalTime));
+							org.setBrodGubun(brodGubun);
+							org.setContentPlayDay(conPlayDay);
+							org.setBrodSeq(brodContent.get(aa).getBrodSeq());
+							org.setBrodAnnSeq("0");
+							org.setCenterId(centerId);
+
+							try {
+								if (Integer.parseInt(org.getBrodTime().substring(0, 2)) >= 10) {
+									ret = brodOrgService.insertBrodOrganization(org);
+								}
+							} catch (Exception e) {
+								log.debug("brodReport error: {}", e.toString());
+							}
+
+						} else {
+							org.setBrodCode(brodContent.get(aa).getBrodCode());
+							org.setAtchFileId(brodContent.get(aa).getAtchFileId());
+							org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + (a + 3) + ""
+									+ toSlotMinSec(totalTime));
+							org.setBrodGubun(brodGubun);
+							org.setContentPlayDay(conPlayDay);
+							org.setBrodSeq(brodContent.get(aa).getBrodSeq());
+							org.setBrodAnnSeq("0");
+							org.setCenterId(centerId);
+
+							try {
+								if (Integer.parseInt(org.getBrodTime().substring(0, 2)) >= 10) {
+									ret = brodOrgService.insertBrodOrganization(org);
+								}
+							} catch (Exception e) {
+								log.debug("brodReport error: {}", e.toString());
+							}
+						}
+						totalTime += Integer.parseInt(brodContent.get(aa).getPlayTime());
+					} else {
+						org.setBrodCode(brodContent.get(aa).getBrodCode());
+						org.setAtchFileId(brodContent.get(aa).getAtchFileId());
+						org.setBrodTime(padLeftZero(String.valueOf((Integer.parseInt(startTime.substring(0, 2)) + (i * 1))), 2) + ":" + a + ""
+								+ toSlotMinSec(totalTime));
+						org.setBrodGubun(brodGubun);
+						org.setContentPlayDay(conPlayDay);
+						org.setBrodSeq(brodContent.get(aa).getBrodSeq());
+						org.setBrodAnnSeq("0");
+						org.setCenterId(centerId);
+
+						try {
+							if (Integer.parseInt(org.getBrodTime().substring(0, 2)) >= 10) {
+								ret = brodOrgService.insertBrodOrganization(org);
+							}
+						} catch (Exception e) {
+							log.debug("brodReport error: {}", e.toString());
+						}
+
+						totalTime += Integer.parseInt(brodContent.get(aa).getPlayTime());
+					}
+
+				} else {
+					break;
+				}
+			}
+		}
+		return ret;
+	}
+
+	/** 값을 지정 길이로 앞쪽에 '0'을 채워 맞춘다(레거시 EgovStringUtil.lenReplace 대체 — did_emart 공용 유틸엔 없어 로컬로 둠). */
+	private static String padLeftZero(String value, int length) {
+		StringBuilder sb = new StringBuilder(value);
+		while (sb.length() < length) {
+			sb.insert(0, '0');
+		}
+		return sb.toString();
+	}
+
+	/** 10분 슬롯 내 누적 재생초(0~599)를 "분:초" 형태로 변환한다(레거시 EgovStringUtil.secToMinTimeChart 대체). */
+	private static String toSlotMinSec(int totalTimeSec) {
+		int min = totalTimeSec / 60;
+		int sec = totalTimeSec % 60;
+		return min + ":" + padLeftZero(String.valueOf(sec), 2);
 	}
 }
