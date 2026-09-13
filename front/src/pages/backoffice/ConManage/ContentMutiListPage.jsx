@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
 import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
@@ -33,6 +33,7 @@ const EMPTY_MUTI_FORM = {
 // 화면 구성(멀티페이지 콘텐츠) 관리 — 레거시 conMutiList.jsp 참고.
 export default function ContentMutiListPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const gridApiRef = useRef(null);
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -125,6 +126,12 @@ export default function ContentMutiListPage() {
             setModalOpen(true);
         }
     }, []);
+
+    // 단말기 상세 화면의 "콘텐츠 등록하기"에서 넘어오면(?openInsert=1) 목록 진입과 동시에
+    // 등록 모달을 자동으로 연다(DidInfoList의 ?editDidId= 자동오픈과 동일 패턴).
+    useEffect(() => {
+        if (searchParams.get('openInsert')) handleOpenMutiModal();
+    }, [searchParams, handleOpenMutiModal]);
 
     const handleSubmit = useCallback(async () => {
         if (!mutiForm.conNm) {

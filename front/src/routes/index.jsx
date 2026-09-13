@@ -28,6 +28,7 @@ const DidPicListPage = lazy(() => import('@/pages/backoffice/OperManage/DidPicLi
 
 {/* 장비 관리 */}
 const DidInfoList = lazy(() => import('@/pages/backoffice/equiManage/DidInfoList.jsx'));
+const DidDetailPage = lazy(() => import('@/pages/backoffice/equiManage/DidDetailPage.jsx'));
 const DIdGroupInfo = lazy(() => import('@/pages/backoffice/equiManage/DIdGroupInfo.jsx'));
 const ScheduleListPage = lazy(() => import('@/pages/backoffice/equiManage/ScheduleListPage.jsx'));
 const ScheduleStatusPage = lazy(() => import('@/pages/backoffice/equiManage/ScheduleStatusPage.jsx'));
@@ -79,6 +80,7 @@ export default function RouterConfig() {
 
                         {/* 장비 관리 */}
                         <Route path="/backoffice/sub/equiManage/did" element={<DidInfoList />} />
+                        <Route path="/backoffice/sub/equiManage/did/view" element={<DidDetailPage />} />
                         <Route path="/backoffice/sub/equiManage/did_group" element={<DIdGroupInfo />} />
                         <Route path="/backoffice/sub/equiManage/sch" element={<ScheduleListPage />} />
                         <Route path="/backoffice/sub/equiManage/sch/status" element={<ScheduleStatusPage />} />

@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState, Suspense, lazy } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
 import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
@@ -21,6 +22,7 @@ const EMPTY_SCH_FORM = {
 
 // 발송 스케줄(방송 예약) 관리 — 레거시 schList.jsp/schDetail.jsp/schView.jsp 참고.
 export default function ScheduleListPage() {
+    const [searchParams] = useSearchParams();
     const gridApiRef = useRef(null);
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -80,7 +82,10 @@ export default function ScheduleListPage() {
         setContentOptions(res?.data?.result?.resultList || []);
     }, []);
 
-    const handleOpenScheduleModal = useCallback(async (schCode) => {
+    // initialGroupCode: 단말기 상세(DidDetailPage)의 "스케줄 등록하기"에서 넘어올 때, 해당
+    // 단말이 속한 그룹을 미리 선택해 둔 채로 등록 폼을 연다(레거시는 그런 프리필 없이 빈 폼만
+    // 열었지만, 어차피 그룹을 골라야 하는 화면이라 넘어온 컨텍스트를 활용하는 쪽이 자연스러움).
+    const handleOpenScheduleModal = useCallback(async (schCode, initialGroupCode) => {
         const res = await fnAjaxFetch({
             url: URL.SCH_FORM_DATA, method: 'GET',
             param: schCode ? { mode: 'Edt', schCode } : { mode: 'Ins' },
@@ -103,10 +108,18 @@ export default function ScheduleListPage() {
                 schUseYn: obj.schUseYn || 'Y',
             });
         } else {
-            setSchForm(EMPTY_SCH_FORM);
+            setSchForm({ ...EMPTY_SCH_FORM, groupCode: initialGroupCode || '' });
         }
         setModalOpen(true);
     }, []);
+
+    // 단말기 상세 화면에서 "스케줄 등록하기"로 넘어오면(?openInsert=1&groupCode=xxx) 목록
+    // 진입과 동시에 등록 모달을 자동으로 연다(DidInfoList의 ?editDidId= 자동오픈과 동일 패턴).
+    useEffect(() => {
+        if (searchParams.get('openInsert')) {
+            handleOpenScheduleModal(undefined, searchParams.get('groupCode') || '');
+        }
+    }, [searchParams, handleOpenScheduleModal]);
 
     const handleSubmit = useCallback(async () => {
         const action = schForm.mode === 'Ins' ? '등록' : '수정';

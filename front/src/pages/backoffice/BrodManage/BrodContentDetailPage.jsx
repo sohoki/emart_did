@@ -8,6 +8,7 @@ const BrodContentFormModal = lazy(() => import('./components/BrodContentFormModa
 const BrodAnniversaryFormModal = lazy(() => import('./components/BrodAnniversaryFormModal.jsx'));
 const BrodContentDetailFormModal = lazy(() => import('./components/BrodContentDetailFormModal.jsx'));
 const BrodContentCopyModal = lazy(() => import('./components/BrodContentCopyModal.jsx'));
+const BrodContentOrganizationModal = lazy(() => import('./components/BrodContentOrganizationModal.jsx'));
 
 const EMPTY_BROD_FORM = { mode: 'Ins', basicCode: '', brodCode: '', brodName: '', brodInterval: '', basicBrodCode: '', brodUseYn: 'Y' };
 const EMPTY_ANNIVER_FORM = {
@@ -30,10 +31,12 @@ const secToMinSec = (totalSec) => {
 };
 
 // 방송(음원) 콘텐츠 상세(편성) 화면 — 레거시 brodContentView.jsp 참고. 시간대별 음원
-// 배치, 특정방송(기념일), 배치 적용, 음원 콘텐츠 복사를 이 화면 하나에서 다룬다.
-// 레거시의 "편성표생성"/"방송표보기"는 백엔드 이관 과정에서 의도적으로 제외된
-// 기능(UniSelectInfoManageService 미존재/FN_CENTERBRODINFO 미존재로 인한 SQL
-// 인젝션·오류 위험)이라 이 화면에서도 준비 중 안내로만 남겨둔다.
+// 배치, 특정방송(기념일), 배치 적용, 음원 콘텐츠 복사, 편성표생성/방송표보기를 이
+// 화면 하나에서 다룬다.
+// "편성표생성"/"방송표보기"는 이 화면(centerId 없이 브로드코드 단독)에서 쓰는 "일반
+// 편성표" 케이스만 백엔드에 포팅돼 있다. 지점(centerId) 기준 배포 케이스는 원본이
+// 의존하는 FN_CENTERBRODINFO DB 함수가 did_emart에 없어 계속 제외 상태(백엔드
+// BrodContentInfoManageController 상단 주석 참고).
 export default function BrodContentDetailPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -60,6 +63,9 @@ export default function BrodContentDetailPage() {
 
     const [copyModalOpen, setCopyModalOpen] = useState(false);
     const [copyCombo, setCopyCombo] = useState([]);
+
+    const [orgModalOpen, setOrgModalOpen] = useState(false);
+    const [orgList, setOrgList] = useState([]);
 
     // 재생간격(codeDc, 분)을 10분 단위 슬롯으로 나눈다 — 60분 간격이면 00/10/20/30/40/50분 6칸.
     const slots = useMemo(() => {
@@ -337,9 +343,33 @@ export default function BrodContentDetailPage() {
         });
     }, [brodCode]);
 
-    const handleNotReady = useCallback((label) => {
-        Swal.fire({ icon: 'info', title: label, text: '준비 중인 기능입니다.' });
-    }, []);
+    // ===== 방송표보기 =====
+    const handleOpenOrgModal = useCallback(async () => {
+        const res = await fnAjaxFetch({
+            url: `${URL.BROD_CONTENT_ORGANIZATION_VIEW}/${brodCode}/organization.do`, method: 'GET',
+        });
+        setOrgList(res?.data?.result?.resultList ?? []);
+        setOrgModalOpen(true);
+    }, [brodCode]);
+
+    // ===== 편성표생성 =====
+    const handleGenerateSchedule = useCallback(async () => {
+        const result = await Swal.fire({
+            icon: 'warning', title: '편성표생성',
+            text: '현재 방송표를 지우고 특정방송/일반 편성 기준으로 새로 생성합니다. 계속하시겠습니까?',
+            showCancelButton: true, confirmButtonText: '생성', cancelButtonText: '취소',
+        });
+        if (!result.isConfirmed) return;
+
+        const res = await fnAjaxFetch({
+            url: `${URL.BROD_CONTENT_SCHEDULE_GENERATE}?brodCode=${encodeURIComponent(brodCode)}`, method: 'POST',
+        });
+        const applied = res?.data?.result?.result;
+        await Swal.fire({
+            icon: applied ? 'success' : 'warning', title: '편성표생성',
+            text: applied ? '방송표가 정상적으로 생성되었습니다.' : '방송표 생성에 실패했습니다. 반복재생간격 설정을 확인해 주세요.',
+        });
+    }, [brodCode]);
 
     if (!brodCode) {
         return <div style={{ padding: 16 }}>brodCode가 없습니다. 방송(음원) 콘텐츠 관리 목록에서 방송명 링크로 진입해 주세요.</div>;
@@ -372,9 +402,9 @@ export default function BrodContentDetailPage() {
                 <button type="button" className="btn btn-outline-secondary btn-outline__gray"
                     onClick={handleScheduleConfirm}>배치 적용</button>
                 <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={() => handleNotReady('편성표생성')}>편성표생성</button>
+                    onClick={handleGenerateSchedule}>편성표생성</button>
                 <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={() => handleNotReady('방송표보기')}>방송표보기</button>
+                    onClick={handleOpenOrgModal}>방송표보기</button>
             </div>
 
             <div className="col-12" style={{ padding: '12px 15px', borderBottom: '1px solid #dde2eb' }}>
@@ -525,6 +555,14 @@ export default function BrodContentDetailPage() {
                         combo={copyCombo}
                         onClose={() => setCopyModalOpen(false)}
                         onSubmit={handleCopySubmit}
+                    />
+                )}
+                {orgModalOpen && (
+                    <BrodContentOrganizationModal
+                        open={orgModalOpen}
+                        brodName={detail?.brodName}
+                        list={orgList}
+                        onClose={() => setOrgModalOpen(false)}
                     />
                 )}
             </Suspense>

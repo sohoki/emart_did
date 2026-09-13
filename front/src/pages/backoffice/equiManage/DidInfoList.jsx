@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
 import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
@@ -57,6 +58,8 @@ const getOsIcon = (didOs) => {
 };
 
 export default function DidInfoList() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const gridApiRef = useRef(null);
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -166,6 +169,13 @@ export default function DidInfoList() {
             setModalOpen(true);
         }
     }, []);
+
+    // 단말기 상세(DidDetailPage)의 "수정" 버튼에서 ?editDidId=xxx로 넘어오면 목록 진입과
+    // 동시에 해당 단말기의 수정 모달을 자동으로 연다.
+    useEffect(() => {
+        const editDidId = searchParams.get('editDidId');
+        if (editDidId) handleOpenDidModal(editDidId);
+    }, [searchParams, handleOpenDidModal]);
 
     const handleSubmit = useCallback(async () => {
         if (!didForm.didNm) {
@@ -285,6 +295,14 @@ export default function DidInfoList() {
         },
         { field: 'didUseYn', headerName: '사용유무', width: 90 },
         {
+            headerName: '콘텐츠 보기', width: 110, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button className="btn btn-outline-dark btn-outline__gray btn-sm"
+                    onClick={() => navigate(`/backoffice/sub/equiManage/did/view?didId=${p.data?.didId}`)}
+                >보기</button>
+            ),
+        },
+        {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
                 <button className="btn btn-outline-danger btn-outline__gray btn-sm"
@@ -292,7 +310,7 @@ export default function DidInfoList() {
                 >삭제</button>
             ),
         },
-    ]), [handleOpenDidModal, handleDelete]);
+    ]), [handleOpenDidModal, handleDelete, navigate]);
 
     return (
         <div className="row g-0 main-contents">

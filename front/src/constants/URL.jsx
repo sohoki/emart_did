@@ -139,6 +139,8 @@ const URL = {
     DID_UPDATE: "/api/backoffice/sub/equiManage/did/update.do",
     DID_FORM_DATA: "/api/backoffice/sub/equiManage/did/formData.do",
     DID_RESTART: "/api/backoffice/sub/equiManage/did/restart.do",
+    DID_REBOOT: "/api/backoffice/sub/equiManage/did/reboot.do",
+    DID_CAPTURE: "/api/backoffice/sub/equiManage/did/capture.do",
 
     //DID 그룹 관리(TB_GROUP + TB_GROUPDID) — 부서 개념인 LETTNAUTHORGROUPINFO(GROUP_COMBO)와는 별개
     DID_GROUP_LIST: "/api/backoffice/sub/equiManage/group/didGroupList.do",
@@ -237,6 +239,8 @@ const URL = {
     BROD_CONTENT_FORM_DATA: "/api/backoffice/sub/brodManage/content/formData.do",
     BROD_CONTENT_UPDATE: "/api/backoffice/sub/brodManage/content/update.do",
     BROD_CONTENT_SCHEDULE_CONFIRM: "/api/backoffice/sub/brodManage/content/scheduleConfirm.do",
+    BROD_CONTENT_ORGANIZATION_VIEW: "/api/backoffice/sub/brodManage/content",
+    BROD_CONTENT_SCHEDULE_GENERATE: "/api/backoffice/sub/brodManage/content/scheduleGenerate.do",
     BROD_CONTENT_TIME_LIST: "/api/backoffice/sub/brodManage/content/timeList.do",
     BROD_CONTENT_COPY_COUNT: "/api/backoffice/sub/brodManage/content/copyCount.do",
     BROD_CONTENT_COPY_INSERT: "/api/backoffice/sub/brodManage/content/copyInsert.do",
