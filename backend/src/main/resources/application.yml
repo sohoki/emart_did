@@ -8,9 +8,11 @@ spring:
 # logging.config(log4j2-*.xml) 제거함: 이 프로젝트는 spring-boot-starter-logging(Logback)만
 # 의존성에 있고 실제 Log4j2 프레임워크는 classpath에 없어서, Logback이 log4j2 형식 XML(<Appenders>/
 # <Loggers> 태그)을 잘못 파싱해 콘솔 출력이 사실상 막히는 문제가 있었음(부팅 실패 시 실제 예외조차
-# 안 보임). log4j2-*.xml 자체는 log4jdbc-log4j2(JDBC 프록시 드라이버, SQL 로그 노이즈 필터링용)가
-# 참조하도록 작성된 것으로 보이나 현재 연결되어 있지 않음 — 필요 시 spring-boot-starter-log4j2로
-# 전환 + spring-boot-starter-logging 제외하는 별도 작업 필요(후속)
+# 안 보임). log4j2-*.xml 자체는 여전히 미사용(log4j2 프레임워크 자체가 classpath에 없음 — 필요 시
+# spring-boot-starter-log4j2로 전환 + spring-boot-starter-logging 제외하는 별도 작업 필요/후속).
+# log4jdbc-log4j2(JDBC 프록시 드라이버, SQL 로그 포맷팅용)는 이제 local 프로파일에서 실제로 연결됨
+# — Globals.postgresql.Url/DriverClassName + resources/log4jdbc.log4j2.properties 참고
+# (2026-09-13: SQL이 한 줄로 길게 찍혀 안 읽히던 문제 해결을 위해 연결).
 #################### common 공통 영역 ####################
 ---
 spring:
@@ -132,7 +134,11 @@ Globals:
   LocalIp : 1.255.226.51
   DbType : postgresql
   postgresql:
-    Url: jdbc:postgresql://27.96.130.69:8088/EMTINDB
+    # log4jdbc-log4j2 프록시 드라이버 경유(jdbc:log4jdbc: 접두사) — local에서만 SQL을 여러 줄로
+    # 예쁘게(파라미터 바인딩 값 포함) 찍기 위함. resources/log4jdbc.log4j2.properties,
+    # EgovConfigAppDatasource.driverClassName 참고. prod/server는 순정 jdbc:postgresql: 유지.
+    Url: jdbc:log4jdbc:postgresql://27.96.130.69:8088/EMTINDB
+    DriverClassName: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
     UserName: root
     Password: Qwer123!@#
   addedOptions:

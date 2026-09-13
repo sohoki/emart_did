@@ -41,15 +41,22 @@ public class EgovConfigAppDatasource {
 	@Value("${Globals.postgresql.Password}")
 	private String password;
 
+	// local 프로파일에서만 log4jdbc 프록시 드라이버(net.sf.log4jdbc.sql.jdbcapi.DriverSpy)로 오버라이드해서
+	// SQL 로그를 여러 줄로 예쁘게 찍는다(resources/log4jdbc.log4j2.properties 참고). prod/server는
+	// 해당 프로퍼티가 없으므로 기본값인 순정 postgresql 드라이버를 그대로 사용.
+	@Value("${Globals.postgresql.DriverClassName:org.postgresql.Driver}")
+	private String driverClassName;
+
 	private DataSource basicDataSource() throws Exception {
 
 		// Globals.postgresql.* 값은 현재 평문 — AES 암호화 적용 전까지는 그대로 사용
 		log.info("================================================");
 		log.info("jdbc url: {}", url);
+		log.info("jdbc driver: {}", driverClassName);
 		log.info("================================================");
 
 		HikariDataSource ds = new HikariDataSource();
-		ds.setDriverClassName("org.postgresql.Driver");
+		ds.setDriverClassName(driverClassName);
 		ds.setJdbcUrl(url);
 		ds.setUsername(userName);
 		ds.setPassword(password);

@@ -57,6 +57,9 @@ public class EgovLoginApiController {
 			@ApiResponse(responseCode = "200", description = "로그인 성공"),
 			@ApiResponse(responseCode = "300", description = "로그인 실패")
 	})
+
+
+
 	@PostMapping(value = "/api/loginJwt.do")
 	public ResultVO actionLoginJWT(@RequestBody LoginReq loginVO,
 									HttpServletRequest request) throws Exception {

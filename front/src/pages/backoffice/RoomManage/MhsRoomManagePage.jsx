@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
 import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
@@ -62,6 +62,7 @@ const tabContainerStyle = {
 
 export default function MhsRoomManagePage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [tab, setTab] = useState('monitor');
 
     const [brandList, setBrandList] = useState([]);
@@ -178,6 +179,13 @@ export default function MhsRoomManagePage() {
         }
     }, []);
 
+    // 모니터 상세(MhsMonitorDetailPage)의 "정보 수정" 버튼에서 ?editMonitorcd=xxx로 넘어오면
+    // 목록 진입과 동시에 해당 모니터의 수정 모달을 자동으로 연다(DidInfoList의 editDidId와 동일 패턴).
+    useEffect(() => {
+        const editMonitorcd = searchParams.get('editMonitorcd');
+        if (editMonitorcd) handleOpenMonitorModal(editMonitorcd);
+    }, [searchParams, handleOpenMonitorModal]);
+
     const handleMonitorSubmit = useCallback(async () => {
         const action = monitorForm.mode === 'Ins' ? '등록' : '수정';
         const ok = await Swal.fire({
@@ -221,7 +229,11 @@ export default function MhsRoomManagePage() {
         { field: 'mhsCenternm', headerName: '점포명', width: 140 },
         {
             field: 'mhsMonitornm', headerName: '단말명', flex: 1, minWidth: 160,
-            valueFormatter: (p) => `${p.value ?? ''} (${p.data?.mhsMonitorcd ?? ''})`,
+            cellRenderer: (p) => (
+                <button className="btn btn-link p-0" onClick={() => navigate(`/backoffice/sub/roomManage/mhs/monitor/view?mhsMonitorcd=${p.data?.mhsMonitorcd}`)}>
+                    {p.value} ({p.data?.mhsMonitorcd})
+                </button>
+            ),
         },
         {
             headerName: '네트워크 정보', width: 160, sortable: false,
@@ -246,7 +258,7 @@ export default function MhsRoomManagePage() {
                 >삭제</button>
             ),
         },
-    ]), [handleOpenMonitorModal, handleMonitorPreview, handleMonitorDelete]);
+    ]), [handleOpenMonitorModal, handleMonitorPreview, handleMonitorDelete, navigate]);
 
     // ===== 강의 관리 =====
     const loadClassList = useCallback(async () => {

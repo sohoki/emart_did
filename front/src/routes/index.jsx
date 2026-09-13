@@ -37,6 +37,7 @@ const DidSendMessageList = lazy(() => import('@/pages/backoffice/equiManage/DidS
 
 {/* 문화센터 관리 */}
 const MhsRoomManagePage = lazy(() => import('@/pages/backoffice/RoomManage/MhsRoomManagePage.jsx'));
+const MhsMonitorDetailPage = lazy(() => import('@/pages/backoffice/RoomManage/MhsMonitorDetailPage.jsx'));
 
 {/* 콘텐츠 관리 */}
 const ContentFileLibraryPage = lazy(() => import('@/pages/backoffice/ConManage/ContentFileLibraryPage.jsx'));
@@ -90,6 +91,7 @@ export default function RouterConfig() {
                        
                         {/* 문화센터 관리 */}
                         <Route path="/backoffice/sub/roomManage/mhs" element={<MhsRoomManagePage />} />
+                        <Route path="/backoffice/sub/roomManage/mhs/monitor/view" element={<MhsMonitorDetailPage />} />
 
                         {/* 콘텐츠 관리 */}
                         <Route path="/backoffice/sub/conManage/file" element={<ContentFileLibraryPage />} />
