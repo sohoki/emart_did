@@ -182,6 +182,8 @@ const URL = {
     MHS_VIEWCONN_PREVIEW: "/api/backoffice/sub/roomManage/mhs/viewConn/preview.do",
     MHS_VIEWCONN_INSERT: "/api/backoffice/sub/roomManage/mhs/viewConn/insert.do",
     MHS_VIEWCONN_INFO: "/api/backoffice/sub/roomManage/mhs/viewConn",
+    // 실제 단말(안드로이드 키오스크)이 로그인 없이 폴링하는 공개 API(SecurityConfig 화이트리스트 등록됨)
+    MHS_DEVICE_PREVIEW: "/api/backoffice/sub/roomManage/mhs/device/preview.do",
     //문화센터(MHS) 조직(부서) 관리
     MHS_GROUP_INFO: "/api/backoffice/sub/roomManage/mhs/group",
     MHS_GROUP_UPDATE: "/api/backoffice/sub/roomManage/mhs/group/update.do",

@@ -27,24 +27,10 @@
                 JOIN TB_CENTERINFO C ON A.MHS_CENTERCD = C.CENTER_ID
                 JOIN LETTNAUTHORGROUPINFO D ON C.ROLE_CODE = D.GROUP_ID
                 WHERE A.MHS_MONITORSTATUS != 'N'
+                <!-- ROLE_MHS_USER(개별 매장 담당자)는 자기 브랜드 하위 트리를 벗어날 수 없도록
+                     강제 제한(컨트롤러가 groupId를 로그인 정보로 고정해서 넘김 — 클라이언트가
+                     보낸 값이 아님). 그 외 권한(통합관리자 등)은 이 분기 자체가 없어 전체 범위. -->
                 <if test="authorCode == 'ROLE_MHS_USER'">
-                    <if test='mhsCentercd != null and mhsCentercd != "" '>
-                        AND A.MHS_CENTERCD = #{mhsCentercd}
-                    </if>
-                    <choose>
-                        <when test="searchCondition == 'A.MHS_MONITORNM' and searchKeyword != ''">
-                            AND A.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
-                        </when>
-                        <when test="searchCondition == 'A.MHS_MONITORCD' and searchKeyword != ''">
-                            AND A.MHS_MONITORCD LIKE CONCAT('%', #{searchKeyword}, '%')
-                        </when>
-                        <when test="searchCondition == 'A.MHS_IPADDR' and searchKeyword != ''">
-                            AND A.MHS_IPADDR LIKE CONCAT('%', #{searchKeyword}, '%')
-                        </when>
-                        <when test="searchCondition == 'A.MHS_MACADDR' and searchKeyword != ''">
-                            AND A.MHS_MACADDR LIKE CONCAT('%', #{searchKeyword}, '%')
-                        </when>
-                    </choose>
                     AND A.MHS_BRANDCD IN
                     (
                         WITH RECURSIVE cte AS (
@@ -59,6 +45,28 @@
                         SELECT GROUP_ID FROM cte
                     )
                 </if>
+                <!-- 화면 상단 브랜드/매장 선택 필터 — 모든 권한 공통. ROLE_MHS_USER는 위 강제 범위 안에서만
+                     mhsCentercd가 채워져 오므로(컨트롤러가 로그인 매장으로 고정) 안전하게 추가 필터로 동작. -->
+                <if test='mhsBrandcd != null and mhsBrandcd != "" '>
+                    AND A.MHS_BRANDCD = #{mhsBrandcd}
+                </if>
+                <if test='mhsCentercd != null and mhsCentercd != "" '>
+                    AND A.MHS_CENTERCD = #{mhsCentercd}
+                </if>
+                <choose>
+                    <when test="searchCondition == 'A.MHS_MONITORNM' and searchKeyword != ''">
+                        AND A.MHS_MONITORNM LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                    <when test="searchCondition == 'A.MHS_MONITORCD' and searchKeyword != ''">
+                        AND A.MHS_MONITORCD LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                    <when test="searchCondition == 'A.MHS_IPADDR' and searchKeyword != ''">
+                        AND A.MHS_IPADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                    <when test="searchCondition == 'A.MHS_MACADDR' and searchKeyword != ''">
+                        AND A.MHS_MACADDR LIKE CONCAT('%', #{searchKeyword}, '%')
+                    </when>
+                </choose>
             ) TB
         ) TA
         WHERE TA.RNUM BETWEEN #{firstIndex} + 1 AND #{firstIndex} + #{recordCountPerPage}
@@ -72,9 +80,25 @@
         JOIN LETTNAUTHORGROUPINFO D ON C.ROLE_CODE = D.GROUP_ID
         WHERE A.MHS_MONITORSTATUS != 'N'
         <if test="authorCode == 'ROLE_MHS_USER'">
-            <if test='mhsCentercd != null and mhsCentercd != "" '>
-                AND A.MHS_CENTERCD = #{mhsCentercd}
-            </if>
+            AND A.MHS_BRANDCD IN
+            (
+                WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID, PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO
+                    WHERE GROUP_ID = #{groupId}
+                    UNION ALL
+                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                    FROM LETTNAUTHORGROUPINFO g
+                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                )
+                SELECT GROUP_ID FROM cte
+            )
+        </if>
+        <if test='mhsBrandcd != null and mhsBrandcd != "" '>
+            AND A.MHS_BRANDCD = #{mhsBrandcd}
+        </if>
+        <if test='mhsCentercd != null and mhsCentercd != "" '>
+            AND A.MHS_CENTERCD = #{mhsCentercd}
         </if>
         <choose>
             <when test="searchCondition == 'A.MHS_MONITORNM' and searchKeyword != ''">

@@ -38,6 +38,7 @@ const DidSendMessageList = lazy(() => import('@/pages/backoffice/equiManage/DidS
 {/* 문화센터 관리 */}
 const MhsRoomManagePage = lazy(() => import('@/pages/backoffice/RoomManage/MhsRoomManagePage.jsx'));
 const MhsMonitorDetailPage = lazy(() => import('@/pages/backoffice/RoomManage/MhsMonitorDetailPage.jsx'));
+const MhsMonitorDevicePage = lazy(() => import('@/pages/backoffice/RoomManage/MhsMonitorDevicePage.jsx'));
 
 {/* 콘텐츠 관리 */}
 const ContentFileLibraryPage = lazy(() => import('@/pages/backoffice/ConManage/ContentFileLibraryPage.jsx'));
@@ -111,6 +112,11 @@ export default function RouterConfig() {
                     <Route element={<AppTopDownLayout />}>
                         <Route path="/login" element={<LoginPage />} />
                     </Route>
+
+                    {/* 인증이 필요 없는 라우트 — 레이아웃(AppLayout/AppTopDownLayout)도 없이 순수
+                        전체화면. 문화센터 룸 단말(안드로이드 키오스크)이 로그인 세션 없이 직접
+                        띄우는 화면이라 ProtectedRoute를 거치면 안 됨(로그인으로 튕겨나감). */}
+                    <Route path="/backoffice/sub/roomManage/mhs/device" element={<MhsMonitorDevicePage />} />
 
                     {/* 미정의 경로는 로그인으로 이동 */}
                     <Route path="*" element={<Navigate to="/login" replace />} />

@@ -147,8 +147,15 @@ public class CultureDisInfoManageController {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
 			LoginVO loginVO = AuthHelper.getLoginVO();
 			searchVO.setAuthorCode(loginVO.getRoleId());
-			searchVO.setGroupId(loginVO.getPartId());
-			searchVO.setMhsCentercd(loginVO.getCenterId());
+			// ROLE_MHS_USER(개별 매장 담당자)만 자기 매장/부서 범위를 벗어날 수 없도록 로그인 정보로
+			// 강제 고정한다(클라이언트가 보낸 mhsBrandcd/mhsCentercd 무시 — 보안 스코프).
+			// 그 외 권한(통합관리자 등)은 화면 상단에서 선택한 mhsBrandcd/mhsCentercd를 그대로 검색
+			// 필터로 사용한다 — 이전에는 여기서 무조건 덮어써서 상단 브랜드/매장 선택이 목록 조회에
+			// 전혀 반영되지 않았음(매퍼 selectMhsMonitorList의 ROLE_MHS_USER 전용 분기도 함께 수정).
+			if ("ROLE_MHS_USER".equals(loginVO.getRoleId())) {
+				searchVO.setGroupId(loginVO.getPartId());
+				searchVO.setMhsCentercd(loginVO.getCenterId());
+			}
 
 			if (searchVO.getPageUnit() <= 0) {
 				searchVO.setPageUnit(propertiesService.getInt(Globals.PAGE_UNIT));
@@ -409,24 +416,45 @@ public class CultureDisInfoManageController {
 		ResultVO resultVO = new ResultVO();
 		try {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
-
-			if (searchDay == null || searchDay.isBlank()) {
-				searchDay = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
-			}
-
-			MhsViewConnInfoVO conn = new MhsViewConnInfoVO();
-			conn.setSearchDay(searchDay);
-			conn.setMhsMonitorcd(mhsMonitorcd);
-
-			Map<String, Object> resultMap = new HashMap<>();
-			resultMap.put("monitorInfo", mhsMonitorInfoManageService.selectMhsMonitorInfo(mhsMonitorcd));
-			resultMap.put(Globals.JSON_RETURN_RESULT_LIST, viewConn.selectViewMoniterClassInfo(conn));
-			resultMap.put("pageInfo", viewConn.selectViewMoniterClassUninPageInfo(conn));
-			ResultHelper.setSuccess(resultVO, resultMap);
+			ResultHelper.setSuccess(resultVO, buildPreviewResult(mhsMonitorcd, searchDay));
 		} catch (Exception e) {
 			ResultHelper.setFailResult(resultVO, "preViewJson", e, egovMessageSource);
 		}
 		return resultVO;
+	}
+
+	@Operation(summary = "MHS 모니터 단말 화면(공개 API, 인증 불필요)",
+			description = "실제 문화센터 룸 단말(안드로이드 키오스크)이 로그인 없이 주기적으로 폴링하는 공개 API. "
+					+ "preViewJson.do와 데이터는 동일하나 인증을 요구하지 않는다(SecurityConfig.AUTH_GET_WHITELIST에 등록 필요). "
+					+ "DID 장비의 /equiManage/pic/capture.do와 동일한 취지의 기계 간 통신 API.")
+	@GetMapping("/device/preview.do")
+	public ResultVO devicePreview(@RequestParam("mhsMonitorcd") String mhsMonitorcd,
+								   @RequestParam(value = "searchDay", required = false) String searchDay,
+								   HttpServletRequest request) throws Exception {
+		ResultVO resultVO = new ResultVO();
+		try {
+			ResultHelper.setSuccess(resultVO, buildPreviewResult(mhsMonitorcd, searchDay));
+		} catch (Exception e) {
+			ResultHelper.setFailResult(resultVO, "devicePreview", e, egovMessageSource);
+		}
+		return resultVO;
+	}
+
+	// preViewJson.do(관리자 미리보기)/device/preview.do(단말 공개 API)가 공유하는 조회 로직.
+	private Map<String, Object> buildPreviewResult(String mhsMonitorcd, String searchDay) throws Exception {
+		if (searchDay == null || searchDay.isBlank()) {
+			searchDay = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+		}
+
+		MhsViewConnInfoVO conn = new MhsViewConnInfoVO();
+		conn.setSearchDay(searchDay);
+		conn.setMhsMonitorcd(mhsMonitorcd);
+
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put("monitorInfo", mhsMonitorInfoManageService.selectMhsMonitorInfo(mhsMonitorcd));
+		resultMap.put(Globals.JSON_RETURN_RESULT_LIST, viewConn.selectViewMoniterClassInfo(conn));
+		resultMap.put("pageInfo", viewConn.selectViewMoniterClassUninPageInfo(conn));
+		return resultMap;
 	}
 
 	@Operation(summary = "MHS 편성 등록", description = "모니터에 강의를 편성(연결)합니다.")

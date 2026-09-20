@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
+import { CommonSearchSelect } from '@/components/Common/Select.jsx';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
 import '@/style/Modal.css';
@@ -14,9 +15,12 @@ const DAY_OPTIONS = [
     { value: '4', label: '수' }, { value: '5', label: '목' }, { value: '6', label: '금' }, { value: '7', label: '토' },
 ];
 
-// MHS 강의 등록/수정 모달 — 상단에서 선택된 브랜드/매장(mhsCentercd) 소속 모니터 중에서
-// 강의실을 고른다(레거시도 강의실=모니터코드였음).
-const MhsClassFormModal = ({ open, form, setForm, mhsCentercd, onClose, onSubmit }) => {
+// MHS 강의 등록/수정 모달 — 레거시 classList.jsp 팝업처럼 조직명(부서명)/점포명을 모달 안에서
+// 직접 선택한다(목록 상단의 검색용 브랜드/매장 선택과는 무관 — MhsMonitorFormModal과 동일 패턴).
+// 강의실은 그 점포에 소속된 모니터 중에서 고른다(레거시도 강의실=모니터코드였음).
+const MhsClassFormModal = ({ open, form, setForm, onClose, onSubmit }) => {
+    const [brandList, setBrandList] = useState([]);
+    const [centerList, setCenterList] = useState([]);
     const [roomOptions, setRoomOptions] = useState([]);
 
     const updateForm = useCallback((payload) => {
@@ -24,15 +28,52 @@ const MhsClassFormModal = ({ open, form, setForm, mhsCentercd, onClose, onSubmit
     }, [setForm]);
 
     useEffect(() => {
-        if (!open || !mhsCentercd) {
+        if (!open) return;
+        (async () => {
+            const res = await fnAjaxFetch({ url: URL.MHS_BRAND_LIST, method: 'GET', showLoading: false });
+            setBrandList(res?.data?.result?.resultList ?? []);
+        })();
+    }, [open]);
+
+    useEffect(() => {
+        if (!open || !form.mhsBrandcd) {
+            setCenterList([]);
+            return;
+        }
+        (async () => {
+            const res = await fnAjaxFetch({
+                url: URL.MHS_CENTER_LIST, method: 'GET', param: { mhsBrandcd: form.mhsBrandcd }, showLoading: false,
+            });
+            setCenterList(res?.data?.result?.resultList ?? []);
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, form.mhsBrandcd]);
+
+    useEffect(() => {
+        if (!open || !form.mhsCentercd) {
             setRoomOptions([]);
             return;
         }
         (async () => {
-            const res = await fnAjaxFetch({ url: URL.MHS_MONITOR_COMBO, method: 'GET', param: { mhsCentercd }, showLoading: false });
+            const res = await fnAjaxFetch({ url: URL.MHS_MONITOR_COMBO, method: 'GET', param: { mhsCentercd: form.mhsCentercd }, showLoading: false });
             setRoomOptions(res?.data?.result?.resultList ?? []);
         })();
-    }, [open, mhsCentercd]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, form.mhsCentercd]);
+
+    // 점포명은 매장 수가 많아 검색이 필요 — CommonSearchSelect 형식({ code, codeNm })으로 변환
+    const centerSelectOptions = useMemo(
+        () => centerList.map((c) => ({ code: c.mhsCentercd, codeNm: c.mhsCenternm })),
+        [centerList],
+    );
+
+    const handleBrandChange = (value) => {
+        updateForm({ mhsBrandcd: value, mhsCentercd: '', mhsClassroomnm: '' });
+    };
+
+    const handleCenterChange = (value) => {
+        updateForm({ mhsCentercd: value, mhsClassroomnm: '' });
+    };
 
     const toggleDay = (value) => {
         const days = (form.mhsClassdayofweek || '').split(',').filter(Boolean);
@@ -41,6 +82,14 @@ const MhsClassFormModal = ({ open, form, setForm, mhsCentercd, onClose, onSubmit
     };
 
     const handleSubmit = useCallback(async () => {
+        if (!form.mhsBrandcd) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '부서명을 선택해 주세요.' });
+            return;
+        }
+        if (!form.mhsCentercd) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '점포명을 선택해 주세요.' });
+            return;
+        }
         if (!form.mhsClassroomnm) {
             await Swal.fire({ icon: 'warning', title: '입력 오류', text: '강의실을 선택해 주세요.' });
             return;
@@ -78,9 +127,40 @@ const MhsClassFormModal = ({ open, form, setForm, mhsCentercd, onClose, onSubmit
                                 <div className="row input-box-wrap">
                                     <div className="col-6">
                                         <div className="input-box">
+                                            <label className="form-label">부서명<span className="text-danger">*</span></label>
+                                            <select id="mhsBrandcd" name="mhsBrandcd" className="form-select"
+                                                value={form.mhsBrandcd} onChange={(e) => handleBrandChange(e.target.value)}>
+                                                <option value="">선택하세요</option>
+                                                {brandList.map((b) => (
+                                                    <option key={b.mhsBrandcd} value={b.mhsBrandcd}>
+                                                        {'  '.repeat(Math.max(0, Number(b.mhsBrandlv) - 1))}{b.mhsBrandnm}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="col-6">
+                                        <div className="input-box">
+                                            <label className="form-label">점포명<span className="text-danger">*</span></label>
+                                            <CommonSearchSelect
+                                                comboId="mhsCentercd"
+                                                comboData={centerSelectOptions}
+                                                placeholder="선택하세요"
+                                                value={form.mhsCentercd}
+                                                onChange={(e) => handleCenterChange(e.target.value)}
+                                                disabled={!form.mhsBrandcd}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="row input-box-wrap">
+                                    <div className="col-6">
+                                        <div className="input-box">
                                             <label className="form-label">강의실<span className="text-danger">*</span></label>
                                             <select id="mhsClassroomnm" name="mhsClassroomnm" className="form-select"
-                                                value={form.mhsClassroomnm} onChange={(e) => updateForm({ mhsClassroomnm: e.target.value })}>
+                                                value={form.mhsClassroomnm} onChange={(e) => updateForm({ mhsClassroomnm: e.target.value })}
+                                                disabled={!form.mhsCentercd}>
                                                 <option value="">선택하세요</option>
                                                 {roomOptions.map((r) => (
                                                     <option key={r.mhsMonitorcd} value={r.mhsMonitorcd}>{r.mhsMonitornm}</option>

@@ -30,6 +30,25 @@ const secToMinSec = (totalSec) => {
     return `${min}:${String(sec).padStart(2, '0')}`;
 };
 
+// DidDetailPage/MhsMonitorDetailPage와 동일한 "정보 박스"(3열 라벨/값 그리드) 스타일 —
+// 이 앱의 상세 화면 공통 관례를 그대로 따른다.
+const sectionTitleStyle = { textAlign: 'center', fontWeight: 700, padding: 10, background: '#eef1f5', border: '1px solid #e2e8f0', borderBottom: 'none' };
+const labelCellStyle = { width: '16.6%', textAlign: 'center', color: '#64748b', padding: '10px 8px', background: '#f8fafc', border: '1px solid #e2e8f0' };
+const valueCellStyle = { width: '16.6%', textAlign: 'center', padding: '10px 8px', border: '1px solid #e2e8f0' };
+
+const BADGE_TONE = {
+    green: { background: '#dcfce7', color: '#15803d' },
+    gray: { background: '#f1f5f9', color: '#64748b' },
+    blue: { background: '#dbeafe', color: '#1d4ed8' },
+    purple: { background: '#ede9fe', color: '#6d28d9' },
+};
+const Badge = ({ tone = 'gray', children }) => (
+    <span style={{
+        display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+        ...BADGE_TONE[tone],
+    }}>{children}</span>
+);
+
 // 방송(음원) 콘텐츠 상세(편성) 화면 — 레거시 brodContentView.jsp 참고. 시간대별 음원
 // 배치, 특정방송(기념일), 배치 적용, 음원 콘텐츠 복사, 편성표생성/방송표보기를 이
 // 화면 하나에서 다룬다.
@@ -388,94 +407,121 @@ export default function BrodContentDetailPage() {
                 </div>
             </div>
 
-            <div className="col-12 content-search__action" style={{ padding: '0 0 12px', flexWrap: 'wrap', display: 'flex', gap: 8 }}>
+            <div className="col-12 content-search__action" style={{
+                padding: '0 0 16px', flexWrap: 'wrap', display: 'flex', justifyContent: 'space-between',
+                alignItems: 'center', gap: 8, borderBottom: '1px solid #e2e8f0', marginBottom: 16,
+            }}>
                 <button type="button" className="btn btn-outline-dark btn-outline__gray"
-                    onClick={() => navigate('/backoffice/sub/brodManage/content')}>목록</button>
-                <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={handleOpenBrodModal}>수정</button>
-                <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={() => handleOpenDetailModal(null)}>콘텐츠 등록</button>
-                <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={() => handleOpenAnniverModal(null)}>특정 방송 등록</button>
-                <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={handleOpenCopyModal}>음원 콘텐츠 복사</button>
-                <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={handleScheduleConfirm}>배치 적용</button>
-                <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={handleGenerateSchedule}>편성표생성</button>
-                <button type="button" className="btn btn-outline-secondary btn-outline__gray"
-                    onClick={handleOpenOrgModal}>방송표보기</button>
+                    onClick={() => navigate('/backoffice/sub/brodManage/content')}>← 목록</button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <button type="button" className="btn btn-outline-secondary btn-outline__gray"
+                        onClick={handleOpenBrodModal}>수정</button>
+                    <button type="button" className="btn btn-outline-secondary btn-outline__gray"
+                        onClick={handleOpenCopyModal}>음원 콘텐츠 복사</button>
+                    <button type="button" className="btn btn-outline-secondary btn-outline__gray"
+                        onClick={handleScheduleConfirm}>배치 적용</button>
+                    <button type="button" className="btn btn-outline-secondary btn-outline__gray"
+                        onClick={handleGenerateSchedule}>편성표생성</button>
+                    <button type="button" className="btn btn-outline-secondary btn-outline__gray"
+                        onClick={handleOpenOrgModal}>방송표보기</button>
+                    <button type="button" className="btn btn-primary btn-default__blue"
+                        onClick={() => handleOpenDetailModal(null)}>+ 콘텐츠 등록</button>
+                    <button type="button" className="btn btn-primary btn-default__blue"
+                        onClick={() => handleOpenAnniverModal(null)}>+ 특정 방송 등록</button>
+                </div>
             </div>
 
-            <div className="col-12" style={{ padding: '12px 15px', borderBottom: '1px solid #dde2eb' }}>
-                {!detail ? (
-                    <div style={{ padding: 16, color: '#94a3b8' }}>{loading ? '조회 중...' : '데이터가 없습니다.'}</div>
-                ) : (
+            {!detail ? (
+                <div className="col-12" style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>{loading ? '조회 중...' : '데이터가 없습니다.'}</div>
+            ) : (
+                <div className="col-12" style={{ marginBottom: 24 }}>
+                    <div style={sectionTitleStyle}>콘텐츠 정보</div>
                     <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                         <tbody>
                             <tr>
-                                <th style={{ width: 100, textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>콘텐츠코드</th>
-                                <td style={{ padding: '4px 8px' }}>{detail.brodCode}</td>
-                                <th style={{ width: 100, textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>콘텐츠명</th>
-                                <td style={{ padding: '4px 8px' }}>{detail.brodName}</td>
-                                <th style={{ width: 100, textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>이벤트유무</th>
-                                <td style={{ padding: '4px 8px' }}>{detail.secGubun === 'SECGUBUN01' ? '일반스케줄' : '이벤트스케줄'}</td>
+                                <th style={labelCellStyle}>콘텐츠코드</th>
+                                <td style={valueCellStyle}>{detail.brodCode}</td>
+                                <th style={labelCellStyle}>콘텐츠명</th>
+                                <td style={valueCellStyle}>{detail.brodName}</td>
+                                <th style={labelCellStyle}>구분</th>
+                                <td style={valueCellStyle}>
+                                    <Badge tone={detail.secGubun === 'SECGUBUN01' ? 'blue' : 'purple'}>
+                                        {detail.secGubun === 'SECGUBUN01' ? '일반스케줄' : '이벤트스케줄'}
+                                    </Badge>
+                                </td>
                             </tr>
                             <tr>
-                                <th style={{ textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>사용유무</th>
-                                <td style={{ padding: '4px 8px' }}>{detail.brodUseYn === 'Y' ? '사용' : '사용 안함'}</td>
-                                <th style={{ textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>반복재생간격</th>
-                                <td style={{ padding: '4px 8px' }}>{detail.codeNm}</td>
-                                <th style={{ textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>기본음원</th>
-                                <td style={{ padding: '4px 8px' }}>
+                                <th style={labelCellStyle}>사용유무</th>
+                                <td style={valueCellStyle}>
+                                    <Badge tone={detail.brodUseYn === 'Y' ? 'green' : 'gray'}>
+                                        {detail.brodUseYn === 'Y' ? '사용' : '사용 안함'}
+                                    </Badge>
+                                </td>
+                                <th style={labelCellStyle}>반복재생간격</th>
+                                <td style={valueCellStyle}>{detail.codeNm}</td>
+                                <th style={labelCellStyle}>기본음원</th>
+                                <td style={valueCellStyle}>
                                     <button type="button" className="btn btn-outline-dark btn-outline__gray btn-sm"
                                         style={{ fontSize: 12 }} onClick={handlePreviewBasic}>리스트 미리보기</button>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
-                )}
-            </div>
-
-            {slots.length > 0 && (
-                <div className="col-12" style={{ padding: '12px 15px', borderBottom: '1px solid #dde2eb', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', minWidth: slots.length * 160 }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc' }}>
-                                {slots.map((s) => (
-                                    <th key={s} style={{ border: '1px solid #e2e8f0', padding: 6 }}>{Number(s)}분</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                {slots.map((s) => {
-                                    const items = slotContents[s] ?? [];
-                                    const totalPlayTime = items.reduce((sum, it) => sum + (Number(it.playTime) || 0), 0);
-                                    return (
-                                        <td key={s} style={{ border: '1px solid #e2e8f0', padding: 6, verticalAlign: 'top' }}>
-                                            {items.map((it) => (
-                                                <div key={it.brodSeq} style={{ marginBottom: 6 }}>
-                                                    <button className="btn btn-link p-0" style={{ fontSize: 12 }}
-                                                        onClick={() => handleOpenDetailModal(it)}>{it.orignlFileNm}</button>
-                                                    <div style={{ color: '#94a3b8' }}>재생시간: {it.playTime}</div>
-                                                    <div style={{ color: '#94a3b8' }}>{it.contentStartday || it.contentStartDay}~{it.contentEndday || it.contentEndDay}</div>
-                                                    <button type="button" className="btn btn-outline-danger btn-outline__gray btn-sm"
-                                                        style={{ fontSize: 11, marginTop: 2 }}
-                                                        onClick={() => handleDeleteDetail(it.brodSeq)}>삭제</button>
-                                                </div>
-                                            ))}
-                                            <div style={{ background: '#D2E1FF', padding: 4 }}>총재생시간: {secToMinSec(totalPlayTime)}</div>
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             )}
 
-            <div className="col-12" style={{ padding: '12px 15px' }}>
+            {slots.length > 0 && (
+                <div className="col-12" style={{ marginBottom: 24, overflowX: 'auto' }}>
+                    <div style={sectionTitleStyle}>시간대별 음원 배치</div>
+                    <div style={{ display: 'flex', minWidth: slots.length * 190, border: '1px solid #e2e8f0', borderTop: 'none' }}>
+                        {slots.map((s) => {
+                            const items = slotContents[s] ?? [];
+                            const totalPlayTime = items.reduce((sum, it) => sum + (Number(it.playTime) || 0), 0);
+                            return (
+                                <div key={s} style={{ flex: '1 0 190px', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+                                    <div style={{
+                                        textAlign: 'center', fontWeight: 600, fontSize: 13, color: '#475569',
+                                        background: '#f8fafc', padding: '8px 6px', borderBottom: '1px solid #e2e8f0',
+                                    }}>{Number(s)}분</div>
+                                    <div style={{ flex: 1, padding: 8, fontSize: 12 }}>
+                                        {items.length === 0 && (
+                                            <div style={{ color: '#cbd5e1', textAlign: 'center', padding: '12px 0' }}>배치된 음원 없음</div>
+                                        )}
+                                        {items.map((it, idx) => (
+                                            <div key={it.brodSeq} style={{
+                                                marginBottom: 8, paddingBottom: 8,
+                                                borderBottom: idx < items.length - 1 ? '1px dashed #e2e8f0' : 'none',
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>
+                                                    <button className="btn btn-link p-0" style={{ fontSize: 12, textAlign: 'left' }}
+                                                        onClick={() => handleOpenDetailModal(it)}>{it.orignlFileNm}</button>
+                                                    <button type="button" title="삭제" onClick={() => handleDeleteDetail(it.brodSeq)}
+                                                        style={{
+                                                            border: 'none', background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                                                            fontSize: 14, lineHeight: 1, padding: 0, flexShrink: 0,
+                                                        }}
+                                                        onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                                                        onMouseLeave={(e) => { e.currentTarget.style.color = '#cbd5e1'; }}
+                                                    >✕</button>
+                                                </div>
+                                                <div style={{ color: '#94a3b8' }}>재생시간: {it.playTime}</div>
+                                                <div style={{ color: '#94a3b8' }}>{it.contentStartday || it.contentStartDay}~{it.contentEndday || it.contentEndDay}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{
+                                        margin: 8, marginTop: 0, padding: '4px 10px', borderRadius: 999,
+                                        background: '#eef2ff', color: '#4338ca', fontSize: 11, fontWeight: 600, textAlign: 'center',
+                                    }}>총재생시간 {secToMinSec(totalPlayTime)}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            <div className="col-12">
+                <div style={sectionTitleStyle}>특정방송(기념일) 목록</div>
                 <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ background: '#f8fafc' }}>
@@ -488,14 +534,14 @@ export default function BrodContentDetailPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {anniverList.map((a) => (
-                            <tr key={a.brodAnnSeq}>
-                                <td style={{ border: '1px solid #e2e8f0', padding: 8 }}>{a.brodAnnSeq}</td>
+                        {anniverList.map((a, idx) => (
+                            <tr key={a.brodAnnSeq} style={{ background: idx % 2 === 1 ? '#fafbfc' : undefined }}>
+                                <td style={{ border: '1px solid #e2e8f0', padding: 8, textAlign: 'center', color: '#94a3b8' }}>{a.brodAnnSeq}</td>
                                 <td style={{ border: '1px solid #e2e8f0', padding: 8 }}>
                                     <button className="btn btn-link p-0" onClick={() => handleOpenAnniverModal(a.brodAnnSeq)}>{a.anniverName}</button>
                                 </td>
-                                <td style={{ border: '1px solid #e2e8f0', padding: 8 }}>{a.codeNm}</td>
-                                <td style={{ border: '1px solid #e2e8f0', padding: 8 }}>{a.anniverStartday || a.anniverStartDay}~{a.anniverEndday || a.anniverEndDay}</td>
+                                <td style={{ border: '1px solid #e2e8f0', padding: 8, textAlign: 'center' }}><Badge tone="blue">{a.codeNm}</Badge></td>
+                                <td style={{ border: '1px solid #e2e8f0', padding: 8, textAlign: 'center' }}>{a.anniverStartday || a.anniverStartDay}~{a.anniverEndday || a.anniverEndDay}</td>
                                 <td style={{ border: '1px solid #e2e8f0', padding: 8 }}>
                                     {a.anniversaryTime}
                                     {a.anniversaryStartTime ? ` 간격으로 ${a.anniversaryStartTime}분 마다 재생` : ''}
@@ -507,7 +553,7 @@ export default function BrodContentDetailPage() {
                             </tr>
                         ))}
                         {anniverList.length === 0 && (
-                            <tr><td colSpan={6} style={{ padding: 16, textAlign: 'center', color: '#94a3b8' }}>등록된 특정방송이 없습니다.</td></tr>
+                            <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#94a3b8', border: '1px solid #e2e8f0' }}>등록된 특정방송이 없습니다.</td></tr>
                         )}
                     </tbody>
                 </table>

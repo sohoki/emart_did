@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppAgGrid from '@/components/Common/AppAgGrid.jsx';
+import { CommonSearchSelect } from '@/components/Common/Select.jsx';
 import { gridTheme } from '@/constants/agGridTheme.js';
 import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
 import { useCommonDelete } from '@/hooks/use-common-delete.js';
@@ -9,6 +10,7 @@ import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
 import { getCookie } from '@/lib/cookie.jsx';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
+import '@/style/RoomManage.css';
 
 const MhsMonitorFormModal = lazy(() => import('./components/MhsMonitorFormModal.jsx'));
 const MhsClassFormModal = lazy(() => import('./components/MhsClassFormModal.jsx'));
@@ -16,13 +18,18 @@ const MhsMonitorPreviewModal = lazy(() => import('./components/MhsMonitorPreview
 
 const PAGE_UNIT = 20;
 
+// 강의 시작/종료일(yyyyMMdd)·시간(HHmm) 원본 값을 그리드에 보기 좋게 표시하기 위한 포맷터
+// (저장/폼 입력값은 그대로 원본 포맷 유지 — MhsClassFormModal의 dashify/colonify와 동일 규칙)
+const formatYmd = (v) => (v?.length === 8 ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}` : (v || ''));
+const formatHm = (v) => (v?.length === 4 ? `${v.slice(0, 2)}:${v.slice(2, 4)}` : (v || ''));
+
 const MONITOR_SEARCH_INITIAL = { searchCondition: '', searchKeyword: '' };
 const EMPTY_MONITOR_FORM = {
     mode: 'Ins', mhsMonitorcd: '', mhsMonitornm: '', mhsBrandcd: '', mhsCentercd: '',
     mhsMviewtype: '1', mhsMonitorstatus: 'Y', mhsRemark: '',
 };
 const EMPTY_CLASS_FORM = {
-    mode: 'Ins', mhsClasscd: '', mhsClassroomnm: '', mhsClassnm: '', mhsTeachernm: '',
+    mode: 'Ins', mhsClasscd: '', mhsBrandcd: '', mhsCentercd: '', mhsClassroomnm: '', mhsClassnm: '', mhsTeachernm: '',
     mhsClassstartday: '', mhsClassendday: '', mhsClassdayofweek: '', mhsClassstarttime: '', mhsClassendtime: '',
     mhsClassintro: '',
 };
@@ -122,19 +129,28 @@ export default function MhsRoomManagePage() {
         loadCenterList(value);
     };
 
+    // 매장 수가 많아 검색이 필요 — CommonSearchSelect 형식({ code, codeNm })으로 변환
+    // (MhsClassFormModal의 centerSelectOptions와 동일 규칙)
+    const centerSelectOptions = useMemo(
+        () => centerList.map((c) => ({ code: c.mhsCentercd, codeNm: c.mhsCenternm })),
+        [centerList],
+    );
+
     // ===== 모니터 관리 =====
-    // 레거시(monitorList.jsp)와 마찬가지로 백엔드가 로그인 사용자의 groupId/centerId 기준으로
-    // 권한 스코프를 강제 적용하므로(CultureDisInfoManageController.selectMhsMonitorListByPagination),
-    // 검색조건은 단말명/단말ID/IP/MAC 텍스트 검색만 실제로 동작함(상단 브랜드/매장 선택은 이
-    // 목록 조회에 영향 없음 — 등록/수정 모달에서 단말 소속을 지정할 때만 사용).
+    // ROLE_MHS_USER(개별 매장 담당자)는 백엔드가 로그인 사용자의 groupId/centerId 기준으로 권한
+    // 스코프를 강제 적용하므로(CultureDisInfoManageController.selectMhsMonitorListByPagination)
+    // 상단 브랜드/매장 선택과 무관하게 자기 매장만 보인다. 그 외 권한(통합관리자 등)은 여기서
+    // 보내는 mhsBrandcd/mhsCentercd가 그대로 검색 필터로 반영된다.
     const fetchMonitorList = useCallback(async (query) => {
-        const res = await fnAjaxFetch({ url: URL.MHS_MONITOR_LIST, method: 'POST', data: query });
+        const res = await fnAjaxFetch({
+            url: URL.MHS_MONITOR_LIST, method: 'POST', data: { ...query, mhsBrandcd, mhsCentercd },
+        });
         const data = res?.data;
         return {
             rows: data?.result?.resultList ?? [],
             total: data?.result?.totalCnt ?? data?.result?.resultList?.length ?? 0,
         };
-    }, []);
+    }, [mhsBrandcd, mhsCentercd]);
 
     const {
         gridApiRef: monitorGridApiRef,
@@ -149,6 +165,12 @@ export default function MhsRoomManagePage() {
         pageUnit: PAGE_UNIT,
         initialFilters: MONITOR_SEARCH_INITIAL,
     });
+
+    // 상단 브랜드/매장 선택이 바뀌면 "모니터 관리" 탭도 즉시 재조회(강의 관리 탭과 동일 패턴).
+    useEffect(() => {
+        if (tab === 'monitor') refreshMonitorGrid({ keepPage: false });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab, mhsBrandcd, mhsCentercd]);
 
     const handleMonitorInputChange = useCallback((e) => {
         const { name, value } = e.target;
@@ -240,8 +262,17 @@ export default function MhsRoomManagePage() {
             valueGetter: (p) => `${p.data?.mhsIpaddr ?? ''} / ${p.data?.mhsMacaddr ?? ''}`,
         },
         {
-            field: 'mhsLastconn', headerName: '운용상태', width: 100, cellStyle: { textAlign: 'center' },
-            valueFormatter: (p) => (p.value === 'ON' ? '정상' : '미연결'),
+            field: 'mhsLastconn', headerName: '연결 상태', width: 100, sortable: false, filter: false,
+            cellStyle: { textAlign: 'center' },
+            cellRenderer: (p) => (
+                <span
+                    title={p.value === 'ON' ? '연결됨' : '연결 안됨'}
+                    style={{
+                        display: 'inline-block', width: 12, height: 12, borderRadius: '50%',
+                        background: p.value === 'ON' ? '#0d6efd' : '#94a3b8',
+                    }}
+                />
+            ),
         },
         {
             headerName: '미리보기', width: 100, sortable: false, filter: false,
@@ -302,13 +333,12 @@ export default function MhsRoomManagePage() {
         setClassSearchKeyword('');
     }, []);
 
+    // 조직명/점포명은 모달 자체에서 선택하므로(MhsClassFormModal) 상단 검색용 브랜드/매장 선택과
+    // 무관하게 항상 등록 모달을 열 수 있다. 다만 상단에서 이미 매장을 필터링해 둔 상태라면 그
+    // 값을 등록 모달의 기본값으로 미리 채워준다(수정은 불가하지 않음 — 모달 안에서 자유롭게 변경 가능).
     const handleOpenClassModal = useCallback(async (mhsClasscd) => {
-        if (!mhsCentercd) {
-            await Swal.fire({ icon: 'warning', title: '입력 확인', text: '브랜드/매장을 먼저 선택해 주세요.' });
-            return;
-        }
         if (!mhsClasscd) {
-            setClassForm(EMPTY_CLASS_FORM);
+            setClassForm({ ...EMPTY_CLASS_FORM, mhsBrandcd, mhsCentercd });
             setClassModalOpen(true);
             return;
         }
@@ -318,7 +348,7 @@ export default function MhsRoomManagePage() {
             setClassForm({ ...EMPTY_CLASS_FORM, ...detail, mode: 'Edt' });
             setClassModalOpen(true);
         }
-    }, [mhsCentercd]);
+    }, [mhsBrandcd, mhsCentercd]);
 
     const handleClassDelete = useCallback(async (mhsClasscd) => {
         const result = await Swal.fire({
@@ -339,9 +369,11 @@ export default function MhsRoomManagePage() {
         });
         if (!ok.isConfirmed) return;
 
+        // 조직명/점포명은 이제 classForm 자체에 들어있음(MhsClassFormModal에서 직접 선택) — 상단
+        // 검색용 mhsBrandcd/mhsCentercd로 덮어쓰지 않는다.
         const res = await fnAjaxFetch({
             url: URL.MHS_CLASS_UPDATE, method: 'POST',
-            data: { ...classForm, mhsBrandcd, mhsCentercd },
+            data: classForm,
         });
         const json = res?.data;
         if (json?.resultCodeInfo === 'SUCCESS') {
@@ -351,7 +383,7 @@ export default function MhsRoomManagePage() {
         } else {
             await Swal.fire({ icon: 'error', title: '오류', text: json?.resultMessage || `${action} 중 오류가 발생했습니다.` });
         }
-    }, [classForm, mhsBrandcd, mhsCentercd, loadClassList]);
+    }, [classForm, loadClassList]);
 
     const classColumnDefs = useMemo(() => ([
         {
@@ -362,10 +394,10 @@ export default function MhsRoomManagePage() {
         },
         { field: 'mhsMonitornm', headerName: '강의실', width: 140 },
         { field: 'mhsTeachernm', headerName: '강사명', width: 120 },
-        { field: 'mhsClassstartday', headerName: '시작일', width: 110 },
-        { field: 'mhsClassendday', headerName: '종료일', width: 110 },
-        { field: 'mhsClassstarttime', headerName: '시작시간', width: 100 },
-        { field: 'mhsClassendtime', headerName: '종료시간', width: 100 },
+        { field: 'mhsClassstartday', headerName: '시작일', width: 120, valueFormatter: (p) => formatYmd(p.value) },
+        { field: 'mhsClassendday', headerName: '종료일', width: 120, valueFormatter: (p) => formatYmd(p.value) },
+        { field: 'mhsClassstarttime', headerName: '시작시간', width: 100, valueFormatter: (p) => formatHm(p.value) },
+        { field: 'mhsClassendtime', headerName: '종료시간', width: 100, valueFormatter: (p) => formatHm(p.value) },
         {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
@@ -436,7 +468,7 @@ export default function MhsRoomManagePage() {
         { field: 'mhsTeachernm', headerName: '강사명', width: 120 },
         {
             headerName: '시작~종료', width: 140,
-            valueGetter: (p) => `${p.data?.mhsClassstarttime ?? ''} ~ ${p.data?.mhsClassendtime ?? ''}`,
+            valueGetter: (p) => `${formatHm(p.data?.mhsClassstarttime)} ~ ${formatHm(p.data?.mhsClassendtime)}`,
         },
         { field: 'mhsClassdayofweek', headerName: '요일', width: 120 },
         {
@@ -469,12 +501,21 @@ export default function MhsRoomManagePage() {
                                 <option key={b.mhsBrandcd} value={b.mhsBrandcd}>{'  '.repeat(Math.max(0, Number(b.mhsBrandlv) - 1))}{b.mhsBrandnm}</option>
                             ))}
                         </select>
-                        <select value={mhsCentercd} onChange={(e) => setMhsCentercd(e.target.value)} disabled={!mhsBrandcd}>
-                            <option value="">매장 선택</option>
-                            {centerList.map((c) => (
-                                <option key={c.mhsCentercd} value={c.mhsCentercd}>{c.mhsCenternm}</option>
-                            ))}
-                        </select>
+
+                        
+                        {/* 매장이 많아 검색이 필요 — 순수 <select> 대신 검색 가능한 CommonSearchSelect 사용
+                            (모달 안의 점포명 select와 동일 패턴). 폭은 옆의 브랜드 select와 맞춰 고정. */}
+                        <div style={{ width: 200 }} className="col-auto content-search__option">
+                            <CommonSearchSelect
+                                comboId="mhsCentercd"
+                                comboData={centerSelectOptions}
+                                placeholder="매장 선택"
+                                value={mhsCentercd}
+                                onChange={(e) => setMhsCentercd(e.target.value)}
+                                disabled={!mhsBrandcd}
+                                className="mhs-center-search-select"
+                            />
+                        </div>
                     </div>
                     {tab === 'viewConn' && !mhsCentercd && (
                         <div className="col-auto" style={{ alignSelf: 'center', color: '#94a3b8', fontSize: 13 }}>
@@ -624,7 +665,6 @@ export default function MhsRoomManagePage() {
                                         open={classModalOpen}
                                         form={classForm}
                                         setForm={setClassForm}
-                                        mhsCentercd={mhsCentercd}
                                         onClose={() => setClassModalOpen(false)}
                                         onSubmit={handleClassSubmit}
                                     />

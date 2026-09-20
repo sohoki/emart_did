@@ -62,6 +62,7 @@ public class SecurityConfig {
 			"/api/backoffice/infra/vendor/*.do", //판매사몰 공개 페이지 - 거래처(판매사) 정보 조회(comCode.do, GET만) — 모든 판매사몰 페이지의 헤더/푸터 표시용
             "/api/user/cus/**",
 			"/api/backoffice/uat/uia/manager/hello.do",
+			"/api/backoffice/sub/roomManage/mhs/device/preview.do", //MHS 문화센터 룸 단말(안드로이드 키오스크)이 로그인 없이 폴링하는 공개 API
 			"/uat/uia/actionRefreshToken.do",//refreshToken 로그인
 			"Alpensia/roomStateInfo.do",
 			"/api/interface/Alpensia/roomStateInfo.do", //알펜시아 요금표
