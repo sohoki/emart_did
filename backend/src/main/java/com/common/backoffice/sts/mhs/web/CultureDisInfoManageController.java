@@ -91,6 +91,11 @@ public class CultureDisInfoManageController {
 	private final MhsViewConnInfoManageService viewConn;
 	private final GroupManagerService groupManagerService;
 
+	// ROLE_ADMIN만 전체 매장 조회 가능, 그 외 권한은 로그인 사용자의 매장(centerId)으로 제한
+	private static boolean isAdmin(LoginVO loginVO) {
+		return Globals.ROLE_ADMIN.equals(loginVO.getRoleId());
+	}
+
 	// ===================== 브랜드/매장 조회(콤보/필터용, 읽기전용) =====================
 
 	@Operation(summary = "문화센터 브랜드(부서) 콤보 조회", description = "로그인 사용자 권한 범위의 문화센터 브랜드 계층 목록을 반환합니다.")
@@ -120,6 +125,17 @@ public class CultureDisInfoManageController {
 		ResultVO resultVO = new ResultVO();
 		try {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
+			LoginVO loginVO = AuthHelper.getLoginVO();
+
+			// ROLE_ADMIN 이외 권한은 매장 콤보에 자기 매장만 노출.
+			// 매장이 지정되지 않은 계정은 매퍼가 빈 값일 때 필터를 생략하므로 여기서 빈 목록을 반환한다.
+			if (!isAdmin(loginVO)) {
+				if (loginVO.getCenterId() == null || loginVO.getCenterId().isBlank()) {
+					ResultHelper.setSuccess(resultVO, List.of(), Globals.JSON_RETURN_RESULT_LIST);
+					return resultVO;
+				}
+				mhsCentercd = loginVO.getCenterId();
+			}
 
 			CenterInfoVO searchVO = new CenterInfoVO();
 			searchVO.setMhsBrandcd(mhsBrandcd);
@@ -147,13 +163,10 @@ public class CultureDisInfoManageController {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
 			LoginVO loginVO = AuthHelper.getLoginVO();
 			searchVO.setAuthorCode(loginVO.getRoleId());
-			// ROLE_MHS_USER(개별 매장 담당자)만 자기 매장/부서 범위를 벗어날 수 없도록 로그인 정보로
-			// 강제 고정한다(클라이언트가 보낸 mhsBrandcd/mhsCentercd 무시 — 보안 스코프).
-			// 그 외 권한(통합관리자 등)은 화면 상단에서 선택한 mhsBrandcd/mhsCentercd를 그대로 검색
-			// 필터로 사용한다 — 이전에는 여기서 무조건 덮어써서 상단 브랜드/매장 선택이 목록 조회에
-			// 전혀 반영되지 않았음(매퍼 selectMhsMonitorList의 ROLE_MHS_USER 전용 분기도 함께 수정).
-			if ("ROLE_MHS_USER".equals(loginVO.getRoleId())) {
-				searchVO.setGroupId(loginVO.getPartId());
+			// ROLE_ADMIN 이외 권한은 자기 매장 범위를 벗어날 수 없도록 로그인 정보로 강제 고정한다
+			// (클라이언트가 보낸 mhsCentercd 무시 — 보안 스코프). ROLE_ADMIN은 화면 상단에서 선택한
+			// mhsBrandcd/mhsCentercd를 그대로 검색 필터로 사용한다.
+			if (!isAdmin(loginVO)) {
 				searchVO.setMhsCentercd(loginVO.getCenterId());
 			}
 
@@ -217,6 +230,11 @@ public class CultureDisInfoManageController {
 		ResultVO resultVO = new ResultVO();
 		try {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
+			LoginVO loginVO = AuthHelper.getLoginVO();
+			// ROLE_ADMIN 이외 권한은 자기 매장 모니터만 조회
+			if (!isAdmin(loginVO)) {
+				mhsCentercd = loginVO.getCenterId();
+			}
 			ResultHelper.setSuccess(resultVO, mhsMonitorInfoManageService.selectMhsMonitorCombo(mhsCentercd), Globals.JSON_RETURN_RESULT_LIST);
 		} catch (Exception e) {
 			ResultHelper.setFailResult(resultVO, "selectMonitorCombo", e, egovMessageSource);
@@ -280,6 +298,7 @@ public class CultureDisInfoManageController {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
 			LoginVO loginVO = AuthHelper.getLoginVO();
 			searchVO.setAuthorCode(loginVO.getRoleId());
+			// ROLE_ADMIN 이외 권한은 매퍼에서 이 값(로그인 매장)으로 강제 필터링됨
 			searchVO.setMhsCentercd(loginVO.getCenterId());
 
 			if (searchVO.getPageUnit() <= 0) {
@@ -341,6 +360,11 @@ public class CultureDisInfoManageController {
 		ResultVO resultVO = new ResultVO();
 		try {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
+			LoginVO loginVO = AuthHelper.getLoginVO();
+			// ROLE_ADMIN 이외 권한은 자기 매장 강의만 조회
+			if (!isAdmin(loginVO)) {
+				vo.setMhsCentercd(loginVO.getCenterId());
+			}
 			ResultHelper.setSuccess(resultVO, mhsClassInfoManageService.selectMhsMoniterClassList(vo), Globals.JSON_RETURN_RESULT_LIST);
 		} catch (Exception e) {
 			ResultHelper.setFailResult(resultVO, "selectMhsMoniterClassList", e, egovMessageSource);

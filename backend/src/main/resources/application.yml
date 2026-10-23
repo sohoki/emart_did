@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: local
+    active: server
     group:
       local: [local, common]
       prod: [prod, common]
@@ -181,14 +181,14 @@ server:
     session:
       timeout : 3600
 Common :
-  filePath : E:\\dev\\front\\더폼나\\theformna\\backoffice\\upload
+  filePath : /data/EMART_DID/did/upload
 ########### 추후 인코딩 변경
 Globals:
   OsType : WINDOWS
   LocalIp : 1.255.226.51
   DbType : postgresql
   postgresql:
-    Url: jdbc:postgresql://27.96.130.69:8088/EMTINDB
+    Url: jdbc:postgresql://did-stg-app-rds.ckealtzyno16.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
     UserName: didadmin
     Password: AprkDB202^Q2
   addedOptions:
@@ -207,6 +207,11 @@ spring:
   application:
     admin:
       enabled: false
+  data:
+    redis:
+      host: 10.224.233.147
+      port: 6379
+      password:
 # Swagger 비활성화 (운영 보안 — API 명세 외부 노출 차단)
 springdoc:
   api-docs:
@@ -232,14 +237,14 @@ server:
     session:
       timeout : 3600
 Common :
-  filePath : E:\\dev\\front\\더폼나\\theformna\\backoffice\\upload
+  filePath : /data/EMART_DID/did/upload
 ########### 추후 인코딩 변경
 Globals:
   OsType : WINDOWS
   LocalIp : 1.255.226.51
   DbType : postgresql
   postgresql:
-    Url: jdbc:postgresql://27.96.130.69:8088/EMTINDB
+    Url: jdbc:postgresql://did-stg-app-rds.ckealtzyno16.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
     UserName: didadmin
     Password: AprkDB202^Q2
   addedOptions:

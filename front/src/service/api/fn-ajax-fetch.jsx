@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getCookie } from '@/lib/cookie.jsx';
+import { getCookie, clearAuthCookies } from '@/lib/cookie.jsx';
 import { fn_Refresh } from '@/service/api/fn-refresh.jsx';
 import Swal from '@/lib/swal.js';
 import appConfig from '@/config/index.jsx';
@@ -173,12 +173,13 @@ export async function fnAjaxFetch(options) {
         if (res.status >= 200 && res.status < 300) {
             const resData = res.data;
 
-            // 서버가 HTTP 200으로 응답했지만 body에 401 신호를 담는 경우
+            // 서버가 HTTP 200으로 응답했지만 body에 인증 실패 신호를 담는 경우
+            // (JwtVerification.handleAuthError는 AUTH_ERROR=403 코드로 내려준다)
             if (
                 resData &&
                 typeof resData === 'object' &&
                 resData.resultCodeInfo === 'FAIL' &&
-                String(resData.resultCode) === '401'
+                ['401', '403'].includes(String(resData.resultCode))
             ) {
                 return await handleUnauthorized(options, _retryCount, fail_callback, redirectOnNoAuth, suppressErrorHandling);
             }
@@ -259,6 +260,9 @@ async function handleUnauthorized(options, _retryCount, fail_callback, redirectO
     if (!redirectOnNoAuth || suppressErrorHandling) {
         throw new HandledError('Unauthorized');
     }
+
+    // 유효하지 않은 토큰이 쿠키에 남아 있으면 로그인 페이지에서도 계속 실패하므로 먼저 지운다
+    clearAuthCookies();
 
     Swal.fire({
         icon: 'error',

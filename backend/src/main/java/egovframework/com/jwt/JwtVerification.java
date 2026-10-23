@@ -5,6 +5,7 @@ import egovframework.com.cmm.service.Globals;
 import egovframework.com.cmm.service.ResultVO;
 import egovframework.let.utl.fcc.service.EgovStringUtil;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,6 +47,10 @@ public class JwtVerification {
 			log.debug("JWT strings must contain exactly 2 period characters");
 		} catch (UnsupportedJwtException e) {
 			log.debug("not support JWT token.");
+		} catch (JwtException e) {
+			// 서명 불일치(SignatureException) 등 위에서 잡지 못한 JWT 오류 — 잡지 않으면 500으로 터져
+			// 프론트가 인증 실패로 인식하지 못하므로 인증 실패(AUTH_ERROR)로 처리한다.
+			log.debug("invalid JWT token: " + e.getMessage());
 		}
 
 
@@ -96,6 +101,9 @@ public class JwtVerification {
 		    	log.debug("JWT strings must contain exactly 2 period characters");
 		} catch (UnsupportedJwtException e) {
 		    	log.debug("not support JWT token.");
+		} catch (JwtException e) {
+			// 서명 불일치(SignatureException) 등 — 인증 실패로 처리
+			log.debug("invalid JWT token: " + e.getMessage());
 		}
 
 		//log.debug("===>>> username = " + username);
@@ -127,7 +135,14 @@ public class JwtVerification {
 		
 		String refreshToken = EgovStringUtil.isNullToString(request.getHeader("refreshToken"));
 		
-		String id = jwtTokenUtil.getUsernameFromToken(refreshToken);
+		String id;
+		try {
+			id = jwtTokenUtil.getUsernameFromToken(refreshToken);
+		} catch (JwtException | IllegalArgumentException e) {
+			// 서명 불일치/만료 등 유효하지 않은 refreshToken — 재발급 불가로 처리
+			log.debug("invalid refresh token: " + e.getMessage());
+			return false;
+		}
 		
 		log.debug("==========================id:" + id);
 		

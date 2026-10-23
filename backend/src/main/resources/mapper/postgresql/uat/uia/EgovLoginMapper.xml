@@ -6,7 +6,7 @@
     <select id="actionLogin" resultType="egovframework.com.cmm.LoginVO">
         SELECT A.MANAGER_ID, A.MANAGER_PASSWORD, A.MANAGER_NAME, A.USE_YN, A.PART_ID, B.PART_NM AS PART_NAME,
                A.ROLE_ID, A.MANAGER_EMAIL, A.MANAGER_TEL, A.LOCK_YN, A.EMP_NO,
-               A.ROLE_GUBUN, A.MANAGER_POSITION, A.MANAGER_PIC,
+               A.ROLE_GUBUN, A.MANAGER_POSITION, A.MANAGER_PIC, A.CENTER_ID,
                'EMP' AS SYSTEMCODE_USECODE
         FROM tb_managerinfo A
         LEFT JOIN tb_partinfo B ON A.PART_ID = B.PART_ID
@@ -20,7 +20,7 @@
     <select id="actionLoginResfresh" resultType="egovframework.com.cmm.LoginVO">
         SELECT A.MANAGER_ID, A.MANAGER_PASSWORD, A.MANAGER_NAME, A.USE_YN, A.PART_ID, B.PART_NM AS PART_NAME,
                A.ROLE_ID, A.MANAGER_EMAIL, A.MANAGER_TEL, A.LOCK_YN, A.EMP_NO,
-               A.ROLE_GUBUN, A.MANAGER_POSITION, A.MANAGER_PIC,
+               A.ROLE_GUBUN, A.MANAGER_POSITION, A.MANAGER_PIC, A.CENTER_ID,
                'EMP' AS SYSTEMCODE_USECODE
         FROM tb_managerinfo A
         LEFT JOIN tb_partinfo B ON A.PART_ID = B.PART_ID

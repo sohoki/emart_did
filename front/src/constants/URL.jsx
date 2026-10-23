@@ -152,6 +152,11 @@ const URL = {
     DID_GROUP_MEMBER_COMBO: "/api/backoffice/sub/equiManage/group/didcomboLst.do",
     DID_GROUP_MEMBER_INSERT: "/api/backoffice/sub/equiManage/group/didgroupInsret.do",
 
+    //모니터링(통합/단말기/음원방송) — 레거시 dashboardState*.do
+    DASHBOARD_STATE: "/api/backoffice/sub/equiManage/dashboard/state.do",
+    DASHBOARD_STATE_DID: "/api/backoffice/sub/equiManage/dashboard/state1.do",
+    DASHBOARD_STATE_BROD: "/api/backoffice/sub/equiManage/dashboard/state2.do",
+
     //발송 스케줄(방송 예약) 관리
     SCH_LIST: "/api/backoffice/sub/equiManage/sch/list.do",
     SCH_FORM_DATA: "/api/backoffice/sub/equiManage/sch/formData.do",

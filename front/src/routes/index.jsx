@@ -41,6 +41,10 @@ const MhsMonitorDetailPage = lazy(() => import('@/pages/backoffice/RoomManage/Mh
 const MhsMonitorDevicePage = lazy(() => import('@/pages/backoffice/RoomManage/MhsMonitorDevicePage.jsx'));
 
 {/* 콘텐츠 관리 */}
+// 모니터링
+const DashboardStatePage = lazy(() => import('@/pages/backoffice/equiManage/Dashboard/DashboardStatePage.jsx'));
+const DashboardStatusListPage = lazy(() => import('@/pages/backoffice/equiManage/Dashboard/DashboardStatusListPage.jsx'));
+
 const ContentFileLibraryPage = lazy(() => import('@/pages/backoffice/ConManage/ContentFileLibraryPage.jsx'));
 const ContentMutiListPage = lazy(() => import('@/pages/backoffice/ConManage/ContentMutiListPage.jsx'));
 const ContentDetailEditorPage = lazy(() => import('@/pages/backoffice/ConManage/ContentDetailEditorPage.jsx'));
@@ -86,6 +90,9 @@ export default function RouterConfig() {
                         <Route path="/backoffice/sub/equiManage/did_group" element={<DIdGroupInfo />} />
                         <Route path="/backoffice/sub/equiManage/sch" element={<ScheduleListPage />} />
                         <Route path="/backoffice/sub/equiManage/sch/status" element={<ScheduleStatusPage />} />
+                        <Route path="/backoffice/sub/equiManage/dashboard" element={<DashboardStatePage />} />
+                        <Route path="/backoffice/sub/equiManage/dashboard/did" element={<DashboardStatusListPage key="did" kind="did" />} />
+                        <Route path="/backoffice/sub/equiManage/dashboard/brod" element={<DashboardStatusListPage key="brod" kind="brod" />} />
                         <Route path="/backoffice/sub/equiManage/message_list" element={<DidSendMessageList />} />
                         { /* did 모니터 캡처 화면 */}
                         <Route path="/backoffice/sub/equiManage/pic" element={<DidPicListPage />} />

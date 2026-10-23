@@ -1,6 +1,5 @@
 import { Card, Button, Image } from 'react-bootstrap';
 import { PlusCircle, BoxArrowRight, HouseDoor, X } from 'react-bootstrap-icons';
-import { useNavigate } from 'react-router-dom';
 import config from '@/config/index.jsx';
 
 const IMG_BASE_URL = config.REACT_APP_IMG_URL || '';
@@ -12,8 +11,6 @@ const Profile = ({
     onEditProfile,
     onChangePassword,
 }) => {
-    const navigate = useNavigate();
-
     const {
         managerName = '관리자',
         managerEmail = '',
@@ -24,11 +21,6 @@ const Profile = ({
     const handleProfileClick = () => {
         onClose();   // 프로필 카드 닫기
         onEditProfile();
-    }
-
-    const handleBookmarksClick = () => {
-        onClose();
-        navigate('/sub/bas/bookmarks');
     }
 
     const handlePasswordClick = () => {
@@ -114,16 +106,8 @@ const Profile = ({
                 </Button>
             </div>
 
-            {/* 즐겨찾기 설정 / 비밀번호 변경 (로그아웃과 동일한 스타일, 한 줄에 2개) */}
+            {/* 비밀번호 변경 (로그아웃과 동일한 스타일) — 미사용 즐겨찾기 설정 버튼은 제거 */}
             <div className="d-flex gap-2 mb-2">
-                <Button
-                variant="dark"
-                className="flex-fill py-3 d-flex align-items-center justify-content-center gap-2 border-0"
-                style={{ backgroundColor: '#2d2f31', borderRadius: '10px', fontSize: '14px' }}
-                onClick={handleBookmarksClick}
-                >
-                즐겨찾기 설정
-                </Button>
                 <Button
                 variant="dark"
                 className="flex-fill py-3 d-flex align-items-center justify-content-center gap-2 border-0"

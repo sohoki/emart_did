@@ -25,10 +25,10 @@
                 JOIN LETTNAUTHORGROUPINFO C ON A.MHS_BRANDCD = C.GROUP_ID
                 JOIN TB_MHSMONITORINFO D ON A.MHS_CLASSROOMNM = D.MHS_MONITORCD
                 WHERE 1=1
-                <if test="authorCode == 'ROLE_MHS_USER'">
-                    <if test='mhsCentercd != null and mhsCentercd != "" '>
-                        AND A.MHS_CENTERCD = #{mhsCentercd}
-                    </if>
+                <!-- ROLE_ADMIN 이외 권한은 자기 매장만 조회(컨트롤러가 mhsCentercd를 로그인 매장으로 고정).
+                     매장 미지정 계정(NULL)은 결과 없음. -->
+                <if test="authorCode != 'ROLE_ADMIN'">
+                    AND A.MHS_CENTERCD = #{mhsCentercd}
                 </if>
                 <if test="searchMhsBramdCd != '' and searchMhsCenterCd != null">
                     AND A.MHS_BRANDCD = #{searchMhsBramdCd}
@@ -76,6 +76,9 @@
         JOIN LETTNAUTHORGROUPINFO C ON A.MHS_BRANDCD = C.GROUP_ID
         JOIN TB_MHSMONITORINFO D ON A.MHS_CLASSROOMNM = D.MHS_MONITORCD
         WHERE 1=1
+        <if test="authorCode != 'ROLE_ADMIN'">
+            AND A.MHS_CENTERCD = #{mhsCentercd}
+        </if>
         <if test="searchMhsBramdCd != '' and searchMhsCenterCd != null">
             AND A.MHS_BRANDCD = #{searchMhsBramdCd}
         </if>

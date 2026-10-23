@@ -79,6 +79,8 @@ public class ManagerInfoManagerController {
 			LoginVO loginVO = AuthHelper.getLoginVO();
 			searchVO.put(Globals.PAGE_LOGIN_ROLEID, loginVO.getRoleId());
 			searchVO.put(Globals.PAGE_LOGIN_PARTID, loginVO.getPartId());
+			// 매장 소속 계정(문화센터 등 같은 부서에 여러 매장이 묶인 경우)은 자기 매장 관리자만 조회
+			searchVO.put("loginCenterId", loginVO.getCenterId());
 
 			PaginationInfo paginationInfo = PaginationHelper.buildInfo(searchVO,
 					propertiesService.getInt(Globals.PAGE_UNIT), propertiesService.getInt(Globals.PAGE_SIZE));

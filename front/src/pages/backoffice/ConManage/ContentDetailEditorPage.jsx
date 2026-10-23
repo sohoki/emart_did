@@ -10,6 +10,17 @@ const ContentMutiFormModal = lazy(() => import('./components/ContentMutiFormModa
 
 const MEDIA_PAGE_UNIT = 20;
 
+// 상단 화면 정보 테이블 — 테두리 + 항목명 배경색으로 라벨/값 구분이 잘 보이도록
+const INFO_TH = {
+    width: 120, padding: '10px 14px', textAlign: 'center', whiteSpace: 'nowrap',
+    background: '#f1f5f9', color: '#334155', fontWeight: 600,
+    border: '1px solid #cbd5e1',
+};
+const INFO_TD = {
+    padding: '10px 14px', color: '#0f172a', background: '#fff',
+    border: '1px solid #cbd5e1',
+};
+
 const EMPTY_MUTI_FORM = {
     mode: 'Ins', 
     conSeq: '', 
@@ -374,30 +385,31 @@ export default function ContentDetailEditorPage() {
                 </div>
             </div>
 
-            <div className="col-12" style={{ padding: '12px 15px', borderBottom: '1px solid #dde2eb' }}>
-                <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+            <div className="col-12" style={{ padding: '12px 15px' }}>
+                <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse',
+                    borderTop: '2px solid #475569' }}>
                     <tbody>
                         <tr>
-                            <th style={{ width: 90, textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>화면명</th>
-                            <td style={{ padding: '4px 8px' }}>{contentInfo?.conNm}</td>
-                            <th style={{ width: 90, textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>화면타입</th>
-                            <td style={{ padding: '4px 8px' }}>{contentInfo?.codeNm}</td>
-                            <th style={{ width: 90, textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>등록일</th>
-                            <td style={{ padding: '4px 8px' }}>{contentInfo?.frstRegistPnttm}</td>
-                            <th style={{ width: 90, textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>이용스케줄</th>
-                            <td style={{ padding: '4px 8px' }}>{contentInfo?.schCnt ?? 0}개</td>
+                            <th style={INFO_TH}>화면명</th>
+                            <td style={{ ...INFO_TD, fontWeight: 600 }}>{contentInfo?.conNm}</td>
+                            <th style={INFO_TH}>화면타입</th>
+                            <td style={INFO_TD}>{contentInfo?.codeNm}</td>
+                            <th style={INFO_TH}>등록일</th>
+                            <td style={INFO_TD}>{contentInfo?.frstRegistPnttm}</td>
+                            <th style={INFO_TH}>이용스케줄</th>
+                            <td style={INFO_TD}>{contentInfo?.schCnt ?? 0}개</td>
                         </tr>
                         <tr>
-                            <th style={{ textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>총 송출 시간</th>
-                            <td style={{ padding: '4px 8px' }}>{contentInfo?.conTime ?? 0}초</td>
-                            <th style={{ textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>사용여부</th>
-                            <td style={{ padding: '4px 8px' }}>{contentInfo?.conUseYn === 'Y' ? '사용' : '사용 안함'}</td>
-                            <th style={{ textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>화면 사이즈</th>
-                            <td style={{ padding: '4px 8px' }}>
+                            <th style={INFO_TH}>총 송출 시간</th>
+                            <td style={INFO_TD}>{contentInfo?.conTime ?? 0}초</td>
+                            <th style={INFO_TH}>사용여부</th>
+                            <td style={INFO_TD}>{contentInfo?.conUseYn === 'Y' ? '사용' : '사용 안함'}</td>
+                            <th style={INFO_TH}>화면 사이즈</th>
+                            <td style={INFO_TD}>
                                 가로: {contentInfo?.conWidth} 세로: {contentInfo?.conHeight} 분할: {contentInfo?.conMid}
                             </td>
-                            <th style={{ textAlign: 'left', color: '#64748b', padding: '4px 8px' }}>연결콘텐츠</th>
-                            <td style={{ padding: '4px 8px' }}>
+                            <th style={INFO_TH}>연결콘텐츠</th>
+                            <td style={INFO_TD}>
                                 {contentInfo?.conNextTitle === 'NO DATA' ? '연결 정보 없음' : contentInfo?.conNextTitle}
                             </td>
                         </tr>
@@ -488,7 +500,8 @@ export default function ContentDetailEditorPage() {
                     </table>
                 </div>
 
-                <div style={{ flex: 0.9, borderLeft: '1px solid #e2e8f0', paddingLeft: 16 }}>
+                {/* 미디어 리스트는 레거시 화면처럼 좌측에 배치 (order: -1) */}
+                <div style={{ flex: 0.9, order: -1, borderRight: '1px solid #e2e8f0', paddingRight: 16 }}>
                     <h3 style={{ fontSize: 14, margin: '4px 0 8px' }}>미디어 리스트</h3>
                     <form onSubmit={handleFileSearch} style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <div className="content-search__option" style={{ flexWrap: 'nowrap' }}>
@@ -507,14 +520,20 @@ export default function ContentDetailEditorPage() {
                     </form>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 640, overflowY: 'auto' }}>
                         {searchResultToRender.map((f) => (
-                            <div key={f.atchFileId} style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                border: '1px solid #e2e8f0', borderRadius: 6, padding: 8, fontSize: 12,
-                            }}>
+                            <div key={f.atchFileId}
+                                onDoubleClick={() => handleAddFile(f)}
+                                title="더블클릭하면 추가됩니다"
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    border: '1px solid #e2e8f0', borderRadius: 6, padding: 8, fontSize: 12,
+                                    cursor: 'pointer', userSelect: 'none',
+                                }}>
                                 <Thumb file={f} size={60} />
                                 <div style={{ flex: 1, wordBreak: 'break-all' }}>{f.orignlFileNm}</div>
                                 <button type="button" className="btn btn-primary btn-default__blue btn-sm"
-                                    onClick={() => handleAddFile(f)}>추가</button>
+                                    onClick={() => handleAddFile(f)}
+                                    // 버튼 더블클릭이 행 onDoubleClick까지 올라가 중복 추가되지 않도록 차단
+                                    onDoubleClick={(e) => e.stopPropagation()}>추가</button>
                             </div>
                         ))}
                         {searchResultToRender.length === 0 && <div style={{ color: '#94a3b8', gridColumn: '1 / -1' }}>검색 결과가 없습니다.</div>}

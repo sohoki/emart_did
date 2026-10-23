@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sym.dbd.mapper.DashBoardManagerMapper">
+    <!-- 레거시는 DID_STATE/BROD_STATE 뷰를 조회했으나 신규 PostgreSQL DB에는 해당 뷰가 없어
+         TB_DIDINFO에서 직접 집계한다. 조건은 아래 페이징 목록(selectBrodStatusPage01/02)과 동일하게 맞춤.
+         DIDCNT: 사용중 단말 수 / ONCNT: 정상(DID_STTUS='Y') / OFFCNT: 그 외(오프라인) -->
     <select id="selectDidStatus" resultType="DashBoardInfo">
-        SELECT DIDCNT, ONCNT, REAL_PER, OFFDID, OFFCNT FROM DID_STATE
+        SELECT
+            COUNT(*)                                     AS DIDCNT,
+            COUNT(*) FILTER (WHERE A.DID_STTUS = 'Y')    AS ONCNT,
+            COUNT(*) FILTER (WHERE A.DID_STTUS != 'Y')   AS OFFCNT
+        FROM TB_DIDINFO A
+        WHERE A.DID_USEYN = 'Y'
+          AND A.DID_MODELTYPE IN ('DIDRMODELTYPE01', 'DIDRMODELTYPE02')
     </select>
 
     <select id="selectBrodStatus" resultType="DashBoardInfo">
-        SELECT DIDCNT, ONCNT, REAL_PER, OFFDID, OFFCNT FROM BROD_STATE
+        SELECT
+            COUNT(*)                                     AS DIDCNT,
+            COUNT(*) FILTER (WHERE A.DID_STTUS = 'Y')    AS ONCNT,
+            COUNT(*) FILTER (WHERE A.DID_STTUS != 'Y')   AS OFFCNT
+        FROM TB_DIDINFO A
+        WHERE A.DID_USEYN = 'Y'
+          AND A.DID_MODELTYPE = 'DIDRMODELTYPE03'
     </select>
 
     <select id="selectBrodStatusPage01" resultType="DashBoardInfo">
         SELECT X.* FROM
             (
                 SELECT
-                    ROW_NUMBER() OVER (ORDER BY A.DID_ENDCONTIME DESC) AS RNUM,
+                    ROW_NUMBER() OVER (ORDER BY TB.didEndcontime DESC NULLS LAST) AS RNUM, -- 서브쿼리 밖이라 A 별칭 사용 불가
                     TB.*
                 FROM
                     (
@@ -47,7 +62,7 @@
         SELECT X.* FROM
             (
                 SELECT
-                    ROW_NUMBER() OVER (ORDER BY A.DID_ENDCONTIME DESC) AS RNUM,
+                    ROW_NUMBER() OVER (ORDER BY TB.didEndcontime DESC NULLS LAST) AS RNUM, -- 서브쿼리 밖이라 A 별칭 사용 불가
                     TB.*
                 FROM
                     (

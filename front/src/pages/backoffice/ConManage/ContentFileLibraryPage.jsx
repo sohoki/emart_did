@@ -5,6 +5,8 @@ import config from '@/config/index.jsx';
 import URL from '@/constants/URL.jsx';
 
 const ContentFileUploadModal = lazy(() => import('./components/ContentFileUploadModal.jsx'));
+const ContentFileDetailModal = lazy(() => import('./components/ContentFileDetailModal.jsx'));
+const ContentFileConnModal = lazy(() => import('./components/ContentFileConnModal.jsx'));
 
 const PAGE_UNIT = 24;
 
@@ -21,6 +23,9 @@ export default function ContentFileLibraryPage() {
     const [loading, setLoading] = useState(false);
     const [tempParams, setTempParams] = useState(INITIAL_SEARCH_FORM);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    // 파일 상세정보 모달 대상 { atchFileId, mediaType } / 삭제 불가 시 사용 중 콘텐츠 모달 { fileName, connList }
+    const [detailTarget, setDetailTarget] = useState(null);
+    const [connTarget, setConnTarget] = useState(null);
 
     const loadList = useCallback(async (params) => {
         setLoading(true);
@@ -76,7 +81,7 @@ export default function ContentFileLibraryPage() {
         loadList(tempParams);
     };
 
-    const handleDelete = async (atchFileId) => {
+    const handleDelete = async (atchFileId, fileName) => {
         const result = await Swal.fire({
             icon: 'question', title: '파일 삭제', text: '이 파일을 삭제하시겠습니까? 사용 중인 콘텐츠가 있으면 먼저 확인해 주세요.',
             showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
@@ -86,7 +91,7 @@ export default function ContentFileLibraryPage() {
         const connRes = await fnAjaxFetch({ url: URL.CON_FILE_CONN_CHECK, method: 'GET', param: { atchFileId } });
         const connList = connRes?.data?.result?.resultList ?? [];
         if (connList.length > 0) {
-            await Swal.fire({ icon: 'warning', title: '삭제 불가', text: `${connList.length}개의 콘텐츠에서 사용 중입니다.` });
+            setConnTarget({ fileName, connList });
             return;
         }
 
@@ -148,10 +153,13 @@ export default function ContentFileLibraryPage() {
                     gap: 12, minHeight: 400, background: 'var(--bs-body-bg, #fff)',
                 }}>
                     {list.map((file) => (
-                        <div key={file.atchFileId} style={{
-                            border: '1px solid #e2e8f0', borderRadius: 8, padding: 8,
-                            background: 'var(--bs-body-bg, #fff)',
-                        }}>
+                        <div key={file.atchFileId}
+                            onClick={() => setDetailTarget({ atchFileId: file.atchFileId, mediaType: file.mediaType })}
+                            title="클릭하면 파일 상세정보를 확인/저장할 수 있습니다"
+                            style={{
+                                border: '1px solid #e2e8f0', borderRadius: 8, padding: 8,
+                                background: 'var(--bs-body-bg, #fff)', cursor: 'pointer',
+                            }}>
                             {file.mediaType === 'IMAGE' ? (
                                 <img
                                     src={`${config.REACT_APP_IMG_URL}${(file.fileStreCours || '').replace(/^\//, '')}${file.streFileNm}`}
@@ -167,7 +175,8 @@ export default function ContentFileLibraryPage() {
                                 </div>
                             )}
                             <div style={{ marginTop: 6, fontSize: 12, wordBreak: 'break-all' }}>{file.orignlFileNm}</div>
-                            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                            {/* 버튼 클릭이 카드 onClick(상세 모달)까지 전파되지 않도록 차단 */}
+                            <div style={{ display: 'flex', gap: 6, marginTop: 6 }} onClick={(e) => e.stopPropagation()}>
                                 <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
                                     style={{ fontSize: 12 }}
                                     onClick={() => handleUseYnToggle(file.atchFileId, file.useYn)}>
@@ -175,7 +184,7 @@ export default function ContentFileLibraryPage() {
                                 </button>
                                 <button type="button" className="btn btn-outline-danger btn-outline__gray btn-sm"
                                     style={{ fontSize: 12 }}
-                                    onClick={() => handleDelete(file.atchFileId)}>삭제</button>
+                                    onClick={() => handleDelete(file.atchFileId, file.orignlFileNm)}>삭제</button>
                             </div>
                         </div>
                     ))}
@@ -191,6 +200,23 @@ export default function ContentFileLibraryPage() {
                         open={uploadModalOpen}
                         onClose={() => setUploadModalOpen(false)}
                         onUploaded={() => { setUploadModalOpen(false); loadList(tempParams); }}
+                    />
+                )}
+                {detailTarget && (
+                    <ContentFileDetailModal
+                        open={!!detailTarget}
+                        atchFileId={detailTarget.atchFileId}
+                        mediaType={detailTarget.mediaType}
+                        onClose={() => setDetailTarget(null)}
+                        onSaved={() => { setDetailTarget(null); loadList(tempParams); }}
+                    />
+                )}
+                {connTarget && (
+                    <ContentFileConnModal
+                        open={!!connTarget}
+                        fileName={connTarget.fileName}
+                        connList={connTarget.connList}
+                        onClose={() => setConnTarget(null)}
                     />
                 )}
             </Suspense>

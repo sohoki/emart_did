@@ -172,9 +172,11 @@ export default function ContentMutiListPage() {
     const columnDefs = useMemo(() => ([
         { field: 'conSeq', headerName: '순번', width: 90 },
         {
+            // 화면명 클릭 → 편성 화면, 우측 "수정" 버튼 → 화면 구성 수정 모달
             field: 'conNm', headerName: '화면명', flex: 1, minWidth: 180,
             cellRenderer: (p) => (
-                <button className="btn btn-link p-0" onClick={() => handleOpenMutiModal(p.data?.conSeq)}>{p.value}</button>
+                <button className="btn btn-link p-0"
+                    onClick={() => navigate(`/backoffice/sub/conManage/muti/edit?conSeq=${p.data.conSeq}`)}>{p.value}</button>
             ),
         },
         { field: 'codeNm', headerName: '화면타입', width: 120 },
@@ -186,11 +188,11 @@ export default function ContentMutiListPage() {
         },
         { field: 'frstRegistPnttm', headerName: '등록일', width: 150 },
         {
-            headerName: '편성', width: 90, sortable: false, filter: false,
+            headerName: '수정', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
                 <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
-                    onClick={() => navigate(`/backoffice/sub/conManage/muti/edit?conSeq=${p.data.conSeq}`)}
-                >편성</button>
+                    onClick={() => handleOpenMutiModal(p.data?.conSeq)}
+                >수정</button>
             ),
         },
         {

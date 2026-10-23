@@ -34,6 +34,19 @@ const ContentMutiFormModal = ({
         updateForm(defaults ? { conScreen, ...defaults } : { conScreen });
     }, [updateForm]);
 
+    // 가로/세로(conType) 변경 시 화면 사이즈(px)를 방향에 맞게 맞춰준다 — 가로(DIDTYPE01)는
+    // 가로 > 세로, 세로(DIDTYPE02)는 세로 > 가로가 되도록 값을 맞바꾼다(직접 입력한 사이즈 유지).
+    const handleConTypeChange = useCallback((conType) => {
+        setForm((prev) => {
+            const w = Number(prev.conWidth);
+            const h = Number(prev.conHeight);
+            const needSwap = (conType === 'DIDTYPE01' && w < h) || (conType === 'DIDTYPE02' && w > h);
+            return needSwap
+                ? { ...prev, conType, conWidth: prev.conHeight, conHeight: prev.conWidth }
+                : { ...prev, conType };
+        });
+    }, [setForm]);
+
     if (!open) return null;
 
     return (
@@ -81,7 +94,7 @@ const ContentMutiFormModal = ({
                                         <div className="input-box">
                                             <label className="form-label">가로/세로</label>
                                             <select id="conType" name="conType" className="form-select"
-                                                value={form.conType} onChange={(e) => updateForm({ conType: e.target.value })}>
+                                                value={form.conType} onChange={(e) => handleConTypeChange(e.target.value)}>
                                                 <option value="">선택</option>
                                                 {conTypeOptions.map((o) => (
                                                     <option key={o.code} value={o.code}>{o.codeNm}</option>

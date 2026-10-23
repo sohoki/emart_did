@@ -110,6 +110,7 @@ public class EgovJwtTokenUtil implements Serializable {
 		vo.setComLogo(asString(claims.get("comLogo")));
 		vo.setComCode(asString(claims.get("comCode")));
 		vo.setSystemcodeUsecode(asString(claims.get("systemcodeUsecode")));
+		vo.setCenterId(asString(claims.get("centerId")));
 		return vo;
 	}
 
@@ -194,6 +195,8 @@ public class EgovJwtTokenUtil implements Serializable {
 		claims.put("comLogo",        loginVO.getComLogo());
 		claims.put("comCode",        loginVO.getComCode());
 		claims.put("systemcodeUsecode", loginVO.getSystemcodeUsecode());
+		// 매장 단위 권한 스코프(ROLE_ADMIN 이외 권한은 자기 매장만 조회)에 사용
+		claims.put("centerId",       loginVO.getCenterId());
 
 		return doGenerateToken(claims,
 			 loginVO.getManagerName() + "|" + loginVO.getManagerId()

@@ -18,6 +18,26 @@
             LEFT JOIN tb_partinfo C ON A.PART_ID = C.PART_ID
             LEFT JOIN tb_roleinfo R ON A.ROLE_ID = R.ROLE_ID
             WHERE 1=1
+            <!-- ROLE_ADMIN 이외 권한은 자기 부서 및 하위 부서 관리자만 조회
+                 (roleId/partId는 컨트롤러가 로그인 정보로 채움 — 부서 미지정 계정은 결과 없음) -->
+            <if test='params.roleId != "ROLE_ADMIN"'>
+                AND A.PART_ID IN (
+                    WITH RECURSIVE cte AS (
+                        SELECT PART_ID
+                        FROM tb_partinfo
+                        WHERE PART_ID = #{params.partId}
+                        UNION   <!-- 부서 순환 참조 시 무한루프 방지 -->
+                        SELECT P.PART_ID
+                        FROM tb_partinfo P
+                        JOIN cte ON P.PARENT_PART_ID = cte.PART_ID
+                    )
+                    SELECT PART_ID FROM cte
+                )
+                <!-- 매장이 지정된 계정은 같은 매장 관리자만(문화센터처럼 한 부서에 여러 매장이 묶인 경우) -->
+                <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.loginCenterId)">
+                    AND A.CENTER_ID = #{params.loginCenterId}
+                </if>
+            </if>
             <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
                 <choose>
                     <when test="params.searchCondition == 'managerId'">
