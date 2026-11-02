@@ -160,9 +160,10 @@ export default function ContentFileLibraryPage() {
                                 border: '1px solid #e2e8f0', borderRadius: 8, padding: 8,
                                 background: 'var(--bs-body-bg, #fff)', cursor: 'pointer',
                             }}>
-                            {file.mediaType === 'IMAGE' ? (
+                            {/* 이미지는 원본, 동영상은 업로드 시 생성된 썸네일(fileThumnail)을 표시 */}
+                            {(file.mediaType === 'IMAGE' || (file.mediaType === 'MEDIA' && file.fileThumnail)) ? (
                                 <img
-                                    src={`${config.REACT_APP_IMG_URL}${(file.fileStreCours || '').replace(/^\//, '')}${file.streFileNm}`}
+                                    src={`${config.REACT_APP_IMG_URL}${(file.fileStreCours || '').replace(/^\//, '')}${file.mediaType === 'IMAGE' ? file.streFileNm : file.fileThumnail}`}
                                     alt={file.orignlFileNm}
                                     style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 4, background: '#f1f5f9' }}
                                 />

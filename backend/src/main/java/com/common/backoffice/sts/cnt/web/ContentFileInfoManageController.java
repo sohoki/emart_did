@@ -42,6 +42,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.common.backoffice.util.service.fileMultiService;
+import com.common.backoffice.util.service.VideoMediaService;
 
 /**
  * 콘텐츠 파일(이미지/영상/음원) 라이브러리 관리 API.
@@ -80,6 +81,10 @@ public class ContentFileInfoManageController {
 
 	private final ContentFileInfoManageService conFileService;
 	private final fileMultiService uploadFile;
+	private final VideoMediaService videoMedia;
+
+	/** 조회 쿼리의 mediaType 'MEDIA' 판별 기준과 동일한 확장자 */
+	private static final java.util.Set<String> VIDEO_EXTENSIONS = java.util.Set.of("mp4", "avi", "mpeg");
 
 	@Operation(summary = "콘텐츠 파일 리스트 조회",
             description = "mediaType(IMAGE/MEDIA/MUSIC)/notConType/fileGubun/검색조건으로 페이징 조회합니다.",
@@ -236,6 +241,14 @@ public class ContentFileInfoManageController {
 				vo.setFileExtsn(fileExtsn);
 				vo.setFileSize(String.valueOf(file.getSize()));
 				vo.setConSeq("0");
+				// 동영상이면 ffmpeg로 썸네일 + 재생시간 + 해상도 자동 추출 (실패해도 업로드는 진행)
+				if (VIDEO_EXTENSIONS.contains(fileExtsn.toLowerCase())) {
+					VideoMediaService.VideoInfo video = videoMedia.createThumbnailAndInfo(targetDir, savedName);
+					vo.setFileThumnail(video.thumbnailName());
+					vo.setPlayTime(video.playTime());
+					vo.setFileWidth(video.width());
+					vo.setFileHeight(video.height());
+				}
 				vo.setGroupId(loginVO.getPartId());
 				vo.setFrstRegisterId(loginVO.getManagerId());
 

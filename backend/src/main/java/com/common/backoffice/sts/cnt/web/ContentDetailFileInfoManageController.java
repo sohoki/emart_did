@@ -434,6 +434,7 @@ public class ContentDetailFileInfoManageController {
             if (!Files.exists(dirPath)) {
                 Files.createDirectories(dirPath);
             }
+            ensurePreviewAssets(rootPath);
 
             String fileName = "";
             String existing = contentMuti.selectContentFileInfo(conSeq);
@@ -471,6 +472,25 @@ public class ContentDetailFileInfoManageController {
         }
         return null;
     }
+    // 생성 HTML("S")은 /upload/jquery-4.0.0.min.js, /upload/silence.mp3를 참조한다(= filePath 루트).
+    // 서버마다 upload 폴더(filePath)가 달라 파일이 빠져 있으면 401/404로 화면이 안 뜨므로,
+    // 없을 때만 클래스패스(resources/preview)에서 복사해 둔다.
+    private void ensurePreviewAssets(Path rootPath) {
+        for (String asset : new String[] { "jquery-4.0.0.min.js", "silence.mp3" }) {
+            Path target = rootPath.resolve(asset);
+            if (Files.exists(target)) continue;
+            try (java.io.InputStream in = getClass().getResourceAsStream("/preview/" + asset)) {
+                if (in == null) {
+                    log.warn("미리보기 리소스 누락(classpath:/preview/{})", asset);
+                    continue;
+                }
+                Files.copy(in, target);
+            } catch (Exception e) {
+                log.error("미리보기 리소스 복사 실패: {} - {}", target, e.toString());
+            }
+        }
+    }
+
     public String conPageDetail(String conSeq, String playGubun) {
         StringBuilder htmlPage = new StringBuilder();
 
@@ -692,6 +712,12 @@ public class ContentDetailFileInfoManageController {
                 } else {
                     htmlPage.append("            mediaTag[0].src = '/upload' + fileStreCours+fileNm + '?autoplay=1';\r\n");
                 }
+                // 브라우저(크롬 등)는 소리 있는 자동재생을 막아서 동영상이 첫 프레임에서 멈춘다 —
+                // 재생이 거부되면 음소거 후 다시 재생
+                htmlPage.append("            var playPromise = mediaTag[0].play();\r\n");
+                htmlPage.append("            if (playPromise && playPromise.catch) {\r\n");
+                htmlPage.append("                playPromise.catch(function(){ mediaTag[0].muted = true; mediaTag[0].play(); });\r\n");
+                htmlPage.append("            }\r\n");
                 htmlPage.append("            mediaTag.on('loadeddata', function(){\r\n");
                 htmlPage.append("                clearTimeout(contentLoadCheck);\r\n");
                 htmlPage.append("                nextSeqConChk").append(i).append("('1', makeTypeRevers(makeType));\r\n");

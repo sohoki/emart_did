@@ -341,14 +341,14 @@
         INSERT INTO LETTNFILEDETAIL
         (
             ATCH_FILE_ID, FILE_STRE_COURS, STRE_FILE_NM, ORIGNL_FILE_NM, FILE_EXTSN,
-            FILE_SIZE, FILE_THUMNAIL, PLAY_TIME, FILE_GUBUN, USEYN, CON_SEQ,
+            FILE_SIZE, FILE_THUMNAIL, PLAY_TIME, FILE_WIDTH, FILE_HEIGHT, FILE_GUBUN, USEYN, CON_SEQ,
             GROUP_ID, FILE_ALBUM, SINGER_NM, REAL_FILE_NM, FILE_ALBUM_REGDATE,
             FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID, CENTER_ID
         )
         VALUES
             (
                 #{atchFileId}, #{fileStreCours}, #{streFileNm}, #{orignlFileNm}, #{fileExtsn},
-                #{fileSize,jdbcType=VARCHAR}::numeric, #{fileThumnail,jdbcType=VARCHAR}, #{playTime,jdbcType=VARCHAR}, #{fileGubun,jdbcType=VARCHAR}, 'Y', #{conSeq,jdbcType=VARCHAR}::numeric,
+                #{fileSize,jdbcType=VARCHAR}::numeric, #{fileThumnail,jdbcType=VARCHAR}, #{playTime,jdbcType=VARCHAR}, #{fileWidth,jdbcType=VARCHAR}, #{fileHeight,jdbcType=VARCHAR}, #{fileGubun,jdbcType=VARCHAR}, 'Y', #{conSeq,jdbcType=VARCHAR}::numeric,
                 #{groupId,jdbcType=VARCHAR}, #{fileAlbum,jdbcType=VARCHAR}, #{singerNm,jdbcType=VARCHAR}, #{realFileNm,jdbcType=VARCHAR}, #{fileAlbumRegdate,jdbcType=VARCHAR},
                 NOW(), #{frstRegisterId,jdbcType=VARCHAR}, NOW(), #{frstRegisterId,jdbcType=VARCHAR}, #{centerId,jdbcType=VARCHAR}
             )
