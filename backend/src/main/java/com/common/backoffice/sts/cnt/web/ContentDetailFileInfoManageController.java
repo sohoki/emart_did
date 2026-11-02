@@ -621,12 +621,12 @@ public class ContentDetailFileInfoManageController {
                     htmlPage.append("            $('#content_show").append(i).append("a').html('');\r\n");
                     htmlPage.append("            switch(fileType){\r\n");
                     if (i == 0) {
-                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("a\" src=\"'+fileStreCours+fileNm+'\" width=\"").append(width0).append("\" height=\"").append(height0).append("\" />'; break;\r\n");
+                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("a\" src=\"/upload'+fileStreCours+fileNm+'\" width=\"").append(width0).append("\" height=\"").append(height0).append("\" />'; break;\r\n");
                     } else {
-                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("a\" src=\"'+fileStreCours+fileNm+'\" width=\"").append(width1).append("\" height=\"").append(height1).append("\" />'; break;\r\n");
+                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("a\" src=\"/upload'+fileStreCours+fileNm+'\" width=\"").append(width1).append("\" height=\"").append(height1).append("\" />'; break;\r\n");
                     }
-                    htmlPage.append("                case 'MEDIA' : result = '<video id=\"content").append(i).append("a\" src=\"'+fileStreCours+fileNm+'\"><source type=\"video/mp4\"/></video>'; break;\r\n");
-                    htmlPage.append("                default      : result = '<audio id=\"content").append(i).append("a\" controls src=\"'+fileStreCours+fileNm+'\"><source type=\"audio/mpeg\"/></audio>'; break;\r\n");
+                    htmlPage.append("                case 'MEDIA' : result = '<video id=\"content").append(i).append("a\" src=\"/upload'+fileStreCours+fileNm+'\"><source type=\"video/mp4\"/></video>'; break;\r\n");
+                    htmlPage.append("                default      : result = '<audio id=\"content").append(i).append("a\" controls src=\"/upload'+fileStreCours+fileNm+'\"><source type=\"audio/mpeg\"/></audio>'; break;\r\n");
                     htmlPage.append("            }\r\n");
                     htmlPage.append("            mediaTag = $('#content").append(i).append("a');\r\n");
                     htmlPage.append("            $('#content_show").append(i).append("a').html(result);\r\n");
@@ -634,12 +634,12 @@ public class ContentDetailFileInfoManageController {
                     htmlPage.append("            $('#content_show").append(i).append("b').html('');\r\n");
                     htmlPage.append("            switch(fileType){\r\n");
                     if (i == 0) {
-                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("b\" src=\"'+fileStreCours+fileNm+'\" width=\"").append(width0).append("\" height=\"").append(height0).append("\" />'; break;\r\n");
+                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("b\" src=\"/upload'+fileStreCours+fileNm+'\" width=\"").append(width0).append("\" height=\"").append(height0).append("\" />'; break;\r\n");
                     } else {
-                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("b\" src=\"'+fileStreCours+fileNm+'\" width=\"").append(width1).append("\" height=\"").append(height1).append("\" />'; break;\r\n");
+                        htmlPage.append("                case 'IMAGE' : result = '<img id=\"content").append(i).append("b\" src=\"/upload'+fileStreCours+fileNm+'\" width=\"").append(width1).append("\" height=\"").append(height1).append("\" />'; break;\r\n");
                     }
-                    htmlPage.append("                case 'MEDIA' : result = '<video id=\"content").append(i).append("b\" src=\"'+fileStreCours+fileNm+'\"><source type=\"video/mp4\"/></video>'; break;\r\n");
-                    htmlPage.append("                default      : result = '<audio id=\"content").append(i).append("b\" controls src=\"'+fileStreCours+fileNm+'\"><source type=\"audio/mpeg\"/></audio>'; break;\r\n");
+                    htmlPage.append("                case 'MEDIA' : result = '<video id=\"content").append(i).append("b\" src=\"/upload'+fileStreCours+fileNm+'\"><source type=\"video/mp4\"/></video>'; break;\r\n");
+                    htmlPage.append("                default      : result = '<audio id=\"content").append(i).append("b\" controls src=\"/upload'+fileStreCours+fileNm+'\"><source type=\"audio/mpeg\"/></audio>'; break;\r\n");
                     htmlPage.append("            }\r\n");
                     htmlPage.append("            mediaTag = $('#content").append(i).append("b');\r\n");
                     htmlPage.append("            $('#content_show").append(i).append("b').html(result);\r\n");
@@ -690,7 +690,7 @@ public class ContentDetailFileInfoManageController {
                 if ("L".equals(playGubun)) {
                     htmlPage.append("            mediaTag[0].src = './' + fileNm + '?autoplay=1';\r\n");
                 } else {
-                    htmlPage.append("            mediaTag[0].src = fileStreCours+fileNm + '?autoplay=1';\r\n");
+                    htmlPage.append("            mediaTag[0].src = '/upload' + fileStreCours+fileNm + '?autoplay=1';\r\n");
                 }
                 htmlPage.append("            mediaTag.on('loadeddata', function(){\r\n");
                 htmlPage.append("                clearTimeout(contentLoadCheck);\r\n");

@@ -39,6 +39,14 @@ function circuitBreak() {
     });
 }
 
+// ━━━━━━━━━━ 인증 실패 누적 카운트 ━━━━━━━━━━━━━━━━━━━━━
+// suppressErrorHandling 등으로 리다이렉트를 건너뛴 호출도 포함해 누적 3회 이상이면 강제 로그아웃
+const AUTH_FAIL = {
+    MAX: 3,
+    count: 0,
+    redirecting: false,
+};
+
 // ━━━━━━━━━━ MUI 스타일 API 로딩 오버레이 ━━━━━━━━━━━━━━━━
 const LOADING_ID = '__api-loading-overlay__';
 
@@ -184,6 +192,7 @@ export async function fnAjaxFetch(options) {
                 return await handleUnauthorized(options, _retryCount, fail_callback, redirectOnNoAuth, suppressErrorHandling);
             }
 
+            AUTH_FAIL.count = 0;
             if (typeof done_callback === 'function') done_callback(resData);
             return res;
 
@@ -255,11 +264,21 @@ async function handleUnauthorized(options, _retryCount, fail_callback, redirectO
 
     if (typeof fail_callback === 'function') fail_callback();
 
+    AUTH_FAIL.count += 1;
+    const forceLogout = AUTH_FAIL.count >= AUTH_FAIL.MAX;
+
     // redirectOnNoAuth가 falsy이거나 suppressErrorHandling이면 리다이렉트 없이 조용히 throw
     // (위젯 대시보드처럼 일부 호출 실패가 전체 세션에 영향을 주면 안 되는 경우 suppressErrorHandling로 방지)
-    if (!redirectOnNoAuth || suppressErrorHandling) {
+    // 단, 인증 실패가 3회 이상 누적되면 예외 없이 쿠키 삭제 후 로그인 페이지로 보낸다
+    if (!forceLogout && (!redirectOnNoAuth || suppressErrorHandling)) {
         throw new HandledError('Unauthorized');
     }
+
+    // 이미 이동 중이면 Swal 중복 표시 없이 종료
+    if (AUTH_FAIL.redirecting) {
+        throw new HandledError('Unauthorized');
+    }
+    AUTH_FAIL.redirecting = true;
 
     // 유효하지 않은 토큰이 쿠키에 남아 있으면 로그인 페이지에서도 계속 실패하므로 먼저 지운다
     clearAuthCookies();
@@ -272,7 +291,7 @@ async function handleUnauthorized(options, _retryCount, fail_callback, redirectO
         timerProgressBar: true,
         allowOutsideClick: false,
         allowEscapeKey: false,
-    }).then(() => { window.location.href = redirectOnNoAuth; });
+    }).then(() => { window.location.href = redirectOnNoAuth || '/login'; });
 
     throw new HandledError('Unauthorized');
 }

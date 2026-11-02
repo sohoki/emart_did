@@ -41,6 +41,10 @@ const INITIAL_SEARCH_FORM = {
     searchKeyword: '',
 }
 
+// MasterDetailGrid는 받은 rowData 안에서만 클라이언트 페이징을 하므로
+// 서버에서는 전체를 한 번에 받아온다 (pageUnit만큼만 받으면 2페이지 이후 데이터가 안 보임)
+const FETCH_ALL_UNIT = '9999';
+
 // ── 메인 그리드 사용유무 Switch 셀 ────────────────────────────────────────
 const MainUseAtCell = ({ value, data, context }) => {
     const [currentValue, setCurrentValue] = useState(value);
@@ -175,7 +179,7 @@ const CodeInfo = () => {
         setTempParams((prev) => ({ ...prev, [name]: value }));
     }, []);
 
-    const onSearch = useCallback(async (pageIndex) => {
+    const onSearch = useCallback(async () => {
         if (tempParams.searchKeyword && !tempParams.searchCondition) {
             searchRef.current?.focus();
             searchRef.current?.classList.add('input-focus-highlight');
@@ -183,13 +187,13 @@ const CodeInfo = () => {
             await alert.warning('검색 조건을 선택해주세요.', '검색 확인');
             return;
         }
-        const req = { ...tempParams, pageIndex: String(pageIndex), pageUnit: String(pageUnit) };
+        const req = { ...tempParams, pageIndex: '1', pageUnit: FETCH_ALL_UNIT };
         const { rows } = await fetchCodeList(req);
         setRowData(rows);
-    }, [tempParams, pageUnit, fetchCodeList]);
+    }, [tempParams, fetchCodeList]);
 
     useEffect(() => {
-        fetchCodeList({ searchCondition: '', searchKeyword: '', pageIndex: '1', pageUnit: String(pageUnit) })
+        fetchCodeList({ searchCondition: '', searchKeyword: '', pageIndex: '1', pageUnit: FETCH_ALL_UNIT })
             .then(({ rows }) => setRowData(rows))
             .catch(() => {});
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
