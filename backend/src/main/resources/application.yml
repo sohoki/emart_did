@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: server
+    active: local
     group:
       local: [local, common]
       prod: [prod, common]

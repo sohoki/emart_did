@@ -33,12 +33,15 @@ public class DashBoardManagerService  {
 	}
 
 	
+	// 클래스 레벨 readOnly 트랜잭션이면 UPDATE가 "read-only transaction" 오류로 실패하므로 쓰기 트랜잭션으로 재정의
+	@Transactional
 	public int dashStateUpdateStep01() throws Exception {
 		// TODO Auto-generated method stub
 		return dashboard.dashStateUpdateStep01();
 	}
 
 	
+	@Transactional
 	public int dashStateUpdateStep02() throws Exception {
 		// TODO Auto-generated method stub
 		return dashboard.dashStateUpdateStep02();
