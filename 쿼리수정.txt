@@ -54,3 +54,28 @@ INCREMENT BY 1
 NO MINVALUE
 NO MAXVALUE
 CACHE 1;
+
+
+-- DROP FUNCTION public.fn_centerid();
+CREATE OR REPLACE FUNCTION public.fn_centerid()
+ RETURNS character
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_centerid CHAR(9);
+BEGIN
+    SELECT
+        CASE
+            WHEN (COALESCE(COUNT(*), 0) + 1) > 9  AND (COALESCE(COUNT(*), 0) + 1) < 100
+            THEN 'C' || SUBSTRING(TO_CHAR(NOW(), 'YYYYMMDD'), 3, 8) || (COALESCE(COUNT(*), 0) + 1)::text
+            WHEN (COALESCE(COUNT(*), 0) + 1) >= 100
+            THEN 'C' || SUBSTRING(TO_CHAR(NOW(), 'YYYYMMDD'), 4, 8) || (COALESCE(COUNT(*), 0) + 1)::text
+            ELSE 'C' || SUBSTRING(TO_CHAR(NOW(), 'YYYYMMDD'), 3, 8) || '0' || (COALESCE(COUNT(*), 0) + 1)::text
+        END INTO v_centerid
+    FROM tb_centerinfo
+    WHERE TO_CHAR(center_regdate, 'YYYYMMDD') = TO_CHAR(NOW(), 'YYYYMMDD');
+
+    RETURN v_centerid;
+END;
+$function$
+;

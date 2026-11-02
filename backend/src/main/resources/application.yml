@@ -156,6 +156,11 @@ spring:
   application:
     admin:
       enabled: false
+  data:
+    redis:
+      host: 10.224.233.147
+      port: 6379
+      password:
 # Swagger 비활성화 (운영 보안 — API 명세 외부 노출 차단)
 springdoc:
   api-docs:

@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import UseSwitch from '@/components/Common/IosSwitch.jsx';
+import { CommonSearchSelect } from '@/components/Common/Select.jsx';
 import '@/style/Modal.css';
 
 // DID 단말기 등록/수정 모달.
@@ -38,6 +39,16 @@ const DidFormModal = ({
             updateForm({ didResolution: code });
         }
     }, [resolutionOptions, updateForm]);
+
+    // 설치지점/그룹정보는 항목이 많아 검색 가능한 CommonSearchSelect 형식({ code, codeNm })으로 변환
+    const centerComboData = useMemo(
+        () => centerOptions.map((o) => ({ code: o.centerId, codeNm: o.centerNm })),
+        [centerOptions],
+    );
+    const groupComboData = useMemo(
+        () => groupOptions.map((o) => ({ code: o.groupCode, codeNm: o.groupNm })),
+        [groupOptions],
+    );
 
     const selectedResolutionOpt = resolutionOptions.find((o) => o.code === form.didResolution);
     const isFixedResolution = !!selectedResolutionOpt?.codeNm?.match(/^(\d+)\*(\d+)$/);
@@ -112,13 +123,12 @@ const DidFormModal = ({
                                     <div className="col-6">
                                         <div className="input-box">
                                             <label className="form-label">설치지점<span className="text-danger">*</span></label>
-                                            <select id="centerId" name="centerId" className="form-select"
-                                                value={form.centerId} onChange={(e) => updateForm({ centerId: e.target.value })}>
-                                                <option value="">선택</option>
-                                                {centerOptions.map((o) => (
-                                                    <option key={o.centerId} value={o.centerId}>{o.centerNm}</option>
-                                                ))}
-                                            </select>
+                                            <CommonSearchSelect
+                                                comboId="centerId"
+                                                comboData={centerComboData}
+                                                value={form.centerId}
+                                                onChange={(e) => updateForm({ centerId: e.target.value })}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -127,13 +137,13 @@ const DidFormModal = ({
                                     <div className="col-6">
                                         <div className="input-box">
                                             <label className="form-label">그룹정보<span style={{ fontSize: 12 }}>(단말타입이 음원방송이 아닐 경우 필수)</span></label>
-                                            <select id="groupId" name="groupId" className="form-select"
-                                                value={form.groupId} onChange={(e) => updateForm({ groupId: e.target.value })}>
-                                                <option value="">선택안함</option>
-                                                {groupOptions.map((o) => (
-                                                    <option key={o.groupCode} value={o.groupCode}>{o.groupNm}</option>
-                                                ))}
-                                            </select>
+                                            <CommonSearchSelect
+                                                comboId="groupId"
+                                                comboData={groupComboData}
+                                                placeholder="선택안함"
+                                                value={form.groupId}
+                                                onChange={(e) => updateForm({ groupId: e.target.value })}
+                                            />
                                         </div>
                                     </div>
                                     <div className="col-6">

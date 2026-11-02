@@ -94,14 +94,14 @@
         )
         VALUES
             (
-                NEXTVAL('condetail_seq'), #{conSeq}, NOW(), #{conRemark,jdbcType=VARCHAR}, #{detailOrder,jdbcType=VARCHAR},
+                NEXTVAL('condetail_seq'), #{conSeq}::numeric, NOW(), #{conRemark,jdbcType=VARCHAR}, #{detailOrder,jdbcType=VARCHAR},
                 #{conType,jdbcType=VARCHAR}, #{timeInterval,jdbcType=VARCHAR}, #{imageSlidtype,jdbcType=VARCHAR}
             )
     </insert>
 
     <update id="updateContentDetailManage">
         UPDATE TB_CONDETAIL SET
-                                CON_SEQ = #{conSeq},
+                                CON_SEQ = #{conSeq}::numeric,
                                 REG_DATE = NOW(),
                                 CON_REMARK = #{conRemark,jdbcType=VARCHAR},
                                 DETAIL_ORDER = #{detailOrder,jdbcType=VARCHAR},
