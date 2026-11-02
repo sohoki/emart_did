@@ -68,7 +68,7 @@
 
     <delete id="deleteContentSendHistoryInfoManage">
         DELETE FROM TB_CONTENTSENDHISTORY
-        WHERE SCH_CODE = #{schCode}::numeric
+        WHERE SCH_CODE = #{schCode}
     </delete>
 
 </mapper>

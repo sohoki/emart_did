@@ -198,7 +198,7 @@
     </select>
 
     <select id="selectContentFileInfo" resultType="java.lang.String">
-        SELECT CON_FILE AS conFile
+        SELECT COALESCE(CON_FILE, 'N') AS conFile
         FROM TB_CONTENTMUTIL
         WHERE CON_SEQ = #{conSeq}::numeric
     </select>

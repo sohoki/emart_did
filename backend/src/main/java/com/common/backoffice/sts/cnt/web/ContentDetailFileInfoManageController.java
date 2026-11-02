@@ -438,22 +438,20 @@ public class ContentDetailFileInfoManageController {
             String fileName = "";
             String existing = contentMuti.selectContentFileInfo(conSeq);
 
-            if (!"N".equals(existing)) {
-                Path targetFile = rootPath.resolve(existing);
-                if (Files.isRegularFile(targetFile)) {
-                    Files.delete(targetFile);
-                }
+            // 최초 생성(CON_FILE 미존재)이면 null/'N' — 둘 다 새 파일명으로 처리
+            if (existing != null && !"N".equals(existing)) {
                 fileName = Paths.get(existing).getFileName().toString();
             } else {
                 String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
                 fileName = currentDate + "_" + conSeq + ".html";
             }
 
+            // 재생성 시 기존 내용 뒤에 이어 붙지 않도록 덮어쓰기(TRUNCATE_EXISTING)
             Path filePathObj = dirPath.resolve(fileName);
             try (BufferedWriter fw = Files.newBufferedWriter(filePathObj,
                                                             StandardCharsets.UTF_8,
                                                             StandardOpenOption.CREATE,
-                                                            StandardOpenOption.APPEND)) {
+                                                            StandardOpenOption.TRUNCATE_EXISTING)) {
                 fw.write(htmlFile);
                 fw.flush();
             }
@@ -843,11 +841,7 @@ public class ContentDetailFileInfoManageController {
             }
 
             String fileName;
-            if (!"N".equals(existing)) {
-                Path targetFile = rootPath.resolve(existing);
-                if (Files.isRegularFile(targetFile)) {
-                    Files.delete(targetFile);
-                }
+            if (existing != null && !"N".equals(existing)) {
                 fileName = Paths.get(existing).getFileName().toString();
             } else {
                 log.info("conSeq pre: {}", conSeq);
@@ -859,7 +853,7 @@ public class ContentDetailFileInfoManageController {
             Path filePathObj = dirPath.resolve(fileName);
 
             // Try-with-resources 및 UTF-8 인코딩 명시
-            try (BufferedWriter fw = Files.newBufferedWriter(filePathObj, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+            try (BufferedWriter fw = Files.newBufferedWriter(filePathObj, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 fw.write(htmlFile);
                 fw.flush();
             }
