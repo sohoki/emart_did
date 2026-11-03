@@ -44,7 +44,9 @@ public class ContentFileInfoVO extends ContentFileInfo implements Serializable {
 	/** 권한 */
 	private String authorCode;
 	private String mberId;
-    
+	/** 등록자 필터 — 문화센터(MHS) 계정은 본인이 등록한 파일만 조회 */
+	private String searchRegisterId = "";
+
 	public String getTotalRecodCount() {
 		return totalRecodCount;
 	}

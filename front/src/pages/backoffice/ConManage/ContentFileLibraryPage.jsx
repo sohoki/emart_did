@@ -17,7 +17,8 @@ const INITIAL_SEARCH_FORM = {
 
 // 콘텐츠 파일(이미지/영상/음원) 라이브러리 — 썸네일 갤러리라 content-table 영역은
 // AppAgGrid 대신 카드형 그리드를 그대로 쓴다(DidPicListPage와 동일한 골격 예외 케이스).
-export default function ContentFileLibraryPage() {
+// embedded=true면 다른 화면의 탭 안에 넣어 쓰도록 제목/breadcrumb 영역을 생략한다(문화센터 룸 관리 > 콘텐츠 등록 탭).
+export default function ContentFileLibraryPage({ embedded = false }) {
     const [list, setList] = useState([]);
     const [totalCnt, setTotalCnt] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -100,16 +101,18 @@ export default function ContentFileLibraryPage() {
     };
 
     return (
-        <div className="row g-0 main-contents">
-            <div className="col-12 content-header">
-                <div className="content-header__title">콘텐츠 파일 라이브러리</div>
-                <div className="content-header__breadcrumb">
-                    <ol className="breadcrumb">
-                        <li className="breadcrumb-item">콘텐츠 관리</li>
-                        <li className="breadcrumb-item">콘텐츠 파일 라이브러리</li>
-                    </ol>
+        <div className={embedded ? 'row g-0' : 'row g-0 main-contents'}>
+            {!embedded && (
+                <div className="col-12 content-header">
+                    <div className="content-header__title">콘텐츠 파일 라이브러리</div>
+                    <div className="content-header__breadcrumb">
+                        <ol className="breadcrumb">
+                            <li className="breadcrumb-item">콘텐츠 관리</li>
+                            <li className="breadcrumb-item">콘텐츠 파일 라이브러리</li>
+                        </ol>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="col-12 content-search">
                 <div className="row g-0 w-100 justify-content-between">

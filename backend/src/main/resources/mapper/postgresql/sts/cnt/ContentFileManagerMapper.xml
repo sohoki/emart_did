@@ -54,6 +54,10 @@
         <if test="fileGubun != ''">
             AND A.FILE_GUBUN = #{fileGubun}
         </if>
+        <!-- 문화센터(MHS) 계정은 본인이 등록한 파일만 -->
+        <if test="searchRegisterId != null and searchRegisterId != ''">
+            AND A.FRST_REGISTER_ID = #{searchRegisterId}
+        </if>
         ) X
         WHERE 1=1
         <if test="mediaType != '' ">
@@ -275,6 +279,10 @@
         </if>
         <if test="fileGubun != ''">
             AND FILE_GUBUN = #{fileGubun}
+        </if>
+        <!-- 문화센터(MHS) 계정은 본인이 등록한 파일만 -->
+        <if test="searchRegisterId != null and searchRegisterId != ''">
+            AND FRST_REGISTER_ID = #{searchRegisterId}
         </if>
         <choose>
             <when test="fileThumnail == 'no_image.png'">

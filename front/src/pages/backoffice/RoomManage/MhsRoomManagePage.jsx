@@ -17,6 +17,7 @@ const MhsMonitorFormModal = lazy(() => import('./components/MhsMonitorFormModal.
 const MhsClassFormModal = lazy(() => import('./components/MhsClassFormModal.jsx'));
 const MhsMonitorPreviewModal = lazy(() => import('./components/MhsMonitorPreviewModal.jsx'));
 const ContentMutiFormModal = lazy(() => import('@/pages/backoffice/ConManage/components/ContentMutiFormModal.jsx'));
+const ContentFileLibraryPage = lazy(() => import('@/pages/backoffice/ConManage/ContentFileLibraryPage.jsx'));
 
 const PAGE_UNIT = 20;
 
@@ -46,6 +47,7 @@ const TABS = [
     { key: 'monitor', label: '모니터 관리' },
     { key: 'class', label: '강의 관리' },
     { key: 'screen', label: '화면 관리' },
+    { key: 'content', label: '콘텐츠 등록' },
 ];
 
 // front_common VendorDetailInfo.jsx의 탭 스타일을 그대로 참고(프로젝트 공통 탭 UI 관례)
@@ -833,6 +835,13 @@ export default function MhsRoomManagePage() {
                                 )}
                             </Suspense>
                         </div>
+                    )}
+
+                    {/* 콘텐츠 파일 라이브러리를 그대로 사용(문화센터 계정은 백엔드에서 본인 등록 파일만 조회됨) */}
+                    {tab === 'content' && (
+                        <Suspense fallback={null}>
+                            <ContentFileLibraryPage embedded />
+                        </Suspense>
                     )}
                 </div>
             </div>
