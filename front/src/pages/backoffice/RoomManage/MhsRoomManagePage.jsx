@@ -10,6 +10,7 @@ import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
 import { getCookie } from '@/lib/cookie.jsx';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
+import { isMhsRole } from '@/constants/mhs.js';
 import '@/style/RoomManage.css';
 
 const MhsMonitorFormModal = lazy(() => import('./components/MhsMonitorFormModal.jsx'));
@@ -76,6 +77,9 @@ export default function MhsRoomManagePage() {
     const [centerList, setCenterList] = useState([]);
     const [mhsBrandcd, setMhsBrandcd] = useState('');
     const [mhsCentercd, setMhsCentercd] = useState('');
+    // 문화센터 계정(ROLE_MHS_*)이고 소속 지점이 있으면 그 지점으로 브랜드/매장 선택을 고정한다
+    // (백엔드도 비관리자는 로그인 지점으로 강제 필터링하므로 화면 표시를 그에 맞춘 것)
+    const [loginCenterId] = useState(() => (isMhsRole(getCookie('roleId')) ? (getCookie('centerId') || '') : ''));
 
     // 모니터 관리
     const [monitorModalOpen, setMonitorModalOpen] = useState(false);
@@ -111,12 +115,17 @@ export default function MhsRoomManagePage() {
         const list = res?.data?.result?.resultList ?? [];
         setBrandList(list);
 
-        const defaultBrand = list.find((b) => (b.mhsBrandnm || '').includes('문화센터'));
+        // 문화센터 계정은 로그인 그룹(partId) 브랜드를 우선 선택하고, 없으면 목록 첫 항목
+        // (지점 고정 계정은 매장 콤보가 브랜드와 무관하게 자기 매장을 돌려주므로 어느 브랜드든 매장이 나온다)
+        const defaultBrand = loginCenterId
+            ? (list.find((b) => b.mhsBrandcd === getCookie('partId')) || list[0])
+            : list.find((b) => (b.mhsBrandnm || '').includes('문화센터'));
         if (defaultBrand) {
             setMhsBrandcd(defaultBrand.mhsBrandcd);
             loadCenterList(defaultBrand.mhsBrandcd);
         }
-    }, [loadCenterList]);
+        if (loginCenterId) setMhsCentercd(loginCenterId);
+    }, [loadCenterList, loginCenterId]);
 
     useEffect(() => {
         if (!getCookie('accessToken')) {
@@ -194,6 +203,14 @@ export default function MhsRoomManagePage() {
     }, [onMonitorSearch]);
 
     const { handleReset: handleMonitorReset } = useResetForm(setMonitorTempParams, MONITOR_SEARCH_INITIAL);
+
+    // 신규 등록 — 강의 등록과 동일하게 상단에서 선택된 부서(브랜드)/점포를 기본값으로 채운다
+    // (수정용 handleOpenMonitorModal과 분리: 그쪽은 ?editMonitorcd 자동 열기 effect의 의존성이라
+    //  브랜드/매장 값에 의존시키면 선택이 바뀔 때마다 수정 모달이 다시 열린다)
+    const handleNewMonitorModal = useCallback(() => {
+        setMonitorForm({ ...EMPTY_MONITOR_FORM, mhsBrandcd, mhsCentercd });
+        setMonitorModalOpen(true);
+    }, [mhsBrandcd, mhsCentercd]);
 
     const handleOpenMonitorModal = useCallback(async (mhsMonitorcd) => {
         if (!mhsMonitorcd) {
@@ -497,7 +514,8 @@ export default function MhsRoomManagePage() {
             <div className="col-12 content-search">
                 <div className="row g-0 w-100 justify-content-between">
                     <div className="col-auto content-search__option">
-                        <select value={mhsBrandcd} onChange={(e) => handleBrandChange(e.target.value)}>
+                        <select value={mhsBrandcd} onChange={(e) => handleBrandChange(e.target.value)}
+                            disabled={!!loginCenterId}>
                             <option value="">브랜드 선택</option>
                             {brandList.map((b) => (
                                 <option key={b.mhsBrandcd} value={b.mhsBrandcd}>{'  '.repeat(Math.max(0, Number(b.mhsBrandlv) - 1))}{b.mhsBrandnm}</option>
@@ -514,7 +532,7 @@ export default function MhsRoomManagePage() {
                                 placeholder="매장 선택"
                                 value={mhsCentercd}
                                 onChange={(e) => setMhsCentercd(e.target.value)}
-                                disabled={!mhsBrandcd}
+                                disabled={!mhsBrandcd || !!loginCenterId}
                                 className="mhs-center-search-select"
                             />
                         </div>
@@ -569,7 +587,7 @@ export default function MhsRoomManagePage() {
                                         <button type="button" className="btn btn-outline-dark btn-outline__gray"
                                             onClick={handleMonitorReset}>검색 초기화</button>
                                         <button type="button" className="btn btn-primary btn-default__blue"
-                                            onClick={() => handleOpenMonitorModal()}>등록</button>
+                                            onClick={handleNewMonitorModal}>등록</button>
                                     </div>
                                 </div>
                             </div>

@@ -2,48 +2,49 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sts.mhs.mapper.MhsCenterManageMapper">
     <select id="selectMhsBrandList" resultType="CenterInfoVO">
-        <if test="authorCode == 'ROLE_MHS_USER'">
+        <!-- WITH는 맨 앞에 와야 하므로(UNION 뒤 WITH 불가) 계층 조회를 먼저 두고,
+             ROLE_MHS_USER는 본인 그룹 + 로그인 지점이 속한 브랜드를 UNION으로 덧붙인다 -->
+        WITH RECURSIVE cte AS (
+            -- Anchor Member (최상위 조건)
             SELECT
-            '1' AS mhsBrandlv, GROUP_NM AS mhsBrandnm, GROUP_ID AS mhsBrandcd, PARENT_GROUP_ID AS mhsParentbrandcd
+                GROUP_ID, GROUP_NM, PARENT_GROUP_ID, MHSYN,
+            <choose>
+                <when test="authorCode == 'ROLE_MHS_USER'">
+                2 AS level_val
+                </when>
+                <otherwise>
+                1 AS level_val
+                </otherwise>
+            </choose>
             FROM LETTNAUTHORGROUPINFO
             WHERE MHSYN = 'Y'
-            AND GROUP_ID = #{groupId}
-            UNION
-        </if>
-
-        WITH RECURSIVE cte AS (
-        -- Anchor Member (최상위 조건)
-        SELECT
-        GROUP_ID, GROUP_NM, PARENT_GROUP_ID, MHSYN,
-        <choose>
-            <when test="authorCode == 'ROLE_MHS_USER'">
-                2 AS level_val
-            </when>
-            <otherwise>
-                1 AS level_val
-            </otherwise>
-        </choose>
-        FROM LETTNAUTHORGROUPINFO
-        WHERE MHSYN = 'Y'
-        <choose>
-            <when test="authorCode != 'ROLE_MHS_USER'">
+            <choose>
+                <when test="authorCode != 'ROLE_MHS_USER'">
                 AND PARENT_GROUP_ID = 'EMART_00000000000001'
-            </when>
-            <otherwise>
+                </when>
+                <otherwise>
                 AND PARENT_GROUP_ID = #{groupId}
-            </otherwise>
-        </choose>
+                </otherwise>
+            </choose>
 
-        UNION ALL
+            UNION ALL
 
-        -- Recursive Member (하위 계층 탐색)
-        SELECT
-            g.GROUP_ID, g.GROUP_NM, g.PARENT_GROUP_ID, g.MHSYN,
-            c.level_val + 1
-        FROM LETTNAUTHORGROUPINFO g
-        JOIN cte c ON g.PARENT_GROUP_ID = c.GROUP_ID
-        WHERE g.MHSYN = 'Y'
+            -- Recursive Member (하위 계층 탐색)
+            SELECT
+                g.GROUP_ID, g.GROUP_NM, g.PARENT_GROUP_ID, g.MHSYN,
+                c.level_val + 1
+            FROM LETTNAUTHORGROUPINFO g
+            JOIN cte c ON g.PARENT_GROUP_ID = c.GROUP_ID
+            WHERE g.MHSYN = 'Y'
         )
+        <if test="authorCode == 'ROLE_MHS_USER'">
+        SELECT
+            '1' AS mhsBrandlv, GROUP_NM AS mhsBrandnm, GROUP_ID AS mhsBrandcd, PARENT_GROUP_ID AS mhsParentbrandcd
+        FROM LETTNAUTHORGROUPINFO
+        WHERE GROUP_ID = #{groupId}
+           OR GROUP_ID = (SELECT ROLE_CODE FROM TB_CENTERINFO WHERE CENTER_ID = #{centerId,jdbcType=VARCHAR})
+        UNION
+        </if>
         SELECT
             CAST(level_val AS VARCHAR) AS mhsBrandlv,
             GROUP_NM AS mhsBrandnm,
@@ -62,7 +63,10 @@
             ELSE '미사용'
             END AS mhsCenterstatusTxt
         FROM TB_CENTERINFO A
-        WHERE A.ROLE_CODE = #{mhsBrandcd}
+        WHERE 1=1
+        <if test="mhsBrandcd != '' and mhsBrandcd != null">
+            AND A.ROLE_CODE = #{mhsBrandcd}
+        </if>
         <if test="mhsCentercd != '' and mhsCentercd != null">
             AND A.CENTER_ID = #{mhsCentercd}
         </if>

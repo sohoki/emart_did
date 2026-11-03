@@ -109,6 +109,8 @@ public class CultureDisInfoManageController {
 			CenterInfoVO searchVO = new CenterInfoVO();
 			searchVO.setAuthorCode(loginVO.getRoleId());
 			searchVO.setGroupId(loginVO.getPartId());
+			// ROLE_MHS_USER는 로그인 지점이 속한 브랜드도 목록에 포함(매퍼에서 사용)
+			searchVO.setCenterId(loginVO.getCenterId());
 
 			ResultHelper.setSuccess(resultVO, mhsCenterInfoManageService.selectMhsBrandList(searchVO), Globals.JSON_RETURN_RESULT_LIST);
 		} catch (Exception e) {
@@ -135,6 +137,12 @@ public class CultureDisInfoManageController {
 					return resultVO;
 				}
 				mhsCentercd = loginVO.getCenterId();
+				// 계정 그룹과 지점 소속 브랜드가 달라도 자기 매장은 보이도록 비관리자는 브랜드 조건을 생략
+				mhsBrandcd = "";
+			} else if (mhsBrandcd == null || mhsBrandcd.isBlank()) {
+				// 관리자는 브랜드 미선택 시 기존처럼 빈 목록(매퍼가 브랜드 조건을 생략하면 전체가 나오므로)
+				ResultHelper.setSuccess(resultVO, List.of(), Globals.JSON_RETURN_RESULT_LIST);
+				return resultVO;
 			}
 
 			CenterInfoVO searchVO = new CenterInfoVO();

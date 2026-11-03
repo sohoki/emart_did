@@ -6,10 +6,18 @@ import Swal from '@/lib/swal.js';
 import { getCookie, setCookie } from '@/lib/cookie.jsx';
 import config from '@/config/index.jsx';
 import URL from '@/constants/URL.jsx';
+import { isMhsRole, MHS_LANDING_PATH } from '@/constants/mhs.js';
 
 const ID_COOKIE = 'savedManagerId';
 
 const DEFAULT_LANDING_PATH = '/backoffice/hr/manager';
+
+// 문화센터(MHS) 계정은 문화센터 룸 관리 화면으로 보낸다(이미 그 화면으로 가던 중이면 그대로 유지)
+const landingPathFor = (roleId, redirectPath) => (
+    isMhsRole(roleId) && !redirectPath.startsWith('/backoffice/sub/roomManage/mhs')
+        ? MHS_LANDING_PATH
+        : redirectPath
+);
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -34,7 +42,7 @@ export default function LoginPage() {
     useEffect(() => {
         // 이미 로그인된 상태면 로그인 화면을 건너뛴다
         if (getCookie('accessToken')) {
-            navigate(redirectPath, { replace: true });
+            navigate(landingPathFor(getCookie('roleId'), redirectPath), { replace: true });
             return;
         }
         idRef.current?.focus();
@@ -95,6 +103,8 @@ export default function LoginPage() {
             setCookie('userName', resultVO?.managerName, 1);
             setCookie('roleId', resultVO?.roleId, 1);
             setCookie('partId', resultVO?.partId, 1);
+            // 문화센터 룸 관리 화면에서 로그인 지점으로 매장 선택을 고정할 때 사용
+            setCookie('centerId', resultVO?.centerId ?? '', 1);
 
             if (saveIDFlag) {
                 setCookie(ID_COOKIE, userInfo.userId, 30);
@@ -102,7 +112,7 @@ export default function LoginPage() {
                 setCookie(ID_COOKIE, '', -1);
             }
 
-            navigate(redirectPath, { replace: true });
+            navigate(landingPathFor(resultVO?.roleId, redirectPath), { replace: true });
         } catch (error) {
             Swal.fire({ icon: 'error', title: '로그인 오류', text: error?.message || '로그인 중 오류가 발생했습니다.' });
         } finally {

@@ -35,7 +35,7 @@ export function removeCookie(name) {
 
 // 인증 관련 쿠키 일괄 삭제 — JWT 인증 실패(서명 불일치/만료 등) 시 로그인 페이지로 보내기 전에 사용.
 // savedManagerId(아이디 저장)는 로그인 편의 기능이라 지우지 않는다.
-export const AUTH_COOKIE_NAMES = ['accessToken', 'refreshToken', 'userId', 'userName', 'roleId', 'partId'];
+export const AUTH_COOKIE_NAMES = ['accessToken', 'refreshToken', 'userId', 'userName', 'roleId', 'partId', 'centerId'];
 
 export function clearAuthCookies() {
     AUTH_COOKIE_NAMES.forEach(removeCookie);
