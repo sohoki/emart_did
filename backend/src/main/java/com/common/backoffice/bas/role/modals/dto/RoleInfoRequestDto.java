@@ -26,7 +26,8 @@ public class RoleInfoRequestDto {
 	private String roleName;
 	private String userId;
 	private String roleDc;
-	@NotBlank(message="시스템 코드를 입력해 주세요.")
+	// TB_ROLEINFO에 SYSTEM_CODE 컬럼이 없어 저장에 쓰이지 않음 — 필수 검증 시 화면에서 값을 안 보내
+	// 등록/수정/사용유무 변경이 모두 실패하던 원인이라 @NotBlank 제거
 	private String systemCode;
 	private String roleUseyn;
 	private String frstRegistPnttm;

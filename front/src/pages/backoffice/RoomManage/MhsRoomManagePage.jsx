@@ -33,12 +33,12 @@ const EMPTY_CLASS_FORM = {
     mhsClassstartday: '', mhsClassendday: '', mhsClassdayofweek: '', mhsClassstarttime: '', mhsClassendtime: '',
     mhsClassintro: '',
 };
-const emptyConnForm = { mhsMonitorcd: '', mhsClasscd: '' };
+const SCREEN_SEARCH_INITIAL = { searchCondition: 'conNm', searchKeyword: '' };
 
 const TABS = [
     { key: 'monitor', label: '모니터 관리' },
     { key: 'class', label: '강의 관리' },
-    { key: 'viewConn', label: '편성표' },
+    { key: 'screen', label: '화면 관리' },
 ];
 
 // front_common VendorDetailInfo.jsx의 탭 스타일을 그대로 참고(프로젝트 공통 탭 UI 관례)
@@ -92,17 +92,6 @@ export default function MhsRoomManagePage() {
     const [classSearchKeyword, setClassSearchKeyword] = useState('');
     const [classSearchCondition, setClassSearchCondition] = useState('');
 
-    // 편성표
-    const [monitorCombo, setMonitorCombo] = useState([]);
-    const [classCombo, setClassCombo] = useState([]);
-    const [connForm, setConnForm] = useState(emptyConnForm);
-    const [connList, setConnList] = useState([]);
-    const [connLoading, setConnLoading] = useState(false);
-
-    const loadBrandList = useCallback(async () => {
-        const res = await fnAjaxFetch({ url: URL.MHS_BRAND_LIST, method: 'GET', showLoading: false });
-        setBrandList(res?.data?.result?.resultList ?? []);
-    }, []);
 
     const loadCenterList = useCallback(async (brandcd) => {
         if (!brandcd) {
@@ -114,6 +103,20 @@ export default function MhsRoomManagePage() {
         });
         setCenterList(res?.data?.result?.resultList ?? []);
     }, []);
+
+    // 최초 진입 시 브랜드를 '문화센터'로 기본 선택하고 해당 매장 목록까지 불러온다
+    // (이름에 '문화센터'가 있는 첫 브랜드, 없으면 선택 안 함)
+    const loadBrandList = useCallback(async () => {
+        const res = await fnAjaxFetch({ url: URL.MHS_BRAND_LIST, method: 'GET', showLoading: false });
+        const list = res?.data?.result?.resultList ?? [];
+        setBrandList(list);
+
+        const defaultBrand = list.find((b) => (b.mhsBrandnm || '').includes('문화센터'));
+        if (defaultBrand) {
+            setMhsBrandcd(defaultBrand.mhsBrandcd);
+            loadCenterList(defaultBrand.mhsBrandcd);
+        }
+    }, [loadCenterList]);
 
     useEffect(() => {
         if (!getCookie('accessToken')) {
@@ -407,78 +410,72 @@ export default function MhsRoomManagePage() {
         },
     ]), [handleOpenClassModal, handleClassDelete]);
 
-    // ===== 편성표 =====
-    const loadCombosForConn = useCallback(async () => {
-        if (!mhsCentercd) return;
-        const monRes = await fnAjaxFetch({ url: URL.MHS_MONITOR_COMBO, method: 'GET', param: { mhsCentercd }, showLoading: false });
-        setMonitorCombo(monRes?.data?.result?.resultList ?? []);
-        const clsRes = await fnAjaxFetch({
-            url: URL.MHS_CLASS_COMBO, method: 'POST', data: { mhsBrandcd, mhsCentercd }, showLoading: false,
+    // ===== 화면 관리 =====
+    // 레거시 MHS "화면 관리" = 콘텐츠 화면 구성(TB_CONTENTMUTIL)을 문화센터용으로 다시 보여주는 화면.
+    // 상단 브랜드/매장 선택을 화면 목록 필터(searchGroupId/searchCenterId, 브랜드는 하위 그룹 포함)로 넘기고,
+    // 화면명 클릭 시 기존 편성 편집 화면(ContentDetailEditorPage)으로 이동한다.
+    const fetchScreenList = useCallback(async (query) => {
+        const res = await fnAjaxFetch({
+            url: URL.CON_MUTI_LIST, method: 'POST',
+            data: { ...query, searchGroupId: mhsBrandcd, searchCenterId: mhsCentercd },
         });
-        setClassCombo(clsRes?.data?.result?.resultList ?? []);
+        const data = res?.data;
+        return {
+            rows: data?.result?.resultList ?? [],
+            total: data?.result?.totalCnt ?? 0,
+        };
     }, [mhsBrandcd, mhsCentercd]);
 
-    const loadConnList = useCallback(async (mhsMonitorcd) => {
-        if (!mhsMonitorcd) {
-            setConnList([]);
-            return;
-        }
-        setConnLoading(true);
-        try {
-            const res = await fnAjaxFetch({
-                url: URL.MHS_VIEWCONN_LIST, method: 'POST', data: { mhsMonitorcd }, showLoading: false,
-            });
-            setConnList(res?.data?.result?.resultList ?? []);
-        } finally {
-            setConnLoading(false);
-        }
-    }, []);
+    const {
+        onGridReady: onScreenGridReady,
+        defaultColDef: screenDefaultColDef,
+        tempParams: screenTempParams,
+        setTempParams: setScreenTempParams,
+        handleSearch: handleScreenSearch,
+        refreshGrid: refreshScreenGrid,
+    } = useGridInfinite({
+        fetchApi: fetchScreenList,
+        pageUnit: PAGE_UNIT,
+        initialFilters: SCREEN_SEARCH_INITIAL,
+    });
 
+    // 상단 브랜드/매장 선택이 바뀌면 화면 목록도 재조회(모니터 관리 탭과 동일 패턴)
     useEffect(() => {
-        if (tab === 'viewConn' && mhsCentercd) loadCombosForConn();
-    }, [tab, mhsCentercd, loadCombosForConn]);
+        if (tab === 'screen') refreshScreenGrid({ keepPage: false });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab, mhsBrandcd, mhsCentercd]);
 
-    const handleConnMonitorChange = (value) => {
-        setConnForm((p) => ({ ...p, mhsMonitorcd: value }));
-        loadConnList(value);
-    };
+    const handleScreenInputChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setScreenTempParams((prev) => ({ ...prev, [name]: value }));
+    }, [setScreenTempParams]);
 
-    const handleConnInsert = async (e) => {
-        e.preventDefault();
-        if (!connForm.mhsMonitorcd || !connForm.mhsClasscd) {
-            Swal.fire({ icon: 'warning', title: '입력 확인', text: '모니터/강의를 선택해 주세요.' });
-            return;
-        }
-        await fnAjaxFetch({ url: URL.MHS_VIEWCONN_INSERT, method: 'POST', data: connForm });
-        loadConnList(connForm.mhsMonitorcd);
-    };
+    const onScreenSearchKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') handleScreenSearch(1);
+    }, [handleScreenSearch]);
 
-    const handleConnDelete = useCallback(async (mhsConnSeq) => {
-        const result = await Swal.fire({
-            icon: 'question', title: '편성 삭제', text: '삭제하시겠습니까?',
-            showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
-        });
-        if (!result.isConfirmed) return;
-        await fnAjaxFetch({ url: `${URL.MHS_VIEWCONN_INFO}/${mhsConnSeq}.do`, method: 'DELETE' });
-        loadConnList(connForm.mhsMonitorcd);
-    }, [connForm.mhsMonitorcd, loadConnList]);
+    const { handleReset: handleScreenReset } = useResetForm(setScreenTempParams, SCREEN_SEARCH_INITIAL);
 
-    const connColumnDefs = useMemo(() => ([
-        { field: 'mhsClassnm', headerName: '강의명', flex: 1, minWidth: 160 },
-        { field: 'mhsTeachernm', headerName: '강사명', width: 120 },
+    const screenColumnDefs = useMemo(() => ([
+        { field: 'conSeq', headerName: '번호', width: 90 },
         {
-            headerName: '시작~종료', width: 140,
-            valueGetter: (p) => `${formatHm(p.data?.mhsClassstarttime)} ~ ${formatHm(p.data?.mhsClassendtime)}`,
-        },
-        { field: 'mhsClassdayofweek', headerName: '요일', width: 120 },
-        {
-            headerName: '삭제', width: 90, sortable: false, filter: false,
+            field: 'conNm', headerName: '편성명칭', flex: 1, minWidth: 200,
             cellRenderer: (p) => (
-                <button className="btn btn-outline-danger btn-outline__gray btn-sm"
-                    onClick={() => handleConnDelete(p.data?.mhsConnSeq)}>삭제</button>
+                <button type="button" className="btn btn-link p-0"
+                    onClick={() => navigate(`/backoffice/sub/conManage/muti/edit?conSeq=${p.data.conSeq}`)}>{p.value}</button>
             ),
         },
-    ]), [handleConnDelete]);
+        { field: 'codeNm', headerName: '편성형태', width: 120 },
+        {
+            headerName: '송출정보(사이즈)', width: 180,
+            valueGetter: (p) => `${p.data?.conScreen ?? ''} (${p.data?.conWidth ?? ''} * ${p.data?.conHeight ?? ''})`,
+        },
+        {
+            field: 'schCnt', headerName: '이용스케줄', width: 110,
+            valueFormatter: (p) => `${p.value ?? 0}개`,
+        },
+        { field: 'frstRegistPnttm', headerName: '등록일', width: 170 },
+    ]), [navigate]);
 
     return (
         <div className="row g-0 main-contents">
@@ -517,11 +514,6 @@ export default function MhsRoomManagePage() {
                             />
                         </div>
                     </div>
-                    {tab === 'viewConn' && !mhsCentercd && (
-                        <div className="col-auto" style={{ alignSelf: 'center', color: '#94a3b8', fontSize: 13 }}>
-                            편성표 탭은 브랜드와 매장을 선택해야 조회됩니다. (강의 관리는 선택 없이도 전체 목록이 조회됩니다)
-                        </div>
-                    )}
                 </div>
             </div>
 
@@ -673,42 +665,45 @@ export default function MhsRoomManagePage() {
                         </div>
                     )}
 
-                    {tab === 'viewConn' && (
+                    {tab === 'screen' && (
                         <div className="row g-0">
                             <div className="col-12 content-search">
                                 <div className="row g-0 w-100 justify-content-between">
                                     <div className="col-auto content-search__option">
-                                        <select value={connForm.mhsMonitorcd} onChange={(e) => handleConnMonitorChange(e.target.value)}>
-                                            <option value="">모니터 선택</option>
-                                            {monitorCombo.map((m) => (
-                                                <option key={m.mhsMonitorcd} value={m.mhsMonitorcd}>{m.mhsMonitornm}</option>
-                                            ))}
+                                        <select id="screenSearchCondition" name="searchCondition"
+                                            value={screenTempParams.searchCondition} onChange={handleScreenInputChange}>
+                                            <option value="conNm">편성명칭</option>
+                                            <option value="conSeq">번호</option>
                                         </select>
-                                        <select value={connForm.mhsClasscd} onChange={(e) => setConnForm((p) => ({ ...p, mhsClasscd: e.target.value }))}>
-                                            <option value="">강의 선택</option>
-                                            {classCombo.map((c) => (
-                                                <option key={c.mhsClasscd} value={c.mhsClasscd}>{c.mhsClassnm}</option>
-                                            ))}
-                                        </select>
+                                        <input type="text" id="screenSearchKeyword" name="searchKeyword" placeholder="검색어를 입력하세요"
+                                            value={screenTempParams.searchKeyword}
+                                            onChange={handleScreenInputChange}
+                                            onKeyDown={onScreenSearchKeyDown}
+                                        />
                                     </div>
                                     <div className="col-auto content-search__action">
-                                        <button type="button" className="btn btn-primary btn-default__blue"
-                                            onClick={handleConnInsert}>편성 등록</button>
+                                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                                            onClick={() => handleScreenSearch(1)}>검색</button>
+                                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                                            onClick={handleScreenReset}>검색 초기화</button>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="col-12 content-table content-table__main">
-                                <div style={{ marginBottom: 8, color: '#64748b' }}>{connLoading ? '조회 중...' : `총 ${connList.length}건`}</div>
-                                <div className="ag-theme-material" style={{ height: 560, width: '100%' }}>
+                                <div className="ag-theme-material" style={{ height: 640, width: '100%' }}>
                                     <AppAgGrid
+                                        columnDefs={screenColumnDefs}
                                         theme={gridTheme}
-                                        rowData={connList}
-                                        columnDefs={connColumnDefs}
-                                        defaultColDef={{ sortable: true, resizable: true }}
-                                        pagination
+                                        defaultColDef={screenDefaultColDef}
+                                        rowModelType="infinite"
+                                        pagination={true}
                                         paginationPageSize={PAGE_UNIT}
-                                        overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>모니터를 선택해 주세요.</span>"
+                                        cacheBlockSize={PAGE_UNIT}
+                                        maxBlocksInCache={2}
+                                        onGridReady={onScreenGridReady}
+                                        overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
+                                        overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
                                     />
                                 </div>
                             </div>

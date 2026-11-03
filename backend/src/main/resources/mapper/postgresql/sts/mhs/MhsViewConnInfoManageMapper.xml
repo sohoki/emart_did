@@ -131,4 +131,10 @@
         DELETE FROM TB_MHSVIEWCONNINFO
         WHERE MHS_CONNSEQ = #{mhsConnSeq}::numeric
     </delete>
+
+    <!-- 강의 삭제 시 해당 강의의 모니터 연결 정리 -->
+    <delete id="deleteMoniterClassInfoByClass">
+        DELETE FROM TB_MHSVIEWCONNINFO
+        WHERE MHS_CLASSCD = #{mhsClasscd}
+    </delete>
 </mapper>

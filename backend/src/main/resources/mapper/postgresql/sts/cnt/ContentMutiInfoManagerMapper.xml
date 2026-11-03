@@ -52,7 +52,20 @@
                     </otherwise>
                 </choose>
             </if>
-            <if test="conType != null">
+            <if test="searchGroupId != null and searchGroupId != ''">
+            AND A.GROUP_ID IN (
+                WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID FROM LETTNAUTHORGROUPINFO WHERE GROUP_ID = #{searchGroupId}
+                    UNION ALL
+                    SELECT g.GROUP_ID FROM LETTNAUTHORGROUPINFO g JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                )
+                SELECT GROUP_ID FROM cte
+            )
+        </if>
+        <if test="searchCenterId != null and searchCenterId != ''">
+            AND A.CENTER_ID = #{searchCenterId}
+        </if>
+        <if test="conType != null">
                 AND A.CON_TYPE = #{conType}::numeric
             </if>
         ) TA
@@ -95,6 +108,19 @@
                     AND CAST(A.CON_SEQ AS VARCHAR) LIKE CONCAT('%', #{searchKeyword}, '%')
                 </otherwise>
             </choose>
+        </if>
+        <if test="searchGroupId != null and searchGroupId != ''">
+            AND A.GROUP_ID IN (
+                WITH RECURSIVE cte AS (
+                    SELECT GROUP_ID FROM LETTNAUTHORGROUPINFO WHERE GROUP_ID = #{searchGroupId}
+                    UNION ALL
+                    SELECT g.GROUP_ID FROM LETTNAUTHORGROUPINFO g JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                )
+                SELECT GROUP_ID FROM cte
+            )
+        </if>
+        <if test="searchCenterId != null and searchCenterId != ''">
+            AND A.CENTER_ID = #{searchCenterId}
         </if>
         <if test="conType != null">
             AND A.CON_TYPE = #{conType}::numeric

@@ -27,6 +27,8 @@ public interface MhsViewConnInfoManageMapper {
 	
 	
 	public int deleteMoniterClassInfo(String mhsConnSeq);
+
+	public int deleteMoniterClassInfoByClass(String mhsClasscd);
 	
 	
 }

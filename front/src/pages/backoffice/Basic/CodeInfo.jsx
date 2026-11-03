@@ -52,7 +52,7 @@ const MainUseAtCell = ({ value, data, context }) => {
     const handleChange = async (payload) => {
         const newValue = payload.useAt;
         try {
-            await context?.updateUseAt(data.codeId, newValue);
+            await context?.updateUseAt(data, newValue);
             setCurrentValue(newValue);
         } catch {
             alert.error('수정에 실패했습니다.', 'error');
@@ -155,13 +155,19 @@ const CodeInfo = () => {
     }, []);
 
     // ── 분류코드 사용유무 API ──
-    const updateUseAt = useCallback(async (codeId, newValue) => {
-        await fnAjaxFetch({
+    // CmmnCodeReqDto가 mode/clCode를 @NotBlank로 검증하므로 함께 보낸다
+    // (누락 시 검증 실패 → /error가 401로 내려와 로그아웃되던 문제)
+    const updateUseAt = useCallback(async (row, newValue) => {
+        const res = await fnAjaxFetch({
             url: API_URL.CODE_PROCESS_UPDATE_USEYN,
             method: 'POST',
-            data: { codeId, useAt: newValue },
+            data: { mode: 'Edt', clCode: row?.clCode || 'EMT', codeId: row?.codeId, useAt: newValue },
             withCredentials: true,
         });
+        // 실패 응답이면 예외로 넘겨 셀에서 스위치 값을 되돌리지 않도록 한다
+        if (res?.data?.resultCodeInfo !== 'SUCCESS') {
+            throw new Error(res?.data?.resultMessage || '수정에 실패했습니다.');
+        }
     }, []);
 
     // ── 검색 ──

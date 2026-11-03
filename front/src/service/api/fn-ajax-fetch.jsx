@@ -264,6 +264,12 @@ async function handleUnauthorized(options, _retryCount, fail_callback, redirectO
 
     if (typeof fail_callback === 'function') fail_callback();
 
+    // 토큰 갱신에 성공해 재요청했는데도 401/403이면 토큰 문제가 아니다
+    // (예: 요청값 검증 실패가 /error로 넘어가 401로 내려오는 경우) → 로그아웃하지 않고 호출한 쪽에서 오류 처리
+    if (_retryCount >= 1) {
+        throw new HandledError('Request failed after token refresh');
+    }
+
     AUTH_FAIL.count += 1;
     const forceLogout = AUTH_FAIL.count >= AUTH_FAIL.MAX;
 

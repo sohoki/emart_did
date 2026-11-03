@@ -42,5 +42,9 @@ public class ContentMutiInfoVO extends ContentMutiInfo implements Serializable {
 	private String centerId;
 	/** 사용자ID */
 	private String mberId;
+	/** 화면 목록 브랜드(그룹) 필터 — 하위 그룹 포함, 문화센터 룸 관리 화면 관리 탭에서 사용 */
+	private String searchGroupId;
+	/** 화면 목록 매장(센터) 필터 */
+	private String searchCenterId;
 
 }

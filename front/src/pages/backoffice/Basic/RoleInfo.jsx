@@ -358,17 +358,24 @@ const RoleInfo = () => {
         reloadFunction: onSearch,
     });
 
-    const updateApi = async (id, newValue) => {
+    // RoleInfoRequestDto가 mode/roleId/roleName을 @NotBlank로 검증하므로 행 값을 함께 보낸다
+    const updateApi = async (row, newValue) => {
         try {
             const res = await fnAjaxFetch({
             url: API_URL.ROLE_USEYN_UPDATE,
             method: 'POST',
-            data: { 
-                 roleId: id,   // params.data.roleId와 매칭
+            data: {
+                mode: 'Edt',
+                roleId: row?.roleId,
+                roleName: row?.roleName,
                 roleUseyn: newValue // 'Y' 또는 'N'
             },
             withCredentials: true
             });
+            // 실패 응답이면 예외로 넘겨 셀 값이 바뀌지 않도록 한다
+            if (res?.data?.resultCodeInfo !== 'SUCCESS') {
+                throw new Error(res?.data?.resultMessage || '수정에 실패했습니다.');
+            }
             return res;
         } catch (error) {
             console.error("업데이트 실패:", error);
@@ -386,7 +393,7 @@ const RoleInfo = () => {
                 const handleChange = async (payload) => {
                     const newValue = payload.roleUseyn;
                     try {
-                        await updateApi(params.data.roleId, newValue);
+                        await updateApi(params.data, newValue);
                         params.node.setDataValue(params.colDef.field, newValue);
                     } catch (err) {
                         alert.error("수정에 실패했습니다.", "error");
