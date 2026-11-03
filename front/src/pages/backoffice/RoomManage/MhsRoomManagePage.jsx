@@ -16,6 +16,7 @@ import '@/style/RoomManage.css';
 const MhsMonitorFormModal = lazy(() => import('./components/MhsMonitorFormModal.jsx'));
 const MhsClassFormModal = lazy(() => import('./components/MhsClassFormModal.jsx'));
 const MhsMonitorPreviewModal = lazy(() => import('./components/MhsMonitorPreviewModal.jsx'));
+const ContentMutiFormModal = lazy(() => import('@/pages/backoffice/ConManage/components/ContentMutiFormModal.jsx'));
 
 const PAGE_UNIT = 20;
 
@@ -35,6 +36,11 @@ const EMPTY_CLASS_FORM = {
     mhsClassintro: '',
 };
 const SCREEN_SEARCH_INITIAL = { searchCondition: 'conNm', searchKeyword: '' };
+// 콘텐츠 관리 > 화면 구성 관리(ContentMutiListPage)의 등록 기본값과 동일
+const EMPTY_SCREEN_FORM = {
+    mode: 'Ins', conSeq: '', conNm: '', conScreen: '', conType: '', conUseYn: 'Y',
+    conWidth: '1080', conHeight: '1980', conMid: '540', conNextSeq: '', conPlayType: '',
+};
 
 const TABS = [
     { key: 'monitor', label: '모니터 관리' },
@@ -478,6 +484,77 @@ export default function MhsRoomManagePage() {
 
     const { handleReset: handleScreenReset } = useResetForm(setScreenTempParams, SCREEN_SEARCH_INITIAL);
 
+    // 화면 등록/수정 — 기존 화면 구성 관리(ContentMutiListPage)와 같은 모달·API를 그대로 사용
+    const [screenModalOpen, setScreenModalOpen] = useState(false);
+    const [screenForm, setScreenForm] = useState(EMPTY_SCREEN_FORM);
+    const [screenOptions, setScreenOptions] = useState({ conType: [], screenType: [], playType: [], nextSeq: [] });
+
+    const handleOpenScreenModal = useCallback(async (conSeq) => {
+        const res = await fnAjaxFetch({
+            url: URL.CON_MUTI_FORM_DATA, method: 'GET',
+            param: conSeq ? { mode: 'Edt', conSeq } : { mode: 'Ins' },
+        });
+        const result = res?.data?.result || {};
+        const obj = result.regist;
+        if (conSeq && !obj) {
+            await Swal.fire({ icon: 'error', title: '오류', text: '화면 정보를 불러오지 못했습니다.' });
+            return;
+        }
+        setScreenOptions({
+            conType: result.selectConType || [],
+            screenType: result.selectScreenType || [],
+            playType: result.selectPlayType || [],
+            nextSeq: conSeq ? (result.selectNextSeq || []) : [],
+        });
+        setScreenForm(conSeq ? {
+            mode: 'Edt',
+            conSeq: obj.conSeq || '',
+            conNm: obj.conNm || '',
+            conScreen: obj.conScreen || '',
+            conType: obj.conType || '',
+            conUseYn: obj.conUseYn || 'Y',
+            conWidth: obj.conWidth || '',
+            conHeight: obj.conHeight || '',
+            conMid: obj.conMid || '',
+            conNextSeq: obj.conNextSeq || '',
+            conPlayType: obj.conPlayType || '',
+        } : EMPTY_SCREEN_FORM);
+        setScreenModalOpen(true);
+    }, []);
+
+    const handleScreenSubmit = useCallback(async () => {
+        if (!screenForm.conNm) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '화면명을 입력해 주세요.' });
+            return;
+        }
+        if (!screenForm.conType) {
+            await Swal.fire({ icon: 'warning', title: '입력 오류', text: '가로/세로 타입을 선택해 주세요.' });
+            return;
+        }
+
+        const action = screenForm.mode === 'Ins' ? '등록' : '수정';
+        const ok = await Swal.fire({
+            icon: 'question', title: `화면 ${action}`,
+            html: `<b>${screenForm.conNm}</b> ${action} 하시겠습니까?`,
+            showCancelButton: true, confirmButtonText: '예', cancelButtonText: '아니오',
+        });
+        if (!ok.isConfirmed) return;
+
+        // 상단 브랜드/매장을 같이 넘겨 해당 매장 화면으로 저장되게 한다(전체 관리자만 반영, 그 외는 로그인 소속)
+        const res = await fnAjaxFetch({
+            url: URL.CON_MUTI_UPDATE, method: 'POST',
+            data: { ...screenForm, searchGroupId: mhsBrandcd, searchCenterId: mhsCentercd },
+        });
+        const json = res?.data;
+        if (json?.resultCodeInfo === 'SUCCESS') {
+            await Swal.fire({ icon: 'success', title: '완료', text: json?.resultMessage || `${action}되었습니다.` });
+            setScreenModalOpen(false);
+            refreshScreenGrid();
+        } else {
+            await Swal.fire({ icon: 'error', title: '오류', text: json?.resultMessage || `${action} 중 오류가 발생했습니다.` });
+        }
+    }, [screenForm, mhsBrandcd, mhsCentercd, refreshScreenGrid]);
+
     const screenColumnDefs = useMemo(() => ([
         { field: 'conSeq', headerName: '번호', width: 90 },
         {
@@ -497,7 +574,14 @@ export default function MhsRoomManagePage() {
             valueFormatter: (p) => `${p.value ?? 0}개`,
         },
         { field: 'frstRegistPnttm', headerName: '등록일', width: 170 },
-    ]), [navigate]);
+        {
+            headerName: '수정', width: 90, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                    onClick={() => handleOpenScreenModal(p.data?.conSeq)}>수정</button>
+            ),
+        },
+    ]), [navigate, handleOpenScreenModal]);
 
     return (
         <div className="row g-0 main-contents">
@@ -709,6 +793,8 @@ export default function MhsRoomManagePage() {
                                             onClick={() => handleScreenSearch(1)}>검색</button>
                                         <button type="button" className="btn btn-outline-dark btn-outline__gray"
                                             onClick={handleScreenReset}>검색 초기화</button>
+                                        <button type="button" className="btn btn-primary btn-default__blue"
+                                            onClick={() => handleOpenScreenModal()}>화면 등록</button>
                                     </div>
                                 </div>
                             </div>
@@ -730,6 +816,22 @@ export default function MhsRoomManagePage() {
                                     />
                                 </div>
                             </div>
+
+                            <Suspense fallback={null}>
+                                {screenModalOpen && (
+                                    <ContentMutiFormModal
+                                        open={screenModalOpen}
+                                        form={screenForm}
+                                        setForm={setScreenForm}
+                                        conTypeOptions={screenOptions.conType}
+                                        screenTypeOptions={screenOptions.screenType}
+                                        playTypeOptions={screenOptions.playType}
+                                        nextSeqOptions={screenOptions.nextSeq}
+                                        onClose={() => setScreenModalOpen(false)}
+                                        onSubmit={handleScreenSubmit}
+                                    />
+                                )}
+                            </Suspense>
                         </div>
                     )}
                 </div>

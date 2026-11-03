@@ -292,6 +292,12 @@ public class ContentMutiManageController {
 			vo.setGroupId(loginVO.getPartId());
 			vo.setCenterId(loginVO.getCenterId());
 			vo.setMberId(loginVO.getManagerId());
+			// 문화센터 룸 관리 > 화면 관리에서 전체 관리자가 등록하면 상단에서 선택한 브랜드/매장으로 저장
+			// (그래야 해당 매장 목록 필터에 노출됨). 그 외 계정은 로그인 소속으로 고정.
+			if ("ROLE_ADMIN".equals(loginVO.getRoleId())) {
+				if (StringUtils.isNotBlank(vo.getSearchGroupId()))	vo.setGroupId(vo.getSearchGroupId());
+				if (StringUtils.isNotBlank(vo.getSearchCenterId()))	vo.setCenterId(vo.getSearchCenterId());
+			}
 
 			if (vo.getConNextSeq() == null || vo.getConNextSeq().isBlank()) {
 				vo.setConNextSeq("0");
