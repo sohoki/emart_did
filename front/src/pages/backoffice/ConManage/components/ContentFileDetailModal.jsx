@@ -8,7 +8,17 @@ import '@/style/Modal.css';
 
 const EMPTY_FORM = { fileWidth: '', fileHeight: '', playTime: '' };
 
-const fileSrc = (f) => `${config.REACT_APP_IMG_URL}${(f?.fileStreCours || '').replace(/^\//, '')}${f?.streFileNm || ''}`;
+const fileSrc = (f, name = f?.streFileNm) => `${config.REACT_APP_IMG_URL}${(f?.fileStreCours || '').replace(/^\//, '')}${name || ''}`;
+
+// 미리보기 상태별 안내 문구 — 브라우저가 메타데이터를 읽어야 자동 입력이 가능하다
+const PREVIEW_STATUS_MSG = {
+    loading: { color: '#64748b', text: '* 미리보기를 불러오는 중입니다...' },
+    loaded: { color: '#16a34a', text: '* 브라우저가 읽은 실제 파일 기준으로 가로/세로/재생시간을 자동 입력했습니다. 저장해야 반영됩니다.' },
+    error: {
+        color: '#dc2626',
+        text: '* 브라우저에서 재생할 수 없는 파일입니다(avi/mpeg 등 미지원 코덱 또는 파일 없음). 저장된 값을 표시하며 직접 입력할 수 있습니다.',
+    },
+};
 
 const formatFileSize = (size) => {
     const n = Number(size);
@@ -30,6 +40,7 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
     const [form, setForm] = useState(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
     const [pickOpen, setPickOpen] = useState(false);
+    const [previewStatus, setPreviewStatus] = useState('loading');
 
     useEffect(() => {
         if (!open || !atchFileId) return;
@@ -37,6 +48,7 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
             const res = await fnAjaxFetch({ url: `${URL.CON_FILE_INFO}/${atchFileId}.do`, method: 'GET' });
             // ResultHelper.setSuccess(resultVO, detail, "result") → { result: { result: detail } } 구조
             const result = res?.data?.result?.result;
+            setPreviewStatus('loading');
             setDetail(result ?? null);
             setForm({
                 fileWidth: result?.fileWidth ?? '',
@@ -55,8 +67,10 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
     const handleImageLoad = (e) => {
         const { naturalWidth, naturalHeight } = e.currentTarget;
         setForm((prev) => ({ ...prev, fileWidth: String(naturalWidth), fileHeight: String(naturalHeight) }));
+        setPreviewStatus('loaded');
     };
 
+    // 영상은 videoWidth/videoHeight/duration, 음원은 duration만 채운다(값이 없으면 기존 값 유지)
     const handleMediaLoad = (e) => {
         const { videoWidth, videoHeight, duration } = e.currentTarget;
         setForm((prev) => ({
@@ -64,7 +78,10 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
             ...(videoWidth ? { fileWidth: String(videoWidth), fileHeight: String(videoHeight) } : {}),
             ...(Number.isFinite(duration) ? { playTime: String(Math.floor(duration)) } : {}),
         }));
+        setPreviewStatus('loaded');
     };
+
+    const handlePreviewError = () => setPreviewStatus('error');
 
     const handleSave = useCallback(async () => {
         setSaving(true);
@@ -111,15 +128,20 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
                                         <div style={{ display: 'flex', justifyContent: 'center', background: '#0f172a',
                                             borderRadius: 6, marginBottom: 12, padding: type === 'MUSIC' ? 16 : 0 }}>
                                             {type === 'IMAGE' && (
-                                                <img src={fileSrc(detail)} alt={detail.orignlFileNm} onLoad={handleImageLoad}
+                                                <img src={fileSrc(detail)} alt={detail.orignlFileNm}
+                                                    onLoad={handleImageLoad} onError={handlePreviewError}
                                                     style={{ maxWidth: '100%', maxHeight: 360, objectFit: 'contain' }} />
                                             )}
+                                            {/* 메타데이터만 먼저 받아 자동 입력, 재생 전에는 업로드 시 생성한 썸네일을 표시 */}
                                             {type === 'MEDIA' && (
-                                                <video src={fileSrc(detail)} controls onLoadedMetadata={handleMediaLoad}
-                                                    style={{ maxWidth: '100%', maxHeight: 360 }} />
+                                                <video src={fileSrc(detail)} controls preload="metadata"
+                                                    poster={detail.fileThumnail ? fileSrc(detail, detail.fileThumnail) : undefined}
+                                                    onLoadedMetadata={handleMediaLoad} onError={handlePreviewError}
+                                                    style={{ width: '100%', maxHeight: 360 }} />
                                             )}
                                             {type === 'MUSIC' && (
-                                                <audio src={fileSrc(detail)} controls onLoadedMetadata={handleMediaLoad}
+                                                <audio src={fileSrc(detail)} controls preload="metadata"
+                                                    onLoadedMetadata={handleMediaLoad} onError={handlePreviewError}
                                                     style={{ width: '100%' }} />
                                             )}
                                         </div>
@@ -153,8 +175,8 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
                                                 </tr>
                                             </tbody>
                                         </table>
-                                        <div style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>
-                                            * 미리보기가 로드되면 실제 파일 기준 가로/세로/재생시간이 자동으로 채워집니다.
+                                        <div style={{ marginTop: 8, fontSize: 12, color: PREVIEW_STATUS_MSG[previewStatus].color }}>
+                                            {PREVIEW_STATUS_MSG[previewStatus].text}
                                         </div>
                                     </>
                                 ) : (
