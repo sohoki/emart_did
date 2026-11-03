@@ -134,10 +134,15 @@ export default function MhsRoomManagePage() {
 
     // 매장 수가 많아 검색이 필요 — CommonSearchSelect 형식({ code, codeNm })으로 변환
     // (MhsClassFormModal의 centerSelectOptions와 동일 규칙)
-    const centerSelectOptions = useMemo(
-        () => centerList.map((c) => ({ code: c.mhsCentercd, codeNm: c.mhsCenternm })),
-        [centerList],
-    );
+    // 맨 앞에 '매장 전체'(값 '') 항목을 두고 선택한 브랜드명(예: 문화센터)으로 표시 →
+    // 최초 진입 시 매장 선택이 '문화센터'로 보이고, 다시 고르면 전체 매장으로 되돌릴 수 있다
+    const centerSelectOptions = useMemo(() => {
+        const brandNm = brandList.find((b) => b.mhsBrandcd === mhsBrandcd)?.mhsBrandnm?.trim();
+        return [
+            { code: '', codeNm: brandNm || '전체' },
+            ...centerList.map((c) => ({ code: c.mhsCentercd, codeNm: c.mhsCenternm })),
+        ];
+    }, [brandList, mhsBrandcd, centerList]);
 
     // ===== 모니터 관리 =====
     // ROLE_MHS_USER(개별 매장 담당자)는 백엔드가 로그인 사용자의 groupId/centerId 기준으로 권한

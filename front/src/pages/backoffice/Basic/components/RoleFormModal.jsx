@@ -14,9 +14,11 @@ const RoleFormModal = ({
 }) => {
      //ID 체크 
     const { handleIdCheck } = useIdCheck(URL.ROLE_ID_CHECK, '권한 코드를 입력해주세요.');
+    // 백엔드(/idCheck/{roleId}.do)는 roleId만 사용 — 비어 있는 systemCode를 extraParams로 넘기면
+    // useIdCheck가 "추가 조건 값을 입력해 주세요."로 막아 중복확인이 동작하지 않았음
     const handleRoleIdCheck = useCallback(async () => {
-        await handleIdCheck(form.roleId, setForm, { systemCode: form.systemCode });
-    }, [form.roleId, form.systemCode, setForm, handleIdCheck]);
+        await handleIdCheck(form.roleId, setForm);
+    }, [form.roleId, setForm, handleIdCheck]);
 
     // 1. 부모 컴포넌트 내부에서 상태 업데이트 함수 정의
     const updateForm = useCallback((payload) => {
@@ -61,7 +63,8 @@ const RoleFormModal = ({
                                                 readOnly={form.mode != 'Ins'}
                                                 onChange={(e) => {
                                                     const filteredValue = e.target.value.replace(/[^a-zA-Z0-9`~!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g, '');
-                                                    updateForm({ roleId: filteredValue });
+                                                    // 코드가 바뀌면 이전 중복확인 결과는 무효
+                                                    updateForm({ roleId: filteredValue, idCheck: 'N' });
                                                 }}
                                                 style={{ imeMode: 'inactive' }}
                                             />
