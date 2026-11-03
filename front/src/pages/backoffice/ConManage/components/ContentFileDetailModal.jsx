@@ -44,8 +44,12 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
 
     useEffect(() => {
         if (!open || !atchFileId) return;
+        // 이전 요청 결과 무시용 — StrictMode 등으로 조회가 두 번 실행되면 늦게 온 응답이
+        // 미리보기에서 이미 채운 가로/세로/재생시간을 DB 값으로 덮어쓰는 문제 방지
+        let cancelled = false;
         (async () => {
             const res = await fnAjaxFetch({ url: `${URL.CON_FILE_INFO}/${atchFileId}.do`, method: 'GET' });
+            if (cancelled) return;
             // ResultHelper.setSuccess(resultVO, detail, "result") → { result: { result: detail } } 구조
             const result = res?.data?.result?.result;
             setPreviewStatus('loading');
@@ -56,6 +60,7 @@ const ContentFileDetailModal = ({ open, atchFileId, mediaType, onClose, onSaved 
                 playTime: result?.playTime ?? '',
             });
         })();
+        return () => { cancelled = true; };
     }, [open, atchFileId]);
 
     const handleChange = (e) => {

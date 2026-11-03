@@ -83,6 +83,15 @@ dependencies {
     implementation 'org.json:json:20231013'
     implementation 'com.googlecode.json-simple:json-simple:1.1.1'
 
+    // 동영상 썸네일/재생정보 (VideoMediaService) — ffmpeg/ffprobe 실행파일 내장, 서버 별도 설치 불필요
+    // 용량을 줄이기 위해 전체 플랫폼(ffmpeg-platform) 대신 로컬(windows)/서버(linux) 네이티브만 포함
+    implementation 'org.bytedeco:javacpp:1.5.11'
+    implementation 'org.bytedeco:ffmpeg:7.1-1.5.11'
+    runtimeOnly 'org.bytedeco:javacpp:1.5.11:windows-x86_64'
+    runtimeOnly 'org.bytedeco:ffmpeg:7.1-1.5.11:windows-x86_64'
+    runtimeOnly 'org.bytedeco:javacpp:1.5.11:linux-x86_64'
+    runtimeOnly 'org.bytedeco:ffmpeg:7.1-1.5.11:linux-x86_64'
+
     // UtilInfoService(외부 API 연계 HTTP 통신)에서 사용
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
 

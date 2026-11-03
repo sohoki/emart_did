@@ -1,6 +1,26 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 
+// 갤러리 썸네일 1개 — 이미지는 img, 영상은 첫 프레임(video), 그 외(음원 등)는 확장자 박스로 표시
+// (영상/음원을 img로 그리면 깨진 이미지 + alt 파일명이 박스 밖으로 넘쳐 겹쳐 보임)
+const renderGalleryThumb = (file, url) => {
+    const style = { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, border: '1px solid rgba(128,128,128,0.2)' };
+    if (file.type?.startsWith('image/')) {
+        return <img src={url} alt={file.name} style={style} />;
+    }
+    if (file.type?.startsWith('video/')) {
+        // #t=0.1 — 0초 프레임이 비어 보이는 브라우저가 있어 살짝 뒤 프레임을 표시
+        return <video src={`${url}#t=0.1`} muted preload="metadata" style={{ ...style, background: '#000' }} />;
+    }
+    const ext = file.name.includes('.') ? file.name.split('.').pop().toUpperCase() : 'FILE';
+    return (
+        <div style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#f1f5f9', color: '#64748b', fontSize: 11, fontWeight: 600 }}>
+            {ext}
+        </div>
+    );
+};
+
 // Drag and Drop File Input
 export const useFileUpload = ({
     fieldName,           // 파일 필드명
@@ -84,12 +104,9 @@ export const useFileUpload = ({
             {galleryPreviews.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'nowrap', gap, marginTop: 10, overflowX: 'auto', paddingTop: 6, paddingBottom: 4, width }}>
                     {galleryPreviews.map(({ file, url }, idx) => (
-                        <div key={`${file.name}-${idx}`} style={{ position: 'relative', width: thumbSize, height: thumbSize, flexShrink: 0 }}>
-                            <img
-                                src={url}
-                                alt={file.name}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, border: '1px solid rgba(128,128,128,0.2)' }}
-                            />
+                        <div key={`${file.name}-${idx}`} title={file.name}
+                            style={{ position: 'relative', width: thumbSize, height: thumbSize, flexShrink: 0 }}>
+                            {renderGalleryThumb(file, url)}
                             <button
                                 type="button"
                                 className="btn btn-sm btn-outline-danger"

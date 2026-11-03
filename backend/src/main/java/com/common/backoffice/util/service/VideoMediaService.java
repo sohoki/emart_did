@@ -10,16 +10,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.bytedeco.javacpp.Loader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 동영상 썸네일/재생정보 추출 서비스 (서버에 설치된 ffmpeg/ffprobe 명령 호출).
+ * 동영상 썸네일/재생정보 추출 서비스 (ffmpeg/ffprobe 명령 호출).
  *
  * - 실행 파일 경로는 Common.ffmpegPath / Common.ffprobePath로 지정 가능하고,
- *   설정이 없으면 PATH에 등록된 ffmpeg/ffprobe를 사용한다.
+ *   설정이 없으면 jar에 내장된 bytedeco ffmpeg를, 그것도 안 되면 PATH의 ffmpeg/ffprobe를 사용한다.
  * - ffmpeg 미설치·지원하지 않는 코덱 등으로 실패해도 예외를 던지지 않고 해당 필드를 null로 반환한다
  *   (업로드 자체는 계속 진행되어야 하므로).
  */
@@ -33,11 +34,16 @@ public class VideoMediaService {
 	/** 썸네일 가로 크기(px), 세로는 비율 유지 */
 	private static final int THUMBNAIL_WIDTH = 320;
 
-	@Value("${Common.ffmpegPath:ffmpeg}")
+	/** 설정이 있으면 그 경로를, 없으면 jar에 내장된(bytedeco) 실행 파일을 사용 */
+	@Value("${Common.ffmpegPath:}")
 	private String ffmpegPath;
 
-	@Value("${Common.ffprobePath:ffprobe}")
+	@Value("${Common.ffprobePath:}")
 	private String ffprobePath;
+
+	/** 실제 실행할 명령 경로 — 최초 사용 시 한 번만 결정(내장 파일 압축 해제 비용이 있으므로 캐시) */
+	private String ffmpegCmd;
+	private String ffprobeCmd;
 
 	/** 썸네일 파일명 + 재생시간(초) + 해상도. 추출 실패한 항목은 null */
 	public record VideoInfo(String thumbnailName, String playTime, String width, String height) {}
@@ -66,9 +72,42 @@ public class VideoMediaService {
 		return new VideoInfo(created ? thumbName : null, playTime, probe.width(), probe.height());
 	}
 
+	private synchronized String ffmpeg() {
+		if (ffmpegCmd == null) {
+			ffmpegCmd = resolveCommand(ffmpegPath, org.bytedeco.ffmpeg.ffmpeg.class, "ffmpeg");
+		}
+		return ffmpegCmd;
+	}
+
+	private synchronized String ffprobe() {
+		if (ffprobeCmd == null) {
+			ffprobeCmd = resolveCommand(ffprobePath, org.bytedeco.ffmpeg.ffprobe.class, "ffprobe");
+		}
+		return ffprobeCmd;
+	}
+
+	/**
+	 * 실행 파일 경로 결정: 설정값 → 내장 실행 파일(Loader.load가 ~/.javacpp/cache에 풀고 경로 반환) → PATH의 명령.
+	 * 내장 파일이 없는 OS/CPU(예: linux-arm64)면 PATH에 설치된 ffmpeg로 대체한다.
+	 */
+	private String resolveCommand(String configured, Class<?> bundledClass, String fallback) {
+		if (configured != null && !configured.isBlank()) {
+			return configured;
+		}
+		try {
+			String bundled = Loader.load(bundledClass);
+			log.info("내장 {} 사용: {}", fallback, bundled);
+			return bundled;
+		} catch (Throwable e) {
+			// UnsatisfiedLinkError 등 Error 계열도 잡아야 업로드가 중단되지 않는다
+			log.warn("내장 {} 로드 실패, PATH의 명령 사용: {}", fallback, e.toString());
+			return fallback;
+		}
+	}
+
 	private ProbeResult probe(Path videoPath) {
 		List<String> command = List.of(
-				ffprobePath, "-v", "error",
+				ffprobe(), "-v", "error",
 				"-select_streams", "v:0",
 				"-show_entries", "stream=width,height:format=duration",
 				"-of", "default=noprint_wrappers=1",
@@ -99,7 +138,7 @@ public class VideoMediaService {
 
 	private boolean createThumbnail(Path videoPath, Path thumbPath, double seekSec) {
 		List<String> command = List.of(
-				ffmpegPath, "-y", "-v", "error",
+				ffmpeg(), "-y", "-v", "error",
 				"-ss", String.valueOf(seekSec),
 				"-i", videoPath.toString(),
 				"-frames:v", "1",
