@@ -102,6 +102,7 @@ public class SecurityConfig {
 			"/api/backoffice/infra/vendor/privacyPolicy/cus/**", //판매사몰 공개 페이지 - 개인정보 보호 약관 조회
 			"/file", //파일 다운로드
             "/upload/**",
+			"/js/**", //webapp/js 정적 스크립트(jquery 등) — DID 화면 HTML이 로그인 없이 참조
 			"/etc/**",//사용자단의 회원약관,회원가입,사용자아이디 중복여부체크 URL허용
 			/* swagger*/
 			"/v3/api-docs/**",
