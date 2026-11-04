@@ -655,7 +655,7 @@ export default function MhsRoomManagePage() {
                 <div className="tab-content">
                     {tab === 'monitor' && (
                         <div className="row g-0">
-                            <div className="col-12 content-search">
+                            <div className="col-12 content-search" style={{ marginBottom: 16 }}>
                                 <div className="row g-0 w-100 justify-content-between">
                                     <div className="col-auto content-search__option">
                                         <select id="searchCondition" name="searchCondition"
@@ -724,7 +724,7 @@ export default function MhsRoomManagePage() {
 
                     {tab === 'class' && (
                         <div className="row g-0">
-                            <div className="col-12 content-search">
+                            <div className="col-12 content-search" style={{ marginBottom: 16 }}>
                                 <div className="row g-0 w-100 justify-content-between">
                                     <div className="col-auto content-search__option">
                                         <select id="classSearchCondition" name="searchCondition"
@@ -786,7 +786,7 @@ export default function MhsRoomManagePage() {
 
                     {tab === 'screen' && (
                         <div className="row g-0">
-                            <div className="col-12 content-search">
+                            <div className="col-12 content-search" style={{ marginBottom: 16 }}>
                                 <div className="row g-0 w-100 justify-content-between">
                                     <div className="col-auto content-search__option">
                                         <select id="screenSearchCondition" name="searchCondition"
