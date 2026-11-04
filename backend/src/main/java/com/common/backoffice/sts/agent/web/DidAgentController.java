@@ -31,7 +31,7 @@ public class DidAgentController {
 	@RequestMapping(value = "/operManage/jsonAuth.do", produces = TEXT_UTF8)
 	public String jsonAuth(@RequestParam(value = "json", required = false, defaultValue = "") String json) {
 		try {
-			return protocolService.handleJson(json);
+			return protocolService.handleJson(unescapeHtml(json));
 		} catch (Exception e) {
 			log.error("jsonAuth error: {} / json={}", e.toString(), json);
 			return "ERROR:" + e;
@@ -42,7 +42,7 @@ public class DidAgentController {
 	@RequestMapping(value = "/operManage/xmlAuth.do", produces = TEXT_UTF8)
 	public String xmlAuth(@RequestParam(value = "xml", required = false, defaultValue = "") String xml) {
 		try {
-			return protocolService.handleXml(xml);
+			return protocolService.handleXml(unescapeHtml(xml));
 		} catch (Exception e) {
 			log.error("xmlAuth error: {} / xml={}", e.toString(), xml);
 			return "ERROR:" + e;
@@ -53,5 +53,18 @@ public class DidAgentController {
 	@PostMapping("/equiManage/Capture.do")
 	public String capture(MultipartRequest mRequest, HttpServletRequest request) {
 		return didMoniterPicController.insertDidPictureXml(mRequest, request);
+	}
+
+	// HTMLTagFilter 가 적용된 경우(" → &quot; 등) 원문으로 복원 — 필터 제외가 누락돼도 파싱되도록 하는 안전장치
+	// &amp; 는 마지막에 복원해야 이중 복원(&amp;quot; → ")이 생기지 않는다
+	private static String unescapeHtml(String value) {
+		if (value == null || value.indexOf('&') < 0) {
+			return value;
+		}
+		return value.replace("&quot;", "\"")
+				.replace("&apos;", "'")
+				.replace("&lt;", "<")
+				.replace("&gt;", ">")
+				.replace("&amp;", "&");
 	}
 }
