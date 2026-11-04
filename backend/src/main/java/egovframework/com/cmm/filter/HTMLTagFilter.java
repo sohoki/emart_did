@@ -19,8 +19,16 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
+import java.util.Set;
 
 public class HTMLTagFilter implements Filter{
+
+	// DID 에이전트 장비 통신 주소 — json/xml 파라미터 원문을 그대로 받아야 하므로 HTML 이스케이프 제외
+	// (" → &quot; 로 바뀌면 JSON 파싱 오류: Unexpected character (&))
+	private static final Set<String> EXCLUDE_PATHS = Set.of(
+			"/backoffice/sub/operManage/jsonAuth.do",
+			"/backoffice/sub/operManage/xmlAuth.do"
+	);
 
 	@SuppressWarnings("unused")
 	private FilterConfig config;
@@ -29,7 +37,12 @@ public class HTMLTagFilter implements Filter{
 	public void doFilter(ServletRequest request, ServletResponse response,
 			FilterChain chain) throws IOException, ServletException {
 
-		chain.doFilter(new HTMLTagFilterRequestWrapper((HttpServletRequest)request), response);
+		HttpServletRequest httpRequest = (HttpServletRequest)request;
+		if (EXCLUDE_PATHS.contains(httpRequest.getServletPath())) {
+			chain.doFilter(request, response);
+			return;
+		}
+		chain.doFilter(new HTMLTagFilterRequestWrapper(httpRequest), response);
 	}
 
 	@Override
