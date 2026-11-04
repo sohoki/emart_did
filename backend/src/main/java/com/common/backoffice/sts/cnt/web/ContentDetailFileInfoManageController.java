@@ -552,10 +552,17 @@ public class ContentDetailFileInfoManageController {
             // 정적 서빙됨 — WebMvcConfig 참고)에 배치해 둠. "L"(로컬) 재생은 단말기에 HTML과 같이
             // 내려받아 저장해 두는 방식이라 상대경로(./)로 참조하고, "S"(서버) 재생은 서버에서
             // 바로 내려주므로 절대경로(/upload/)로 참조한다.
+            /*
             if ("L".equals(playGubun)) {
                 htmlPage.append("<script type='text/javascript' src='./jquery-4.0.0.min.js'></script>\r\n");
             } else {
                 htmlPage.append("<script type='text/javascript' src='/upload/jquery-4.0.0.min.js'></script>\r\n");
+            }
+             */
+            if ("L".equals(playGubun)) {
+                htmlPage.append("<script type='text/javascript' src='./jquery-2.2.4.min.js'></script>\r\n");
+            } else {
+                htmlPage.append("<script type='text/javascript' src='/upload/jquery-2.2.4.min.js'></script>\r\n");
             }
 
             List<ContentDetailInfo> detailInfo = contentDetail.selectContentDetailLst(conSeq);
