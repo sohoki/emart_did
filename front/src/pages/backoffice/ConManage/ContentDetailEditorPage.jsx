@@ -66,9 +66,8 @@ const Thumb = ({ file, size = 60 }) => {
 // 화면 구성(멀티페이지 콘텐츠) 편성 화면 — 레거시 conMutiView_back.jsp 참고.
 // "화면생성"(미리보기)/"스케줄전송"은 ContentDetailFileInfoManageController의
 // preViewCheck.do/contentPreview.do/contentScheduleSend.do에 연결됨. contentPreview.do는
-// EMART_DID/did/upload/{yyyyMM}/ 아래에 정적 HTML을 생성하고, DB(conFile)에는 varchar(30)
-// 제약 때문에 파일명만 저장 — 실제 미리보기에 필요한 전체 상대경로는 응답의
-// result.fileUrl로 내려줘서 그걸로 /upload/ 경로를 연다.
+// upload 루트(webapp/upload)에 정적 HTML을 생성하고, DB(conFile)에는 파일명을 저장 —
+// 응답의 result.fileUrl(= 파일명)로 /upload/ 경로를 연다.
 export default function ContentDetailEditorPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();

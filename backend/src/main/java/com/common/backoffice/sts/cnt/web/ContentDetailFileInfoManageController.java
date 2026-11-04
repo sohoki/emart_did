@@ -420,17 +420,14 @@ public class ContentDetailFileInfoManageController {
 	}
 
 
-    // 성공 시 생성된 파일의 upload 루트 기준 상대경로(EMART_DID/did/upload/{yyyyMM}/{fileName})를
-    // 반환한다. DB(CON_FILE)는 character varying(30) 제약이라 상대경로 전체를 담을 수 없어서
-    // 파일명만 저장하고, 실제 미리보기 URL은 이 반환값으로 프론트에 전달한다.
+    // 성공 시 생성된 파일의 upload 루트 기준 상대경로(= 파일명)를 반환한다.
+    // 화면 HTML은 업로드 미디어와 달리 upload 루트(webapp/upload)에 바로 생성한다 —
+    // 같은 폴더의 css/js/silence.mp3를 참조하고, 장비도 /upload/{CON_FILE}로 내려받기 때문.
     public String ContentFileCreate (String htmlFile,
                                       String conSeq){
         try{
-            // 일반 업로드 미디어와 동일한 관례(ContentFileInfoManageController.uploadFileManage 참고)로
-            // EMART_DID/did/upload/{yyyyMM}/ 하위에 생성한다 — upload 루트에 바로 만들지 않음.
             Path rootPath = Paths.get(filePath);
-            String yyyyMM = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
-            Path dirPath = rootPath.resolve("EMART_DID").resolve("did").resolve("upload").resolve(yyyyMM);
+            Path dirPath = rootPath;
             if (!Files.exists(dirPath)) {
                 Files.createDirectories(dirPath);
             }
@@ -466,7 +463,7 @@ public class ContentDetailFileInfoManageController {
             if (ret <= 0) {
                 return null;
             }
-            return "EMART_DID/did/upload/" + yyyyMM + "/" + fileName;
+            return fileName;
         }catch(Exception e){
             log.error("CREATE HTML FILE ERROR:" + e.toString()  );
         }
@@ -858,10 +855,8 @@ public class ContentDetailFileInfoManageController {
 
             String existing = contentMuti.selectContentFileInfoLocal(conSeq);
 
-            // 일반 업로드 미디어와 동일한 관례로 EMART_DID/did/upload/{yyyyMM}/ 하위에 생성한다.
-            Path rootPath = Paths.get(filePath);
-            String yyyyMM = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
-            Path dirPath = rootPath.resolve("EMART_DID").resolve("did").resolve("upload").resolve(yyyyMM);
+            // ContentFileCreate와 동일하게 upload 루트(webapp/upload)에 바로 생성한다.
+            Path dirPath = Paths.get(filePath);
             if (!Files.exists(dirPath)) {
                 Files.createDirectories(dirPath);
             }
@@ -894,7 +889,7 @@ public class ContentDetailFileInfoManageController {
             if (ret <= 0) {
                 return null;
             }
-            return "EMART_DID/did/upload/" + yyyyMM + "/" + fileName;
+            return fileName;
 
         } catch (Exception e) {
             log.error("CREATE HTML FILE ERROR: {}", e.toString());
