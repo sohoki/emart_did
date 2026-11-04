@@ -85,6 +85,9 @@ public class SecurityConfig {
 			"/api/backoffice/infra/product/msg/msgResult.do",//JWT 로그인
 			"/api/backoffice/bas/holy/holyInsert.do",//JWT 로그인
 			"/api/backoffice/sub/equiManage/pic/capture.do", //DID 장비가 캡처 화면을 업로드하는 기계 간 통신 API(로그인 불필요)
+			"/backoffice/sub/equiManage/Capture.do", //기존 DID 에이전트 레거시 주소(DidAgentController) - 캡처 업로드
+			"/backoffice/sub/operManage/xmlAuth.do", //기존 DID 에이전트 레거시 주소 - 장비 통신(XML)
+			"/backoffice/sub/operManage/jsonAuth.do", //기존 DID 에이전트 레거시 주소 - 장비 통신(JSON)
 			"/api/login.do", //일반 로그인
 			"/api/backoffice/order/**", //주문
 			"/api/backoffice/res/**", //주문

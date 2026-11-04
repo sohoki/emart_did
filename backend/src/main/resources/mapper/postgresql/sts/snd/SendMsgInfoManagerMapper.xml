@@ -252,4 +252,9 @@
 			ERROR_MESSAGE = #{errorMessage}
 		WHERE MSG_SEQ = #{msgSeq}::numeric
 	</update>
+
+	<!-- 레거시(Oracle) 쿼리는 ROWNUM = 1을 ORDER BY보다 먼저 걸어 최신값이 보장되지 않았음 → MAX로 변경 -->
+	<select id="selectMaxSeq" resultType="java.lang.Integer">
+		SELECT COALESCE(MAX(MSG_SEQ), 0)::integer FROM TB_MESSAGEHISTORY
+	</select>
 </mapper>

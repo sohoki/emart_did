@@ -34,4 +34,6 @@ public interface SendMsgInfoManagerMapper {
 	public int selectSendDidIDCheckCnt(String sendDidId);
 	
 	public String selectSendDidIDMsgSeq(String sendDidId);
+
+	public int selectMaxSeq();
 }

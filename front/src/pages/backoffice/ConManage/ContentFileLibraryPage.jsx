@@ -15,20 +15,48 @@ const INITIAL_SEARCH_FORM = {
     searchKeyword: '',
 };
 
+// 페이징 아이콘(|< < > >|) — AG Grid 페이징 패널 아이콘 모양을 SVG로 재현
+const PAGE_ICON_PATHS = {
+    first: 'M11 5l-5 5 5 5M5 5v10',
+    prev: 'M12 5l-5 5 5 5',
+    next: 'M8 5l5 5-5 5',
+    last: 'M9 5l5 5-5 5M15 5v10',
+};
+
+function PageIconButton({ icon, title, disabled, onClick }) {
+    return (
+        <button type="button" title={title} aria-label={title} disabled={disabled} onClick={onClick}
+            style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 28, height: 28, padding: 0, border: 'none', background: 'transparent',
+                color: disabled ? '#cbd5e1' : 'var(--bs-body-color, #1e293b)',
+                cursor: disabled ? 'default' : 'pointer',
+            }}>
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d={PAGE_ICON_PATHS[icon]} />
+            </svg>
+        </button>
+    );
+}
+
 // 콘텐츠 파일(이미지/영상/음원) 라이브러리 — 썸네일 갤러리라 content-table 영역은
 // AppAgGrid 대신 카드형 그리드를 그대로 쓴다(DidPicListPage와 동일한 골격 예외 케이스).
 // embedded=true면 다른 화면의 탭 안에 넣어 쓰도록 제목/breadcrumb 영역을 생략한다(문화센터 룸 관리 > 콘텐츠 등록 탭).
 export default function ContentFileLibraryPage({ embedded = false }) {
     const [list, setList] = useState([]);
     const [totalCnt, setTotalCnt] = useState(0);
+    const [pageIndex, setPageIndex] = useState(1);
     const [loading, setLoading] = useState(false);
     const [tempParams, setTempParams] = useState(INITIAL_SEARCH_FORM);
+    // 페이지 이동 시에는 마지막으로 "검색"한 조건을 유지한다(입력 중인 tempParams가 아님)
+    const [appliedParams, setAppliedParams] = useState(INITIAL_SEARCH_FORM);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     // 파일 상세정보 모달 대상 { atchFileId, mediaType } / 삭제 불가 시 사용 중 콘텐츠 모달 { fileName, connList }
     const [detailTarget, setDetailTarget] = useState(null);
     const [connTarget, setConnTarget] = useState(null);
 
-    const loadList = useCallback(async (params) => {
+    const loadList = useCallback(async (params, page = 1) => {
         setLoading(true);
         try {
             const res = await fnAjaxFetch({
@@ -38,7 +66,7 @@ export default function ContentFileLibraryPage({ embedded = false }) {
                     mediaType: params?.mediaType ?? '',
                     searchCondition: 'orignlFileNm',
                     searchKeyword: params?.searchKeyword ?? '',
-                    pageIndex: 1,
+                    pageIndex: page,
                     pageUnit: PAGE_UNIT,
                 },
                 showLoading: false,
@@ -46,6 +74,8 @@ export default function ContentFileLibraryPage({ embedded = false }) {
             const resultList = res?.data?.result?.resultList ?? [];
             setList(resultList);
             setTotalCnt(res?.data?.result?.totalCnt ?? resultList.length);
+            setAppliedParams(params ?? INITIAL_SEARCH_FORM);
+            setPageIndex(page);
         } finally {
             setLoading(false);
         }
@@ -54,6 +84,12 @@ export default function ContentFileLibraryPage({ embedded = false }) {
     useEffect(() => {
         loadList({});
     }, [loadList]);
+
+    const totalPages = Math.max(1, Math.ceil(totalCnt / PAGE_UNIT));
+    // 사용/삭제/상세 저장 후에는 보고 있던 페이지를 다시 조회
+    const reloadCurrentPage = useCallback(() => {
+        loadList(appliedParams, pageIndex);
+    }, [loadList, appliedParams, pageIndex]);
 
     const handleInputChange = useCallback((e) => {
         const { name, value } = e.target;
@@ -79,7 +115,7 @@ export default function ContentFileLibraryPage({ embedded = false }) {
             method: 'POST',
             data: { atchFileIds: [atchFileId], useYn: currentUseYn === 'Y' ? 'N' : 'Y' },
         });
-        loadList(tempParams);
+        reloadCurrentPage();
     };
 
     const handleDelete = async (atchFileId, fileName) => {
@@ -97,7 +133,9 @@ export default function ContentFileLibraryPage({ embedded = false }) {
         }
 
         await fnAjaxFetch({ url: `${URL.CON_FILE_INFO}/${atchFileId}.do`, method: 'DELETE' });
-        loadList(tempParams);
+        // 마지막 페이지의 마지막 1건을 지우면 빈 페이지가 되므로 한 페이지 앞으로
+        const page = list.length === 1 && pageIndex > 1 ? pageIndex - 1 : pageIndex;
+        loadList(appliedParams, page);
     };
 
     return (
@@ -196,6 +234,22 @@ export default function ContentFileLibraryPage({ embedded = false }) {
                         <div style={{ color: '#94a3b8', padding: 24 }}>조회된 파일이 없습니다.</div>
                     )}
                 </div>
+                {/* 서버 페이징 — 다른 탭 그리드(AG Grid) 하단 페이징 패널과 같은 모양 */}
+                {totalCnt > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginTop: 16, fontSize: 14 }}>
+                        <PageIconButton icon="first" title="처음" disabled={loading || pageIndex <= 1}
+                            onClick={() => loadList(appliedParams, 1)} />
+                        <PageIconButton icon="prev" title="이전" disabled={loading || pageIndex <= 1}
+                            onClick={() => loadList(appliedParams, pageIndex - 1)} />
+                        <span style={{ margin: '0 8px', color: 'var(--bs-body-color, #1e293b)' }}>
+                            Page <b>{pageIndex}</b> of <b>{totalPages}</b>
+                        </span>
+                        <PageIconButton icon="next" title="다음" disabled={loading || pageIndex >= totalPages}
+                            onClick={() => loadList(appliedParams, pageIndex + 1)} />
+                        <PageIconButton icon="last" title="마지막" disabled={loading || pageIndex >= totalPages}
+                            onClick={() => loadList(appliedParams, totalPages)} />
+                    </div>
+                )}
             </div>
 
             <Suspense fallback={null}>
@@ -203,7 +257,7 @@ export default function ContentFileLibraryPage({ embedded = false }) {
                     <ContentFileUploadModal
                         open={uploadModalOpen}
                         onClose={() => setUploadModalOpen(false)}
-                        onUploaded={() => { setUploadModalOpen(false); loadList(tempParams); }}
+                        onUploaded={() => { setUploadModalOpen(false); loadList(appliedParams, 1); }}
                     />
                 )}
                 {detailTarget && (
@@ -212,7 +266,7 @@ export default function ContentFileLibraryPage({ embedded = false }) {
                         atchFileId={detailTarget.atchFileId}
                         mediaType={detailTarget.mediaType}
                         onClose={() => setDetailTarget(null)}
-                        onSaved={() => { setDetailTarget(null); loadList(tempParams); }}
+                        onSaved={() => { setDetailTarget(null); reloadCurrentPage(); }}
                     />
                 )}
                 {connTarget && (

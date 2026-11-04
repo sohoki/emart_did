@@ -36,6 +36,7 @@ const EMPTY_CLASS_FORM = {
     mhsClassstartday: '', mhsClassendday: '', mhsClassdayofweek: '', mhsClassstarttime: '', mhsClassendtime: '',
     mhsClassintro: '',
 };
+const CLASS_SEARCH_INITIAL = { searchCondition: '', searchKeyword: '' };
 const SCREEN_SEARCH_INITIAL = { searchCondition: 'conNm', searchKeyword: '' };
 // 콘텐츠 관리 > 화면 구성 관리(ContentMutiListPage)의 등록 기본값과 동일
 const EMPTY_SCREEN_FORM = {
@@ -96,13 +97,8 @@ export default function MhsRoomManagePage() {
     const [previewMonitorcd, setPreviewMonitorcd] = useState('');
 
     // 강의 관리
-    const [classList, setClassList] = useState([]);
-    const [classTotalCnt, setClassTotalCnt] = useState(0);
-    const [classLoading, setClassLoading] = useState(false);
     const [classModalOpen, setClassModalOpen] = useState(false);
     const [classForm, setClassForm] = useState(EMPTY_CLASS_FORM);
-    const [classSearchKeyword, setClassSearchKeyword] = useState('');
-    const [classSearchCondition, setClassSearchCondition] = useState('');
 
 
     const loadCenterList = useCallback(async (brandcd) => {
@@ -127,7 +123,10 @@ export default function MhsRoomManagePage() {
         // (지점 고정 계정은 매장 콤보가 브랜드와 무관하게 자기 매장을 돌려주므로 어느 브랜드든 매장이 나온다)
         const defaultBrand = loginCenterId
             ? (list.find((b) => b.mhsBrandcd === getCookie('partId')) || list[0])
-            : list.find((b) => (b.mhsBrandnm || '').includes('문화센터'));
+            // 관리자는 이름이 정확히 '문화센터'인 브랜드를 우선 선택('이마트 문화센터'가 목록 앞에 있어도),
+            // 없으면 이름에 '문화센터'가 들어간 첫 브랜드
+            : (list.find((b) => (b.mhsBrandnm || '').trim() === '문화센터')
+                || list.find((b) => (b.mhsBrandnm || '').includes('문화센터')));
         if (defaultBrand) {
             setMhsBrandcd(defaultBrand.mhsBrandcd);
             loadCenterList(defaultBrand.mhsBrandcd);
@@ -325,46 +324,52 @@ export default function MhsRoomManagePage() {
     ]), [handleOpenMonitorModal, handleMonitorPreview, handleMonitorDelete, navigate]);
 
     // ===== 강의 관리 =====
-    const loadClassList = useCallback(async () => {
-        setClassLoading(true);
-        try {
-            const res = await fnAjaxFetch({
-                url: URL.MHS_CLASS_LIST, method: 'POST',
-                data: {
-                    searchMhsBramdCd: mhsBrandcd, searchMhsCenterCd: mhsCentercd,
-                    searchCondition: classSearchCondition, searchKeyword: classSearchKeyword,
-                    pageIndex: 1, pageUnit: PAGE_UNIT,
-                },
-                showLoading: false,
-            });
-            const list = res?.data?.result?.resultList ?? [];
-            setClassList(list);
-            setClassTotalCnt(res?.data?.result?.totalCnt ?? list.length);
-        } finally {
-            setClassLoading(false);
-        }
-    }, [mhsBrandcd, mhsCentercd, classSearchCondition, classSearchKeyword]);
+    // 서버 페이징(useGridInfinite) — 예전엔 1페이지(20건)만 받아와 클라이언트 페이징을 해서
+    // 20건을 넘는 강의는 다음 페이지가 나오지 않았음(모니터/화면 관리 탭과 같은 방식으로 통일)
+    const fetchClassList = useCallback(async (query) => {
+        const res = await fnAjaxFetch({
+            url: URL.MHS_CLASS_LIST, method: 'POST',
+            data: { ...query, searchMhsBramdCd: mhsBrandcd, searchMhsCenterCd: mhsCentercd },
+        });
+        const data = res?.data;
+        return {
+            rows: data?.result?.resultList ?? [],
+            total: data?.result?.totalCnt ?? 0,
+        };
+    }, [mhsBrandcd, mhsCentercd]);
+
+    const {
+        onGridReady: onClassGridReady,
+        defaultColDef: classDefaultColDef,
+        tempParams: classTempParams,
+        setTempParams: setClassTempParams,
+        handleSearch: handleClassSearch,
+        refreshGrid: refreshClassGrid,
+        totalCount: classTotalCnt,
+    } = useGridInfinite({
+        fetchApi: fetchClassList,
+        pageUnit: PAGE_UNIT,
+        initialFilters: CLASS_SEARCH_INITIAL,
+    });
 
     // 브랜드/매장 선택은 강의 목록의 선택적 필터일 뿐, 백엔드(selectMhsClassList)는 비어 있으면
     // 필터 없이 전체를 조회한다(authorCode == 'ROLE_MHS_USER'일 때는 서버가 자동으로 소속 매장
     // 범위로 제한). 그래서 브랜드/매장을 고르지 않아도 탭 진입 시 바로 전체 목록을 보여준다.
     useEffect(() => {
-        if (tab === 'class') loadClassList();
+        if (tab === 'class') refreshClassGrid({ keepPage: false });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab, mhsBrandcd, mhsCentercd]);
 
-    const onClassSearch = useCallback(() => {
-        if (tab === 'class') loadClassList();
-    }, [tab, loadClassList]);
+    const handleClassInputChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setClassTempParams((prev) => ({ ...prev, [name]: value }));
+    }, [setClassTempParams]);
 
     const onClassSearchKeyDown = useCallback((e) => {
-        if (e.key === 'Enter') onClassSearch();
-    }, [onClassSearch]);
+        if (e.key === 'Enter') handleClassSearch(1);
+    }, [handleClassSearch]);
 
-    const handleClassReset = useCallback(() => {
-        setClassSearchCondition('');
-        setClassSearchKeyword('');
-    }, []);
+    const { handleReset: handleClassReset } = useResetForm(setClassTempParams, CLASS_SEARCH_INITIAL);
 
     // 조직명/점포명은 모달 자체에서 선택하므로(MhsClassFormModal) 상단 검색용 브랜드/매장 선택과
     // 무관하게 항상 등록 모달을 열 수 있다. 다만 상단에서 이미 매장을 필터링해 둔 상태라면 그
@@ -390,8 +395,8 @@ export default function MhsRoomManagePage() {
         });
         if (!result.isConfirmed) return;
         await fnAjaxFetch({ url: `${URL.MHS_CLASS_INFO}/${mhsClasscd}.do`, method: 'DELETE' });
-        loadClassList();
-    }, [loadClassList]);
+        refreshClassGrid();
+    }, [refreshClassGrid]);
 
     const handleClassSubmit = useCallback(async () => {
         const action = classForm.mode === 'Ins' ? '등록' : '수정';
@@ -412,11 +417,11 @@ export default function MhsRoomManagePage() {
         if (json?.resultCodeInfo === 'SUCCESS') {
             await Swal.fire({ icon: 'success', title: '완료', text: json?.resultMessage || `${action}되었습니다.` });
             setClassModalOpen(false);
-            loadClassList();
+            refreshClassGrid();
         } else {
             await Swal.fire({ icon: 'error', title: '오류', text: json?.resultMessage || `${action} 중 오류가 발생했습니다.` });
         }
-    }, [classForm, loadClassList]);
+    }, [classForm, refreshClassGrid]);
 
     const classColumnDefs = useMemo(() => ([
         {
@@ -722,21 +727,22 @@ export default function MhsRoomManagePage() {
                             <div className="col-12 content-search">
                                 <div className="row g-0 w-100 justify-content-between">
                                     <div className="col-auto content-search__option">
-                                        <select value={classSearchCondition} onChange={(e) => setClassSearchCondition(e.target.value)}>
+                                        <select id="classSearchCondition" name="searchCondition"
+                                            value={classTempParams.searchCondition} onChange={handleClassInputChange}>
                                             <option value="">선택</option>
                                             <option value="MHS_CLASSNM">강의명</option>
                                             <option value="MHS_TEACHERNM">강사명</option>
                                             <option value="MHS_CLASSROOMNM">강의실</option>
                                         </select>
-                                        <input type="text" placeholder="검색어를 입력하세요"
-                                            value={classSearchKeyword}
-                                            onChange={(e) => setClassSearchKeyword(e.target.value)}
+                                        <input type="text" id="classSearchKeyword" name="searchKeyword" placeholder="검색어를 입력하세요"
+                                            value={classTempParams.searchKeyword}
+                                            onChange={handleClassInputChange}
                                             onKeyDown={onClassSearchKeyDown}
                                         />
                                     </div>
                                     <div className="col-auto content-search__action">
                                         <button type="button" className="btn btn-outline-dark btn-outline__gray"
-                                            onClick={onClassSearch}>검색</button>
+                                            onClick={() => handleClassSearch(1)}>검색</button>
                                         <button type="button" className="btn btn-outline-dark btn-outline__gray"
                                             onClick={handleClassReset}>검색 초기화</button>
                                         <button type="button" className="btn btn-primary btn-default__blue"
@@ -746,16 +752,20 @@ export default function MhsRoomManagePage() {
                             </div>
 
                             <div className="col-12 content-table content-table__main">
-                                <div style={{ marginBottom: 8, color: '#64748b' }}>총 {classTotalCnt}건{classLoading ? ' (조회 중...)' : ''}</div>
+                                <div style={{ marginBottom: 8, color: '#64748b' }}>총 {classTotalCnt}건</div>
                                 <div className="ag-theme-material" style={{ height: 560, width: '100%' }}>
                                     <AppAgGrid
-                                        theme={gridTheme}
-                                        rowData={classList}
                                         columnDefs={classColumnDefs}
-                                        defaultColDef={{ sortable: true, resizable: true }}
-                                        pagination
+                                        theme={gridTheme}
+                                        defaultColDef={classDefaultColDef}
+                                        rowModelType="infinite"
+                                        pagination={true}
                                         paginationPageSize={PAGE_UNIT}
+                                        cacheBlockSize={PAGE_UNIT}
+                                        maxBlocksInCache={2}
+                                        onGridReady={onClassGridReady}
                                         overlayNoRowsTemplate="<span class='ag-overlay-loading-center'>데이터가 없습니다.</span>"
+                                        overlayLoadingTemplate="<span class='ag-overlay-loading-center'>조회 중...</span>"
                                     />
                                 </div>
                             </div>

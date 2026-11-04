@@ -73,6 +73,11 @@ public class SendMsgInfoManageService {
         return sendMsgInfoManagerMapper.selectSendDidIDMsgSeq(sendDidId);
     }
 
+    // 장비 통신(jsonAuth/xmlAuth)에서 방금 등록한 명령의 MSG_SEQ를 응답으로 돌려줄 때 사용
+    public int selectMaxSeq() throws Exception {
+        return sendMsgInfoManagerMapper.selectMaxSeq();
+    }
+
     @Transactional(readOnly = false)
 	public int insertSendMsgInfoManage(SendMsgInfo vo) throws Exception {
 		return sendMsgInfoManagerMapper.insertSendMsgInfoManage(vo);
