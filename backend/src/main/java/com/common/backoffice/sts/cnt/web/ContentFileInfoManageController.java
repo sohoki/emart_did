@@ -217,11 +217,11 @@ public class ContentFileInfoManageController {
 			if (!AuthHelper.isAuthenticated(resultVO)) return resultVO;
 			LoginVO loginVO = AuthHelper.getLoginVO();
 
-			// 기존 데이터와 동일한 관례: /EMART_DID/did/upload/{yyyyMM}/ 아래 저장
-			// (물리 저장 경로 = filePath + 관례 경로, DB엔 이 관례 경로를 그대로 fileStreCours로 저장)
+			// 레거시(FileUpladController)와 동일: 물리 저장 = filePath/{yyyyMM}/, DB = filePath + {yyyyMM}/
+			// 조회 쿼리에서 마지막 "upload/" 뒤만 잘라 /{yyyyMM}/ 로 내려주므로 화면은 /upload/{yyyyMM}/파일 로 접근
 			String yyyyMM = new SimpleDateFormat("yyyyMM").format(new Date());
-			String relDir = "/EMART_DID/did/upload/" + yyyyMM + "/";
-			String targetDir = Paths.get(filePath, "EMART_DID", "did", "upload", yyyyMM).toString();
+			String relDir = filePath + "/" + yyyyMM + "/";
+			String targetDir = Paths.get(filePath, yyyyMM).toString();
 
 			int successCount = 0;
 			for (MultipartFile file : files) {

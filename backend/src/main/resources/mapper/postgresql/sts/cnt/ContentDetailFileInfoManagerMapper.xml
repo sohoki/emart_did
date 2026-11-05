@@ -11,7 +11,7 @@
                 WHEN LOWER(B.FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
                 END AS mediaType,
             B.FILE_THUMNAIL AS fileThumnail,
-            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+            COALESCE('/' || SUBSTRING(REPLACE(B.FILE_STRE_COURS, CHR(92), '/') FROM '^.*upload/(.*)$'), B.FILE_STRE_COURS) AS fileStreCours
         FROM TB_CONTENTFILEINFO A
                  JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
         WHERE A.CON_SEQ = #{conSeq}::numeric
@@ -29,7 +29,7 @@
                 WHEN LOWER(B.FILE_EXTSN) IN ('mp3', 'wav', 'mid') THEN 'MUSIC'
                 END AS mediaType,
             B.FILE_EXTSN AS fileExtsn, B.FILE_THUMNAIL AS fileThumnail,
-            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+            COALESCE('/' || SUBSTRING(REPLACE(B.FILE_STRE_COURS, CHR(92), '/') FROM '^.*upload/(.*)$'), B.FILE_STRE_COURS) AS fileStreCours
         FROM TB_CONTENTFILEINFO A
                  JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
         WHERE A.ATCH_FILE_ID = #{atchFileId}
@@ -50,7 +50,7 @@
                 END AS mediaType,
             B.FILE_EXTSN AS fileExtsn,
             B.FILE_THUMNAIL AS fileThumnail,
-            SUBSTRING(B.FILE_STRE_COURS FROM POSITION('/' IN B.FILE_STRE_COURS)) AS fileStreCours
+            COALESCE('/' || SUBSTRING(REPLACE(B.FILE_STRE_COURS, CHR(92), '/') FROM '^.*upload/(.*)$'), B.FILE_STRE_COURS) AS fileStreCours
         FROM TB_CONTENTFILEINFO A
                  JOIN LETTNFILEDETAIL B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
         WHERE A.FILE_SEQ = #{fileSeq}::numeric
