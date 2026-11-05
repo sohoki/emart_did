@@ -181,7 +181,7 @@
     <select id="selectFileContentLstDid" resultType="ContentFileInfoVO">
         SELECT
             A.HIS_SEQ, B.SCH_CODE, E.CON_SEQ, E.DETAIL_SEQ,
-            SUBSTRING(D.FILE_STRE_COURS FROM POSITION('upload' IN D.FILE_STRE_COURS)) AS FILE_STRE_COURS,
+            COALESCE('/upload/' || SUBSTRING(REPLACE(D.FILE_STRE_COURS, CHR(92), '/') FROM '^.*upload/(.*)$'), D.FILE_STRE_COURS) AS FILE_STRE_COURS,
             D.ATCH_FILE_ID, D.STRE_FILE_NM, D.FILE_EXTSN, D.FILE_SIZE, E.TIME_INTERVAL,
             E.FILE_ORDER
         FROM TB_CONTENTSENDHISTORY A
@@ -205,7 +205,7 @@
     <select id="selectFileContentList" resultType="ContentFileInfoVO">
         SELECT
             A.ATCH_FILE_ID,
-            SUBSTRING(A.FILE_STRE_COURS FROM POSITION('upload' IN A.FILE_STRE_COURS)) AS FILE_STRE_COURS,
+            COALESCE('/upload/' || SUBSTRING(REPLACE(A.FILE_STRE_COURS, CHR(92), '/') FROM '^.*upload/(.*)$'), A.FILE_STRE_COURS) AS FILE_STRE_COURS,
             A.STRE_FILE_NM, A.FILE_EXTSN, C.CON_SEQ,
             C.FILE_ORDER, A.FILE_SIZE, A.ORIGNL_FILE_NM, A.FILE_THUMNAIL, C.DETAIL_SEQ
         FROM TB_CONTENTMUTIL B
