@@ -437,13 +437,21 @@ export default function MhsRoomManagePage() {
         { field: 'mhsClassstarttime', headerName: '시작시간', width: 100, valueFormatter: (p) => formatHm(p.value) },
         { field: 'mhsClassendtime', headerName: '종료시간', width: 100, valueFormatter: (p) => formatHm(p.value) },
         {
+            // 강의실 코드(mhsClassroomnm) = 모니터 코드 — 해당 강의실 모니터 미리보기를 연다
+            headerName: '미리보기', width: 100, sortable: false, filter: false,
+            cellRenderer: (p) => (
+                <button type="button" className="btn btn-outline-secondary btn-outline__gray btn-sm"
+                    onClick={() => handleMonitorPreview(p.data?.mhsClassroomnm)}>미리보기</button>
+            ),
+        },
+        {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
                 <button className="btn btn-outline-danger btn-outline__gray btn-sm"
                     onClick={() => handleClassDelete(p.data?.mhsClasscd)}>삭제</button>
             ),
         },
-    ]), [handleOpenClassModal, handleClassDelete]);
+    ]), [handleOpenClassModal, handleMonitorPreview, handleClassDelete]);
 
     // ===== 화면 관리 =====
     // 레거시 MHS "화면 관리" = 콘텐츠 화면 구성(TB_CONTENTMUTIL)을 문화센터용으로 다시 보여주는 화면.
@@ -778,6 +786,13 @@ export default function MhsRoomManagePage() {
                                         setForm={setClassForm}
                                         onClose={() => setClassModalOpen(false)}
                                         onSubmit={handleClassSubmit}
+                                    />
+                                )}
+                                {previewModalOpen && (
+                                    <MhsMonitorPreviewModal
+                                        open={previewModalOpen}
+                                        mhsMonitorcd={previewMonitorcd}
+                                        onClose={() => setPreviewModalOpen(false)}
                                     />
                                 )}
                             </Suspense>
