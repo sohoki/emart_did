@@ -34,7 +34,7 @@ const EMPTY_MONITOR_FORM = {
 const EMPTY_CLASS_FORM = {
     mode: 'Ins', mhsClasscd: '', mhsBrandcd: '', mhsCentercd: '', mhsClassroomnm: '', mhsClassnm: '', mhsTeachernm: '',
     mhsClassstartday: '', mhsClassendday: '', mhsClassdayofweek: '', mhsClassstarttime: '', mhsClassendtime: '',
-    mhsClassintro: '',
+    mhsClassintro: '', mhsClassstatus: 'Y', // 레거시 기본값 — 'N'이면 편성/미리보기에서 제외됨
 };
 const CLASS_SEARCH_INITIAL = { searchCondition: '', searchKeyword: '' };
 const SCREEN_SEARCH_INITIAL = { searchCondition: 'conNm', searchKeyword: '' };
@@ -383,7 +383,7 @@ export default function MhsRoomManagePage() {
         const res = await fnAjaxFetch({ url: `${URL.MHS_CLASS_INFO}/${mhsClasscd}.do`, method: 'GET' });
         const detail = res?.data?.result?.result;
         if (detail) {
-            setClassForm({ ...EMPTY_CLASS_FORM, ...detail, mode: 'Edt' });
+            setClassForm({ ...EMPTY_CLASS_FORM, ...detail, mhsClassstatus: detail.mhsClassstatus || 'Y', mode: 'Edt' });
             setClassModalOpen(true);
         }
     }, [mhsBrandcd, mhsCentercd]);

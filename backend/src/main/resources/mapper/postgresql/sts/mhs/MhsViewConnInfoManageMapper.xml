@@ -9,7 +9,7 @@
         FROM TB_MHSVIEWCONNINFO A
         JOIN TB_MHSMONITORINFO B ON A.MHS_MONITORCD = B.MHS_MONITORCD
         JOIN TB_MHSCLASSINFO C ON A.MHS_CLASSCD = C.MHS_CLASSCD
-        WHERE C.MHS_CLASSSTATUS != 'N'
+        WHERE COALESCE(C.MHS_CLASSSTATUS, 'Y') != 'N'
         AND A.MHS_MONITORCD = #{mhsMonitorcd}
         <if test="searchDay != '' and searchDay != null">
             AND #{searchDay} BETWEEN C.MHS_CLASSSTARTDAY AND C.MHS_CLASSENDDAY
@@ -30,7 +30,7 @@
                     FROM TB_MHSVIEWCONNINFO A
                              JOIN TB_MHSMONITORINFO B ON A.MHS_MONITORCD = B.MHS_MONITORCD
                              JOIN TB_MHSCLASSINFO C ON A.MHS_CLASSCD = C.MHS_CLASSCD
-                    WHERE C.MHS_CLASSSTATUS != 'N'
+                    WHERE COALESCE(C.MHS_CLASSSTATUS, 'Y') != 'N'
              AND A.MHS_MONITORCD = #{mhsMonitorcd}
                       AND #{searchDay} BETWEEN C.MHS_CLASSSTARTDAY AND C.MHS_CLASSENDDAY
                       AND C.MHS_CLASSDAYOFWEEK ~ TO_CHAR(TO_DATE(#{searchDay}, 'YYYYMMDD'), 'D')
@@ -47,7 +47,7 @@
                     FROM TB_MHSVIEWCONNINFO A
                              JOIN TB_MHSMONITORINFO B ON A.MHS_MONITORCD = B.MHS_MONITORCD
                              JOIN TB_MHSCLASSINFO C ON A.MHS_CLASSCD = C.MHS_CLASSCD
-                    WHERE C.MHS_CLASSSTATUS != 'N'
+                    WHERE COALESCE(C.MHS_CLASSSTATUS, 'Y') != 'N'
              AND A.MHS_MONITORCD = #{mhsMonitorcd}
                       AND #{searchDay} BETWEEN C.MHS_CLASSSTARTDAY AND C.MHS_CLASSENDDAY
                       AND C.MHS_CLASSDAYOFWEEK ~ TO_CHAR(TO_DATE(#{searchDay}, 'YYYYMMDD'), 'D')
