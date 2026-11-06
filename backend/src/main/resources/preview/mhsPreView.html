@@ -11,6 +11,9 @@
     <style>
         /* 단말(1920x1080) 화면에서 스크롤이 생기지 않도록 고정 */
         html, body { height: 100%; overflow: hidden; }
+        /* 레거시는 .wrap 이 <form> 안에 있어 min-height:100% 가 무효였음 — form 없이 쓰면 헤더가
+           화면 전체 높이를 차지해 본문이 화면 아래로 밀려나므로 해제 */
+        .wrap { min-height: 0; }
         .main_slider { overflow: hidden; }
         .view_hide { display: none; }
     </style>
