@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>이마트 회의실알림이</title>
+    <link rel="stylesheet" href="/css/paragraph_M.css">
+    <link rel="stylesheet" href="/css/reset_M.css">
+    <link rel="stylesheet" href="/css/swiper.css">
+    <script type="text/javascript" src="/js/jquery-2.2.4.min.js"></script>
+</head>
+<body>
+<!-- 레거시 emart_cms3.2.1 roomManage/preView.jsp 이관 — 문화센터(MHS) 룸 단말(키오스크) 화면.
+     데이터는 로그인 없이 호출 가능한 /api/backoffice/sub/roomManage/mhs/device/preview.do 로 조회한다. -->
+<input type="hidden" id="mhsMonitorcd" value="">
+<input type="hidden" id="hid_time">
+<input type="hidden" id="searchDay" value="">
+<div class="wrap">
+    <div class="header">
+        <div class="contents">
+            <div class="float_left">
+                <span class="room_name" id="room_name"></span>
+                <span class="floor" id="floor"></span>
+            </div>
+            <div class="float_right">
+                <ul class="date">
+                    <li><span id="day"></span></li>
+                    <li><span id="sp_week"></span></li>
+                </ul>
+                <p class="time" id="time"></p>
+            </div>
+            <div class="clear"></div>
+        </div>
+    </div>
+</div>
+<!-- Swiper -->
+<div class="main_slider">
+    <div class="swiper-container">
+        <div class="swiper-wrapper">
+            <div class="swiper-slide slide01">
+                <div class="contents">
+                    <h2 class="slider_tit">문화센터 강의 현황</h2>
+                    <table class="meeting_list" id="meeting_list">
+                        <thead>
+                            <tr><th>시간</th><th>강의명</th><th>강사명</th><th>비고</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="swiper-slide slide02">
+                <div class="contents">
+                    <div class="margin-top90">
+                        <div class="meeting_tit">
+                            <p class="meeting_noti">강의 제목</p>
+                            <h3 class="meeting_txt"><span id="sp_classNm"></span></h3>
+                        </div>
+                        <div class="float_right">
+                            <span class="onMeeting" id="onMeeting"></span>
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                    <div class="user_nam text-right" id="user_nam_text-right"></div>
+                    <div class="next_reser">
+                        <ul>
+                            <li>다음 강의</li>
+                            <li><span id="sp_nextInfo"></span></li>
+                        </ul>
+                        <div class="clear"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="swiper-slide slide03">
+                <div class="contents">
+                    <h2 class="slider_tit">문화센터 강의 현황</h2>
+                    <table class="meeting_list" id="meeting_list01">
+                        <thead>
+                            <tr><th>시간</th><th>강의</th><th>강사명</th><th>비고</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="swiper-slide slide04">
+                <div class="contents">
+                    <div class="margin-top90">
+                        <div class="meeting_tit">
+                            <p class="meeting_noti">강의 제목</p>
+                            <h3 class="meeting_txt"><span id="sp_classNm_1"></span></h3>
+                        </div>
+                        <div class="float_right">
+                            <span class="onMeeting" id="onMeeting_1"></span>
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                    <div class="user_nam text-right" id="user_nam_text-right_1"></div>
+                    <div class="next_reser">
+                        <ul>
+                            <li>다음 강의</li>
+                            <li><span id="sp_nextInfo_1"></span></li>
+                        </ul>
+                        <div class="clear"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="swiper-pagination"></div>
+    </div>
+</div>
+<div class="footer">
+    <div class="contents">
+        <h1><img src="/img/cc_logo.png" alt="이마트로고" width="360" height="100"></h1>
+    </div>
+</div>
+
+<script src="/js/swiper.js"></script>
+<script type="text/javascript">
+    var dayCnt = 0;
+    var reloadCnt = 0;
+
+    $(document).ready(function () {
+        var params = new URLSearchParams(location.search);
+        $('#mhsMonitorcd').val(params.get('mhsMonitorcd') || '');
+        $('#searchDay').val(params.get('searchDay') || '');
+
+        new Swiper('.swiper-container', {
+            loop: true,
+            autoplay: { delay: 10000, disableOnInteraction: false },
+            pagination: { el: '.swiper-pagination', clickable: true }
+        });
+
+        day_view();
+        classInfo();
+        // 1초마다 시계, 1분마다 편성 재조회, 1시간마다 새로고침(레거시 동일)
+        setInterval(function () {
+            day_view();
+            dayCnt++;
+            if (dayCnt == 60) {
+                classInfo();
+                dayCnt = 0;
+                reloadCnt++;
+            }
+            if (reloadCnt == 60) {
+                location.reload();
+            }
+        }, 1000);
+    });
+
+    function pad2(n) {
+        return (n < 10 ? '0' : '') + n;
+    }
+
+    // 화면 출력용 문자열 이스케이프(강의명/강사명 등 사용자 입력값)
+    function esc(v) {
+        return $('<div>').text(v == null ? '' : v).html();
+    }
+
+    function day_view() {
+        var d = new Date();
+        var week = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+        $('#sp_week').text(week[d.getDay()]);
+        $('#hid_time').val(pad2(d.getHours()) + pad2(d.getMinutes()));
+        $('#day').text((d.getMonth() + 1) + '월 ' + d.getDate() + '일');
+        $('#time').text(d.getHours() + '시 ' + d.getMinutes() + '분');
+    }
+
+    function nowTimeText() {
+        return fn_timeSplit($('#hid_time').val());
+    }
+
+    function setNoClass(endText) {
+        $('#sp_classNm, #sp_classNm_1').text('현재 진행중인 강의가 없습니다');
+        $('#onMeeting, #onMeeting_1').text(nowTimeText() + '~' + endText).attr('class', 'offMeeting');
+        $('#user_nam_text-right, #user_nam_text-right_1').html('');
+    }
+
+    function classInfo() {
+        var url = '/api/backoffice/sub/roomManage/mhs/device/preview.do?mhsMonitorcd=' + encodeURIComponent($('#mhsMonitorcd').val());
+        if ($('#searchDay').val()) {
+            url += '&searchDay=' + encodeURIComponent($('#searchDay').val());
+        }
+        $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'json',
+            success: function (res) {
+                var result = res && res.result;
+                if (!result) {
+                    return;
+                }
+                var info = result.monitorInfo || {};
+                $('#room_name').html(esc(info.mhsMonitornm));
+                $('#floor').html(esc(info.mhsCenternm));
+
+                var nowTime = parseInt($('#hid_time').val(), 10);
+                var data = result.resultList || [];
+                var rows = '';
+                for (var i = 0; i < data.length; i++) {
+                    var start = parseInt(data[i].mhsClassstarttime, 10);
+                    var end = parseInt(data[i].mhsClassendtime, 10);
+                    var time = fn_timeSplit(data[i].mhsClassstarttime) + '~' + fn_timeSplit(data[i].mhsClassendtime);
+                    if (nowTime >= start && end > nowTime) {
+                        rows += "<tr class='meeting_active'><td>" + time + "</td>"
+                            + "<td><span class='meeting_on'>" + esc(data[i].mhsClassnm) + "</span></td>"
+                            + "<td>" + esc(data[i].mhsTeachernm) + "</td>"
+                            + "<td>" + esc(data[i].mhsClassintro) + "</td></tr>";
+                    } else if (nowTime < start) {
+                        rows += "<tr><td>" + time + "</td>"
+                            + "<td>" + esc(data[i].mhsClassnm) + "</td>"
+                            + "<td>" + esc(data[i].mhsTeachernm) + "</td>"
+                            + "<td>" + esc(data[i].mhsClassintro) + "</td></tr>";
+                    }
+                }
+                if (rows === '') {
+                    rows = "<tr><td colspan='4' style='text-align : center'>예정된 강의가 없습니다</td></tr>";
+                }
+                $('#meeting_list > tbody, #meeting_list01 > tbody').html(rows);
+
+                var pageData = result.pageInfo || [];
+                if (pageData.length === 0) {
+                    setNoClass('23:00');
+                    $('#sp_nextInfo, #sp_nextInfo_1').text('예정된 강의가 없습니다.');
+                    return;
+                }
+
+                var first = pageData[0];
+                var firstTime = fn_timeSplit(first.mhsClassstarttime) + '~' + fn_timeSplit(first.mhsClassendtime);
+                if (first.mhsNowgubun == 'NOW') {
+                    $('#sp_classNm, #sp_classNm_1').html(esc(first.mhsClassnm));
+                    $('#onMeeting, #onMeeting_1').text(firstTime).attr('class', 'onMeeting');
+                    var meetingInfo = "<p class='meeting_noti'>강사명</p>"
+                        + "<p class='meeting_part'>" + esc(first.mhsClassintro) + "</p>"
+                        + "<p class='meeting_user'>" + esc(first.mhsTeachernm) + "</p>";
+                    $('#user_nam_text-right, #user_nam_text-right_1').html(meetingInfo);
+                } else if (first.mhsNowgubun == 'NEXT') {
+                    setNoClass(fn_timeSplit(first.mhsClassstarttime));
+                    $('#sp_nextInfo, #sp_nextInfo_1').html(firstTime + ' ' + esc(first.mhsTeachernm));
+                }
+
+                // 다음 강의 — 현재 강의가 있으면 두 번째 항목, 1건뿐이면 "예정 없음"(레거시 동일)
+                if (pageData.length > 1) {
+                    var next = pageData[pageData.length - 1];
+                    $('#sp_nextInfo, #sp_nextInfo_1').html(
+                        fn_timeSplit(next.mhsClassstarttime) + '~' + fn_timeSplit(next.mhsClassendtime) + ' ' + esc(next.mhsTeachernm));
+                } else if (first.mhsNowgubun == 'NOW') {
+                    $('#sp_nextInfo, #sp_nextInfo_1').text('예정된 강의가 없습니다.');
+                }
+            },
+            error: function (e) {
+                console.log(e);
+            }
+        });
+    }
+
+    function fn_timeSplit(time) {
+        time = time == null ? '' : String(time);
+        return time.length > 3 ? time.substring(0, 2) + ':' + time.substring(2, 4) : time;
+    }
+</script>
+</body>
+</html>
