@@ -86,6 +86,24 @@
             )
     </insert>
 
+    <!-- 강의 등록/수정 시 강의실(=모니터)과 자동 편성 — 레거시 classList.jsp 의 등록 후 viewConnInsert 와 동일.
+         이미 같은 모니터-강의 편성이 있으면 중복 등록하지 않는다. -->
+    <insert id="insertMoniterClassInfoIfAbsent">
+        INSERT INTO TB_MHSVIEWCONNINFO
+        (
+            MHS_CONNSEQ, MHS_MONITORCD, MHS_CLASSCD, MHS_DATAUPDATEYN, MHSDATAUPDATEPLAYDATE,
+            MHS_DATAREGID, MHS_DATAREGDATE, MHS_DATAUPDATEID, MHS_DATAUPDATEDATE, MHS_DATASTATUS
+        )
+        SELECT
+            NEXTVAL('mhsconn_seq'), #{mhsMonitorcd}, #{mhsClasscd}, 'N', NULL,
+            #{mhsDataregid}, NOW(), #{mhsDataregid}, NOW(), 'Y'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM TB_MHSVIEWCONNINFO
+            WHERE MHS_MONITORCD = #{mhsMonitorcd}
+              AND MHS_CLASSCD = #{mhsClasscd}
+        )
+    </insert>
+
     <update id="updateMoniterClassInfo">
         UPDATE TB_MHSVIEWCONNINFO SET
                                       MHS_MONITORCD = #{mhsMonitorcd},

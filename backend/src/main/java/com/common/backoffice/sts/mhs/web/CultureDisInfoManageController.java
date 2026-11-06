@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.common.backoffice.bas.cnt.modals.CenterInfoVO;
 import com.common.backoffice.sts.mhs.modals.MhsClassInfo;
 import com.common.backoffice.sts.mhs.modals.MhsClassInfoVO;
@@ -397,6 +399,16 @@ public class CultureDisInfoManageController {
 			}
 
 			int ret = mhsClassInfoManageService.updateMhsClassInfo(vo);
+			// 레거시와 동일하게 강의실(mhsClassroomnm = 모니터 코드)과 자동 편성 — 편성이 없으면
+			// 미리보기/단말 화면(TB_MHSVIEWCONNINFO 기준 조회)에 강의가 나오지 않는다.
+			// 수정 시에도 편성이 빠진 기존 강의나 강의실이 바뀐 경우를 위해 없을 때만 추가한다.
+			if (ret > 0 && StringUtils.isNotBlank(vo.getMhsClassroomnm())) {
+				MhsViewConnInfo conn = new MhsViewConnInfo();
+				conn.setMhsMonitorcd(vo.getMhsClassroomnm());
+				conn.setMhsClasscd(vo.getMhsClasscd());
+				conn.setMhsDataregid(loginVO.getManagerId());
+				viewConn.insertMoniterClassInfoIfAbsent(conn);
+			}
 			String successMsgKey = isInsert ? "success.common.insert" : "success.common.update";
 			ResultHelper.setCudResult(resultVO, ret, successMsgKey, egovMessageSource);
 			if (ret > 0) {

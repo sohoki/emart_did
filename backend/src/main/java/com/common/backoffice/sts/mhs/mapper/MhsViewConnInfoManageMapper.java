@@ -16,6 +16,8 @@ public interface MhsViewConnInfoManageMapper {
 	public int selectViewMoniterClassUpdateInfoChange(String mhsMonitorcd);
 
 	public int insertMoniterClassInfo(MhsViewConnInfo vo);
+
+	public int insertMoniterClassInfoIfAbsent(MhsViewConnInfo vo);
 	
 	public int updateMoniterClassInfo(MhsViewConnInfo vo);
 	

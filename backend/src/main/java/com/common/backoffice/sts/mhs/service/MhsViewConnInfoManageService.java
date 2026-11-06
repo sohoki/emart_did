@@ -43,6 +43,12 @@ public class MhsViewConnInfoManageService  {
 		return ConnMapper.insertMoniterClassInfo(vo);
 	}
 
+    // 같은 모니터-강의 편성이 없을 때만 등록(강의 등록/수정 시 강의실 자동 편성용)
+    @Transactional(readOnly = false)
+	public int insertMoniterClassInfoIfAbsent(MhsViewConnInfo vo) throws Exception {
+		return ConnMapper.insertMoniterClassInfoIfAbsent(vo);
+	}
+
     @Transactional(readOnly = false)
 	public int updateMoniterClassInfo(MhsViewConnInfo vo) throws Exception {
 		// TODO Auto-generated method stub
