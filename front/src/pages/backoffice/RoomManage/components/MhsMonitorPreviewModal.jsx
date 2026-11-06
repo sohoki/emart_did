@@ -52,6 +52,21 @@ const MhsMonitorPreviewModal = ({ open, mhsMonitorcd, onClose }) => {
     const current = pageInfo.find((p) => p.mhsNowgubun === 'NOW');
     const nextList = pageInfo.filter((p) => p.mhsNowgubun === 'NEXT');
 
+    // 다음 강의 박스(짙은 배경) — 현재 강의 유무와 관계없이 동일하게 표시
+    const nextBox = (
+        <div style={{
+            background: '#2e2e2e', color: '#d6d6d6', borderRadius: 8,
+            padding: '6px 12px', display: 'inline-flex', fontSize: 11,
+        }}>
+            <span style={{ borderRight: '2px solid #808080', paddingRight: 8, marginRight: 8 }}>다음 강의</span>
+            <span>
+                {nextList.length > 0
+                    ? `${timeSplit(nextList[0].mhsClassstarttime)}~${timeSplit(nextList[0].mhsClassendtime)} ${nextList[0].mhsTeachernm}`
+                    : '예정된 강의가 없습니다.'}
+            </span>
+        </div>
+    );
+
     return (
         <>
             <div className="modal-backdrop-custom" onClick={onClose} />
@@ -102,30 +117,24 @@ const MhsMonitorPreviewModal = ({ open, mhsMonitorcd, onClose }) => {
                                             <h3 style={{ margin: '2px 0 8px', fontSize: 20, fontWeight: 600, color: '#3d3d3d' }}>{current.mhsClassnm}</h3>
                                             <div style={{ fontSize: 12, color: '#3d3d3d' }}>{current.mhsClassintro || ''}</div>
                                             <div style={{ fontSize: 14, fontWeight: 600, color: '#3d3d3d', marginTop: 2 }}>{current.mhsTeachernm}</div>
+                                            <div style={{ marginTop: 10 }}>{nextBox}</div>
                                         </>
                                     ) : (
                                         <>
-                                            <div style={{
-                                                display: 'inline-block', margin: '6px 0 10px', padding: '6px 16px',
-                                                borderRadius: 999, background: '#a0a0a0', color: '#fff',
-                                                fontSize: 13, fontWeight: 600,
-                                            }}>
-                                                {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}~
+                                            {/* 진행 중 강의 없음 — 레거시 setNoClass(): 제목 아래에 회색 배지(현재시각~다음 강의 시작 또는 23:00)와
+                                                다음 강의 박스를 한 줄로 배치 */}
+                                            <h3 style={{ margin: '6px 0 16px', fontSize: 24, fontWeight: 700, color: '#3d3d3d' }}>현재 진행중인 강의가 없습니다</h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                <div style={{
+                                                    padding: '12px 24px', borderRadius: 999, background: '#a0a0a0', color: '#fff',
+                                                    fontSize: 14, fontWeight: 700,
+                                                }}>
+                                                    {timeSplit(nowHHmm)}~{nextList.length > 0 ? timeSplit(nextList[0].mhsClassstarttime) : '23:00'}
+                                                </div>
+                                                {nextBox}
                                             </div>
-                                            <h3 style={{ margin: '2px 0 8px', fontSize: 20, fontWeight: 600, color: '#3d3d3d' }}>현재 진행중인 강의가 없습니다</h3>
                                         </>
                                     )}
-                                    <div style={{
-                                        marginTop: 10, background: '#2e2e2e', color: '#d6d6d6', borderRadius: 8,
-                                        padding: '6px 12px', display: 'inline-flex', fontSize: 11,
-                                    }}>
-                                        <span style={{ borderRight: '2px solid #808080', paddingRight: 8, marginRight: 8 }}>다음 강의</span>
-                                        <span>
-                                            {nextList.length > 0
-                                                ? `${timeSplit(nextList[0].mhsClassstarttime)}~${timeSplit(nextList[0].mhsClassendtime)} ${nextList[0].mhsTeachernm}`
-                                                : '예정된 강의가 없습니다.'}
-                                        </span>
-                                    </div>
                                 </div>
 
                                 {/* 오늘 강의 목록 — 레거시 slide01/03 (.meeting_list) */}
