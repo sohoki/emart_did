@@ -20,9 +20,11 @@
             FROM TB_CONTENTMUTIL A
             JOIN LETTCCMMNDETAILCODE B ON A.CON_TYPE = B.CODE
             WHERE 1=1
+            <!-- 관리자 외 권한은 로그인 사용자 부서 + 하위 부서에 등록된 화면을 모두 조회한다.
+                 부서(partId)가 없는 계정만 센터 기준으로 조회. -->
             <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
                 <choose>
-                    <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                    <when test="groupId != null and groupId != ''">
                         AND A.GROUP_ID IN
                         (
                         WITH RECURSIVE cte AS (
@@ -77,9 +79,10 @@
         FROM TB_CONTENTMUTIL A
         JOIN LETTCCMMNDETAILCODE B ON A.CON_TYPE = B.CODE
         WHERE 1=1
+        <!-- 목록 쿼리와 동일 조건: 부서 + 하위 부서, 부서 없으면 센터 기준 -->
         <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
             <choose>
-                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
+                <when test="groupId != null and groupId != ''">
                     AND A.GROUP_ID IN
                     (
                     WITH RECURSIVE cte AS (
