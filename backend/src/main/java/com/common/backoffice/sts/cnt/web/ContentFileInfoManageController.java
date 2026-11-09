@@ -103,7 +103,6 @@ public class ContentFileInfoManageController {
 
             LoginVO vo = AuthHelper.getLoginVO();
             searchVO.setAuthorCode(vo.getRoleId());
-            searchVO.setAuthorCode("ROLE_ADMIN");
             searchVO.setMberId(vo.getManagerId());
             // 문화센터(MHS) 계정은 본인이 등록한 콘텐츠만 보이게 한다(편성 화면 미디어 리스트/파일 라이브러리 공통)
             boolean isMhsRole = "ROLE_MHS_ADMIN".equals(vo.getRoleId()) || "ROLE_MHS_USER".equals(vo.getRoleId());

@@ -19,27 +19,27 @@
         A.PLAY_TIME, A.FILE_WIDTH, A.FILE_HEIGHT, A.UseYN, A.FILE_GUBUN
         FROM LETTNFILEDETAIL A
         WHERE 1=1
+        <!-- 관리자 외 권한: 로그인 사용자 부서 + 하위 부서 파일 조회, 부서(PART_ID)가 없는 계정만 센터 기준 -->
         <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
-            <choose>
-                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
-                    AND A.GROUP_ID IN
-                    (
-                    WITH RECURSIVE cte AS (
-                    SELECT GROUP_ID, PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
-                    UNION ALL
-                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO g
-                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
-                    )
-                    SELECT GROUP_ID FROM cte
-                    )
-                </when>
-                <otherwise>
+            AND (
+                A.GROUP_ID IN
+                (
+                WITH RECURSIVE cte AS (
+                SELECT GROUP_ID, PARENT_GROUP_ID
+                FROM LETTNAUTHORGROUPINFO
+                WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
+                UNION ALL
+                SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                FROM LETTNAUTHORGROUPINFO g
+                JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                )
+                SELECT GROUP_ID FROM cte
+                )
+                OR (
+                    COALESCE((SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId}), '') = ''
                     AND A.CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
-                </otherwise>
-            </choose>
+                )
+            )
         </if>
         <if test="searchKeyword != ''">
             <choose>
@@ -245,27 +245,27 @@
         ATCH_FILE_ID, FILE_GUBUN
         FROM LETTNFILEDETAIL
         WHERE 1=1
+        <!-- 목록 쿼리와 동일 조건: 부서 + 하위 부서, 부서 없으면 센터 기준 -->
         <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
-            <choose>
-                <when test="authorCode == 'ROLE_DID_ADMIN' or authorCode == 'ROLE_MUSIC_ADMIN'">
-                    AND GROUP_ID IN
-                    (
-                    WITH RECURSIVE cte AS (
-                    SELECT GROUP_ID, PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO
-                    WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
-                    UNION ALL
-                    SELECT g.GROUP_ID, g.PARENT_GROUP_ID
-                    FROM LETTNAUTHORGROUPINFO g
-                    JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
-                    )
-                    SELECT GROUP_ID FROM cte
-                    )
-                </when>
-                <otherwise>
+            AND (
+                GROUP_ID IN
+                (
+                WITH RECURSIVE cte AS (
+                SELECT GROUP_ID, PARENT_GROUP_ID
+                FROM LETTNAUTHORGROUPINFO
+                WHERE GROUP_ID = (SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
+                UNION ALL
+                SELECT g.GROUP_ID, g.PARENT_GROUP_ID
+                FROM LETTNAUTHORGROUPINFO g
+                JOIN cte ON g.PARENT_GROUP_ID = cte.GROUP_ID
+                )
+                SELECT GROUP_ID FROM cte
+                )
+                OR (
+                    COALESCE((SELECT PART_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId}), '') = ''
                     AND CENTER_ID = (SELECT CENTER_ID FROM TB_MANAGERINFO WHERE MANAGER_ID = #{mberId})
-                </otherwise>
-            </choose>
+                )
+            )
         </if>
         <if test="searchKeyword != ''">
             <choose>
