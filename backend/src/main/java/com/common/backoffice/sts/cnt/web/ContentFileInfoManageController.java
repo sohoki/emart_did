@@ -85,6 +85,8 @@ public class ContentFileInfoManageController {
 
 	/** 조회 쿼리의 mediaType 'MEDIA' 판별 기준과 동일한 확장자 */
 	private static final java.util.Set<String> VIDEO_EXTENSIONS = java.util.Set.of("mp4", "avi", "mpeg");
+	/** 조회 쿼리의 mediaType 'IMAGE' 판별 기준과 동일한 확장자 */
+	private static final java.util.Set<String> IMAGE_EXTENSIONS = java.util.Set.of("jpg", "jpeg", "gif", "png", "bmp");
 
 	@Operation(summary = "콘텐츠 파일 리스트 조회",
             description = "mediaType(IMAGE/MEDIA/MUSIC)/notConType/fileGubun/검색조건으로 페이징 조회합니다.",
@@ -250,6 +252,13 @@ public class ContentFileInfoManageController {
 					vo.setPlayTime(video.playTime());
 					vo.setFileWidth(video.width());
 					vo.setFileHeight(video.height());
+				} else if (IMAGE_EXTENSIONS.contains(fileExtsn.toLowerCase())) {
+					// 이미지는 해상도(가로/세로)를 직접 읽어 저장 — 화면 상세 관리의 "상세정보" 표시용
+					int[] size = readImageSize(Paths.get(targetDir, savedName).toFile());
+					if (size != null) {
+						vo.setFileWidth(String.valueOf(size[0]));
+						vo.setFileHeight(String.valueOf(size[1]));
+					}
 				}
 				vo.setGroupId(loginVO.getPartId());
 				// 이용자 권한은 점포(CENTER_ID) 기준으로 파일을 조회하므로 업로드 시 점포도 함께 저장
@@ -348,6 +357,28 @@ public class ContentFileInfoManageController {
 			}
 		} catch (Exception e) {
 			log.debug("콘텐츠 파일 실파일 삭제 실패: {}", e.toString());
+		}
+	}
+
+	/**
+	 * 이미지 파일의 가로/세로(px)를 읽는다. 헤더만 읽어 전체 디코딩 없이 크기만 구함.
+	 * 읽을 수 없는 형식이거나 실패하면 null (업로드는 그대로 진행)
+	 */
+	private int[] readImageSize(java.io.File imageFile) {
+		try (javax.imageio.stream.ImageInputStream in = javax.imageio.ImageIO.createImageInputStream(imageFile)) {
+			if (in == null) return null;
+			java.util.Iterator<javax.imageio.ImageReader> readers = javax.imageio.ImageIO.getImageReaders(in);
+			if (!readers.hasNext()) return null;
+			javax.imageio.ImageReader reader = readers.next();
+			try {
+				reader.setInput(in);
+				return new int[] { reader.getWidth(0), reader.getHeight(0) };
+			} finally {
+				reader.dispose();
+			}
+		} catch (Exception e) {
+			log.debug("이미지 해상도 읽기 실패: {}", imageFile, e);
+			return null;
 		}
 	}
 }

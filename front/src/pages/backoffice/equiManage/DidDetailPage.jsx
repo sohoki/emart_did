@@ -1,9 +1,11 @@
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState, Suspense, lazy } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
 import { useCommonDelete } from '@/hooks/use-common-delete.js';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
+
+const DidCommHistoryModal = lazy(() => import('./components/DidCommHistoryModal.jsx'));
 
 const labelCellStyle = { width: '16.6%', textAlign: 'center', color: '#64748b', padding: '10px 8px', background: '#f8fafc', border: '1px solid #e2e8f0' };
 const valueCellStyle = { width: '16.6%', textAlign: 'center', padding: '10px 8px', border: '1px solid #e2e8f0' };
@@ -32,6 +34,7 @@ export default function DidDetailPage() {
     const [detail, setDetail] = useState(null);
     const [schList, setSchList] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [commHistoryOpen, setCommHistoryOpen] = useState(false);
 
     const loadDetail = useCallback(async () => {
         if (!didId) return;
@@ -77,10 +80,10 @@ export default function DidDetailPage() {
         }
     }, [detail]);
 
-    // 레거시 view_DidTime() — 장비통신 이력조회 팝업(pop_sendLst.do) 대신, did_emart에 이미
-    // 있는 DID 전문통신현황 화면(SendMsgListPage)을 같은 크기의 팝업창으로 띄운다.
+    // 레거시 view_DidTime() — 장비통신 이력조회 팝업(pop_sendLst.do: 이 단말기 didId로 필터한
+    // 전문통신 리스트)을 별도 창 대신 모달(DidCommHistoryModal)로 띄운다.
     const handleOpenCommHistory = useCallback(() => {
-        window.open('/backoffice/sub/operManage/snd', '전문현황', 'width=900,height=600,top=100,left=400,scrollbars=yes');
+        setCommHistoryOpen(true);
     }, []);
 
     if (!didId) {
@@ -202,6 +205,17 @@ export default function DidDetailPage() {
                     </div>
                 </>
             )}
+
+            <Suspense fallback={null}>
+                {commHistoryOpen && (
+                    <DidCommHistoryModal
+                        open={commHistoryOpen}
+                        didId={didId}
+                        didNm={detail?.didNm}
+                        onClose={() => setCommHistoryOpen(false)}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }

@@ -63,6 +63,26 @@ const Thumb = ({ file, size = 60 }) => {
     );
 };
 
+// 상세정보(해상도) — DB에 가로/세로가 있으면 그대로, 없으면(업로드 시 크기 미저장된 기존 이미지)
+// 이미지를 직접 불러와 실제 크기를 표시한다. 둘 다 안 되면 '-'.
+const FileSizeText = ({ file }) => {
+    const [loaded, setLoaded] = useState(null);
+    const hasDbSize = Boolean(file.fileWidth && file.fileHeight);
+
+    useEffect(() => {
+        if (hasDbSize || file.mediaType !== 'IMAGE') return undefined;
+        let active = true;
+        const img = new Image();
+        img.onload = () => { if (active) setLoaded({ w: img.naturalWidth, h: img.naturalHeight }); };
+        img.src = fileThumbSrc(file);
+        return () => { active = false; };
+    }, [file, hasDbSize]);
+
+    if (hasDbSize) return `${file.fileWidth}x${file.fileHeight}`;
+    if (loaded) return `${loaded.w}x${loaded.h}`;
+    return '-';
+};
+
 // 화면 구성(멀티페이지 콘텐츠) 편성 화면 — 레거시 conMutiView_back.jsp 참고.
 // "화면생성"(미리보기)/"스케줄전송"은 ContentDetailFileInfoManageController의
 // preViewCheck.do/contentPreview.do/contentScheduleSend.do에 연결됨. contentPreview.do는
@@ -488,7 +508,7 @@ export default function ContentDetailEditorPage() {
                                             onClick={() => handleRemoveFile(f.fileSeq)}>제외</button>
                                     </td>
                                     <td style={{ border: '1px solid #e2e8f0', padding: 6, textAlign: 'center', whiteSpace: 'nowrap' }}>
-                                        {f.fileWidth}x{f.fileHeight}
+                                        <FileSizeText file={f} />
                                     </td>
                                 </tr>
                             ))}
