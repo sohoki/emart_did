@@ -252,6 +252,8 @@ public class ContentFileInfoManageController {
 					vo.setFileHeight(video.height());
 				}
 				vo.setGroupId(loginVO.getPartId());
+				// 이용자 권한은 점포(CENTER_ID) 기준으로 파일을 조회하므로 업로드 시 점포도 함께 저장
+				vo.setCenterId(loginVO.getCenterId());
 				vo.setFrstRegisterId(loginVO.getManagerId());
 
 				int ret = conFileService.insertFileManage(vo);
