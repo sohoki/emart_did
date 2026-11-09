@@ -2,9 +2,21 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sts.cnt.mapper.ContentMutiInfoManagerMapper">
     <select id="selectContentMutiInfoManageListByPagination" resultType="ContentMutiInfoVO">
+        <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+        <bind name="sortDir" value="sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
         SELECT TA.* FROM (
             SELECT
-                ROW_NUMBER() OVER (ORDER BY A.CON_SEQ DESC) AS RNUM,
+                ROW_NUMBER() OVER (ORDER BY
+                    <choose>
+                        <when test="sortField == 'conSeq'">A.CON_SEQ ${sortDir}</when>
+                        <when test="sortField == 'conNm'">A.CON_NM ${sortDir}, A.CON_SEQ DESC</when>
+                        <when test="sortField == 'codeNm'">B.CODE_NM ${sortDir}, A.CON_SEQ DESC</when>
+                        <when test="sortField == 'conWidth'">A.CON_WIDTH ${sortDir}, A.CON_SEQ DESC</when>
+                        <when test="sortField == 'conHeight'">A.CON_HEIGHT ${sortDir}, A.CON_SEQ DESC</when>
+                        <when test="sortField == 'frstRegistPnttm'">A.FRST_REGIST_PNTTM ${sortDir}, A.CON_SEQ DESC</when>
+                        <otherwise>A.CON_SEQ DESC</otherwise>
+                    </choose>
+                ) AS RNUM,
                 A.CON_SEQ AS "conSeq",
                 A.CON_NM AS "conNm",
                 B.CODE_NM AS "codeNm",

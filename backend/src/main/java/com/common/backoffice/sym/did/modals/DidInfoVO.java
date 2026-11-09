@@ -17,6 +17,10 @@ public class DidInfoVO extends DidInfo implements Serializable {
 	private static final long serialVersionUID = 1L;
 	/** 검색조건 */
     private String searchCondition = "";    
+	/** 정렬 컬럼(그리드 colId) */
+	private String sortField = "";
+	/** 정렬 방향(asc/desc) */
+	private String sortOrder = "";
     /** 검색Keyword */
     private String searchKeyword = "";    
     /** 검색사용여부 */

@@ -467,6 +467,8 @@
 
     <!-- integrate -->
     <select id="selectIntegrateManageListByPagination" resultType="DidInfoVO">
+        <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+        <bind name="sortDir" value="sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
         SELECT * FROM
         (
             SELECT
@@ -474,7 +476,19 @@
             FROM
             (
                 SELECT
-                    ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
+                    ROW_NUMBER() OVER (ORDER BY
+                        <choose>
+                            <when test="sortField == 'roleNm'">C.GROUP_NM ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <when test="sortField == 'centerNm'">B.CENTER_NM ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <when test="sortField == 'didNm'">A.DID_NM ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <when test="sortField == 'didIpaddr'">A.DID_IPADDR ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <when test="sortField == 'schCnt'">COALESCE(SCH.schCnt, 0) ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <when test="sortField == 'didSttus'">A.DID_STTUS ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <when test="sortField == 'didOs'">A.DID_OS ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <when test="sortField == 'didUseYn'">A.DID_USEYN ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                            <otherwise>A.FRST_REGIST_PNTTM DESC</otherwise>
+                        </choose>
+                    ) AS RNUM,
                     A.DID_ID AS "didId",
                     A.DID_NM AS "didNm",
                     A.DID_IPADDR AS "didIpaddr",

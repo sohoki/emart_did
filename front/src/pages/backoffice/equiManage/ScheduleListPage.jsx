@@ -50,6 +50,7 @@ export default function ScheduleListPage() {
         fetchApi: fetchScheduleList,
         pageUnit: 20,
         initialFilters: INITIAL_SEARCH_FORM,
+        enableSort: true, // 헤더 클릭 시 서버 정렬(sortField/sortOrder 전송)
     });
 
     const handleInputChange = useCallback((e) => {
@@ -233,7 +234,8 @@ export default function ScheduleListPage() {
             ),
         },
         {
-            headerName: '기간', width: 180,
+            // 정렬은 시작일 기준(서버 sortField = schStartDay)
+            headerName: '기간', colId: 'schStartDay', width: 180,
             valueGetter: (p) => `${p.data?.schStartDay ?? ''} ~ ${p.data?.schEndDay ?? ''}`,
         },
         {

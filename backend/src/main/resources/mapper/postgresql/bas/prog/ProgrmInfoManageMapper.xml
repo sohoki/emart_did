@@ -23,7 +23,15 @@
         </if>
         ) TB
         ) TA
-        ORDER BY TA.RNUM DESC
+        <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+        <bind name="sortDir" value="params.sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
+        ORDER BY
+        <choose>
+            <when test="params.sortField == 'progrmFileNm'">TA.PROGRM_FILE_NM ${sortDir}</when>
+            <when test="params.sortField == 'progrmKoreannm'">TA.PROGRM_KOREAN_NM ${sortDir}, TA.RNUM DESC</when>
+            <when test="params.sortField == 'url'">TA.URL ${sortDir}, TA.RNUM DESC</when>
+            <otherwise>TA.RNUM DESC</otherwise>
+        </choose>
         LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
     </select>
 

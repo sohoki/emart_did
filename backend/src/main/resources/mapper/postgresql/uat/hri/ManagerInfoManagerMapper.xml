@@ -58,7 +58,22 @@
             <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchUseYn)">
                 AND A.USE_YN = #{params.searchUseYn}
             </if>
-            ORDER BY A.MANAGER_ID ASC
+            <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+            <bind name="sortDir" value="params.sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
+            ORDER BY
+            <choose>
+                <when test="params.sortField == 'managerId'">A.MANAGER_ID ${sortDir}</when>
+                <when test="params.sortField == 'managerName'">A.MANAGER_NAME ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'partNm'">C.PART_NM ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'roleName'">R.ROLE_NAME ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'centerId'">A.CENTER_ID ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'managerStatus'">A.MANAGER_STATUS ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'useYn'">A.USE_YN ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'managerEmail'">A.MANAGER_EMAIL ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'managerTel'">A.MANAGER_TEL ${sortDir}, A.MANAGER_ID ASC</when>
+                <when test="params.sortField == 'lastUpdtPnttm'">A.LAST_UPDT_PNTTM ${sortDir}, A.MANAGER_ID ASC</when>
+                <otherwise>A.MANAGER_ID ASC</otherwise>
+            </choose>
         ) TB
         LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
     </select>

@@ -2,12 +2,21 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sts.mhs.mapper.MhsMonitorManageMapper">
     <select id="selectMhsMonitorList" resultType="MhsMonitorInfoVO">
+        <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+        <bind name="sortDir" value="sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
         SELECT * FROM
         (
             SELECT  TB.* FROM
             (
                 SELECT
-                ROW_NUMBER() OVER (ORDER BY A.MHS_MREGDATE DESC) AS RNUM,
+                ROW_NUMBER() OVER (ORDER BY
+                    <choose>
+                        <when test="sortField == 'mhsBrandnm'">B.GROUP_NM ${sortDir}, A.MHS_MREGDATE DESC</when>
+                        <when test="sortField == 'mhsCenternm'">C.CENTER_NM ${sortDir}, A.MHS_MREGDATE DESC</when>
+                        <when test="sortField == 'mhsMonitornm'">A.MHS_MONITORNM ${sortDir}, A.MHS_MREGDATE DESC</when>
+                        <otherwise>A.MHS_MREGDATE DESC</otherwise>
+                    </choose>
+                ) AS RNUM,
                 B.GROUP_NM AS "mhsBrandnm",
                 C.CENTER_NM AS "mhsCenternm",
                 A.MHS_MONITORNM AS "mhsMonitornm",

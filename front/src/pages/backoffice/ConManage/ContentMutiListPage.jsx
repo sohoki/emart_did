@@ -79,6 +79,7 @@ export default function ContentMutiListPage() {
         fetchApi: fetchMutiList,
         pageUnit: 20,
         initialFilters: INITIAL_SEARCH_FORM,
+        enableSort: true, // 헤더 클릭 시 서버 정렬(sortField/sortOrder 전송)
     });
 
     const handleInputChange = useCallback((e) => {
@@ -183,7 +184,7 @@ export default function ContentMutiListPage() {
         { field: 'conWidth', headerName: '가로', width: 90 },
         { field: 'conHeight', headerName: '세로', width: 90 },
         {
-            field: 'schCnt', headerName: '연결 스케줄', width: 110,
+            field: 'schCnt', headerName: '연결 스케줄', width: 110, sortable: false,
             valueFormatter: (p) => `${p.value ?? 0}개`,
         },
         { field: 'frstRegistPnttm', headerName: '등록일', width: 150 },

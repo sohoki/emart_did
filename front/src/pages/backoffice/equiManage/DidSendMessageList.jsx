@@ -42,6 +42,7 @@ export default function DidSendMessageList() {
         fetchApi: fetchMessageList,
         pageUnit: 20,
         initialFilters: INITIAL_SEARCH_FORM,
+        enableSort: true, // 헤더 클릭 시 서버 정렬(sortField/sortOrder 전송)
     });
 
     const handleInputChange = useCallback((e) => {

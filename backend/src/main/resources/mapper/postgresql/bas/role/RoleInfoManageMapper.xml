@@ -27,7 +27,18 @@
         </if>
         ) TB
         ) TA
-        ORDER BY TA.RNUM DESC
+        <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+        <bind name="sortDir" value="params.sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
+        ORDER BY
+        <choose>
+            <when test="params.sortField == 'roleId'">TA.ROLE_ID ${sortDir}</when>
+            <when test="params.sortField == 'roleName'">TA.ROLE_NAME ${sortDir}, TA.RNUM DESC</when>
+            <when test="params.sortField == 'roleDc'">TA.ROLE_DC ${sortDir}, TA.RNUM DESC</when>
+            <when test="params.sortField == 'roleUseyn'">TA.ROLE_USEYN ${sortDir}, TA.RNUM DESC</when>
+            <when test="params.sortField == 'frstRegistPnttm'">TA.FRST_REGIST_PNTTM ${sortDir}, TA.RNUM DESC</when>
+            <when test="params.sortField == 'chkMenu'">TA.CHK_MENU ${sortDir}, TA.RNUM DESC</when>
+            <otherwise>TA.RNUM DESC</otherwise>
+        </choose>
         LIMIT #{params.recordCountPerPage} OFFSET #{params.firstIndex}
     </select>
 

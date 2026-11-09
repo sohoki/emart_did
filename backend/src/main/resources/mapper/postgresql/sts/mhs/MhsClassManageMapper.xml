@@ -2,12 +2,25 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sts.mhs.mapper.MhsClassManageMapper">
     <select id="selectMhsClassList" resultType="MhsClassInfoVO">
+        <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+        <bind name="sortDir" value="sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
         SELECT * FROM
         (
             SELECT  TB.* FROM
             (
                 SELECT
-                    ROW_NUMBER() OVER (ORDER BY MHS_REGDATE DESC, MHS_CLASSCD DESC) AS RNUM,
+                    ROW_NUMBER() OVER (ORDER BY
+                        <choose>
+                            <when test="sortField == 'mhsClassnm'">A.MHS_CLASSNM ${sortDir},</when>
+                            <when test="sortField == 'mhsMonitornm'">D.MHS_MONITORNM ${sortDir},</when>
+                            <when test="sortField == 'mhsTeachernm'">A.MHS_TEACHERNM ${sortDir},</when>
+                            <when test="sortField == 'mhsClassstartday'">A.MHS_CLASSSTARTDAY ${sortDir},</when>
+                            <when test="sortField == 'mhsClassendday'">A.MHS_CLASSENDDAY ${sortDir},</when>
+                            <when test="sortField == 'mhsClassstarttime'">A.MHS_CLASSSTARTTIME ${sortDir},</when>
+                            <when test="sortField == 'mhsClassendtime'">A.MHS_CLASSENDTIME ${sortDir},</when>
+                        </choose>
+                        A.MHS_REGDATE DESC, A.MHS_CLASSCD DESC
+                    ) AS RNUM,
                     A.MHS_BRANDCD,
                     A.MHS_CENTERCD,
                     A.MHS_CLASSCD,

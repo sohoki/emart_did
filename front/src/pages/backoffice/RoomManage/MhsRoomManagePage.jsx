@@ -188,6 +188,7 @@ export default function MhsRoomManagePage() {
         fetchApi: fetchMonitorList,
         pageUnit: PAGE_UNIT,
         initialFilters: MONITOR_SEARCH_INITIAL,
+        enableSort: true, // 헤더 클릭 시 서버 정렬(sortField/sortOrder 전송)
     });
 
     // 상단 브랜드/매장 선택이 바뀌면 "모니터 관리" 탭도 즉시 재조회(강의 관리 탭과 동일 패턴).
@@ -350,6 +351,7 @@ export default function MhsRoomManagePage() {
         fetchApi: fetchClassList,
         pageUnit: PAGE_UNIT,
         initialFilters: CLASS_SEARCH_INITIAL,
+        enableSort: true, // 헤더 클릭 시 서버 정렬(sortField/sortOrder 전송)
     });
 
     // 브랜드/매장 선택은 강의 목록의 선택적 필터일 뿐, 백엔드(selectMhsClassList)는 비어 있으면
@@ -480,6 +482,7 @@ export default function MhsRoomManagePage() {
         fetchApi: fetchScreenList,
         pageUnit: PAGE_UNIT,
         initialFilters: SCREEN_SEARCH_INITIAL,
+        enableSort: true, // 헤더 클릭 시 서버 정렬(sortField/sortOrder 전송)
     });
 
     // 상단 브랜드/매장 선택이 바뀌면 화면 목록도 재조회(모니터 관리 탭과 동일 패턴)
@@ -581,11 +584,11 @@ export default function MhsRoomManagePage() {
         },
         { field: 'codeNm', headerName: '편성형태', width: 120 },
         {
-            headerName: '송출정보(사이즈)', width: 180,
+            headerName: '송출정보(사이즈)', width: 180, sortable: false,
             valueGetter: (p) => `${p.data?.conScreen ?? ''} (${p.data?.conWidth ?? ''} * ${p.data?.conHeight ?? ''})`,
         },
         {
-            field: 'schCnt', headerName: '이용스케줄', width: 110,
+            field: 'schCnt', headerName: '이용스케줄', width: 110, sortable: false,
             valueFormatter: (p) => `${p.value ?? 0}개`,
         },
         { field: 'frstRegistPnttm', headerName: '등록일', width: 170 },

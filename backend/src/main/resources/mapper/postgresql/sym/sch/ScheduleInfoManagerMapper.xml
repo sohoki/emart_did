@@ -2,10 +2,22 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.common.backoffice.sym.sch.mapper.SchedulenfoManagerMapper">
     <select id="selectScheduleInfoManageListByPagination" resultType="ScheduleInfoVO">
+        <!-- 그리드 헤더 정렬: sortField는 아래 화이트리스트만 허용, 방향은 ASC/DESC 고정값만 사용 -->
+        <bind name="sortDir" value="sortOrder == 'asc' ? 'ASC' : 'DESC'"/>
         SELECT TA.* FROM
         (
         SELECT
-        ROW_NUMBER() OVER (ORDER BY A.FRST_REGIST_PNTTM DESC) AS RNUM,
+        ROW_NUMBER() OVER (ORDER BY
+            <choose>
+                <when test="sortField == 'schName'">A.SCH_NAME ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                <when test="sortField == 'schStartDay'">A.SCH_STARTDAY ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                <when test="sortField == 'groupNm'">B.GROUP_NM ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                <when test="sortField == 'conNm'">fn_contentNm(A.CONTENT_CODE) ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                <when test="sortField == 'schEmerGubun'">A.SCH_EMERGUBUN ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                <when test="sortField == 'schUseYn'">A.SCH_USEYN ${sortDir}, A.FRST_REGIST_PNTTM DESC</when>
+                <otherwise>A.FRST_REGIST_PNTTM DESC</otherwise>
+            </choose>
+        ) AS RNUM,
         A.SCH_CODE AS "schCode",
         A.SCH_NAME AS "schName",
         FN_DAYCONVERT(A.SCH_STARTDAY) AS "schStartDay",

@@ -84,6 +84,7 @@ const ProgramInfo = () => {
         fetchApi: fetchVendorUsers,
         pageUnit, // 숫자
         initialFilters: { status: '', searchKeyword: '' },
+        enableSort: true, // 헤더 클릭 시 서버 정렬(sortField/sortOrder 전송)
     });
 
     const effectiveGridApiRef = gridApiFromHook ?? gridApiRef;
