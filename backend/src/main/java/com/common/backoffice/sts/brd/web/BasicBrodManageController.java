@@ -647,7 +647,8 @@ public class BasicBrodManageController {
             groupInfo.setRecordCountPerPage(paginationInfo.getRecordCountPerPage());
 
             List<BasicFileGroupInfoVO> fileGroupInfo = groupService.selectBasicGroupInfoLst(groupInfo);
-            int totCnt = fileGroupInfo.size() > 0 ? fileGroupInfo.get(0).getRnum() : 0;
+            // 첫 행의 RNUM(행 번호)이 아니라 페이징 전 전체 건수 (쿼리의 COUNT(*) OVER())
+            int totCnt = fileGroupInfo.size() > 0 ? fileGroupInfo.get(0).getTotalRecordCount() : 0;
             paginationInfo.setTotalRecordCount(totCnt);
 
             Map<String, Object> resultMap = new HashMap<>();

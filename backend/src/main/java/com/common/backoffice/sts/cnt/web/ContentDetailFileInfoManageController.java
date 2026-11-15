@@ -469,11 +469,13 @@ public class ContentDetailFileInfoManageController {
         }
         return null;
     }
-    // 생성 HTML("S")은 /upload/jquery-4.0.0.min.js, /upload/silence.mp3를 참조한다(= filePath 루트).
+    // 생성 HTML("S")은 /upload/jquery-2.2.4.min.js, /upload/silence.mp3를 참조한다(= filePath 루트).
     // 서버마다 upload 폴더(filePath)가 달라 파일이 빠져 있으면 401/404로 화면이 안 뜨므로,
     // 없을 때만 클래스패스(resources/preview)에서 복사해 둔다.
+    // (2026-11-11) 생성 HTML이 jquery-2.2.4를 참조하도록 바뀌었는데 복사 목록에 없어 리눅스 서버에서
+    // jquery 401 → 화면 미표시 발생 — 2.2.4 추가. 4.0.0은 기존 생성분 호환용으로 유지.
     private void ensurePreviewAssets(Path rootPath) {
-        for (String asset : new String[] { "jquery-4.0.0.min.js", "silence.mp3" }) {
+        for (String asset : new String[] { "jquery-2.2.4.min.js", "jquery-4.0.0.min.js", "silence.mp3" }) {
             Path target = rootPath.resolve(asset);
             if (Files.exists(target)) continue;
             try (java.io.InputStream in = getClass().getResourceAsStream("/preview/" + asset)) {

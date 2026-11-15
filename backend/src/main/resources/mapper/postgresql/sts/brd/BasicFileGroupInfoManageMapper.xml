@@ -7,6 +7,8 @@
             (
                 SELECT
                     ROW_NUMBER() OVER (ORDER BY A.GROUP_STARTTIME ASC) AS RNUM,
+                    <!-- 페이징 전 전체 건수 (컨트롤러가 첫 행 값을 totCnt 로 사용) -->
+                    COUNT(*) OVER() AS TOTAL_RECORD_COUNT,
                     TB.*
                 FROM
                     (

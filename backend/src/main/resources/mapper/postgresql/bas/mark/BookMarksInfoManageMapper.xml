@@ -5,7 +5,7 @@
     <select id="selectBookMarksInfoList" resultType="camelmap">
         SELECT A.PROGRM_FILE_NM, A.BOOKMARKS_ORDER, B.URL, A.BOOKMARKS_NAME, B.PROGRM_KOREAN_NM
         FROM tb_bookmarks A
-        INNER JOIN COMTNPROGRMLIST B ON A.PROGRM_FILE_NM = B.PROGRM_FILE_NM
+        INNER JOIN comtnprogrmlist B ON A.PROGRM_FILE_NM = B.PROGRM_FILE_NM
         WHERE A.USER_ID = #{params.userId}
           AND A.USER_GUBUN = #{params.userGubun}
         ORDER BY A.BOOKMARKS_ORDER ASC

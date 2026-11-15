@@ -8,6 +8,9 @@ import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
 
 const PAGE_UNIT = 20;
+// 그리드가 받은 목록 안에서 페이지를 나누므로(클라이언트 페이징) 서버에서는 전체를 한 번에 받는다
+// (PAGE_UNIT 만큼만 받으면 21번째부터 보이지 않음 — Basic/CodeInfo.jsx 와 같은 방식)
+const FETCH_ALL_UNIT = 9999;
 const emptyForm = {
     mode: 'Ins', didIdsText: '', sendMessage: '',
     sendMessageStartDay: '', sendMessageEndDay: '',
@@ -45,7 +48,7 @@ export default function ContentMessageListPage() {
             const res = await fnAjaxFetch({
                 url: URL.CON_MESSAGE_LIST,
                 method: 'POST',
-                data: { searchCondition: 'SEND_MESSAGE', searchKeyword: keyword ?? '', pageIndex: 1, pageUnit: PAGE_UNIT },
+                data: { searchCondition: 'SEND_MESSAGE', searchKeyword: keyword ?? '', pageIndex: 1, pageUnit: FETCH_ALL_UNIT },
                 showLoading: false,
             });
             const list = res?.data?.result?.resultList ?? [];

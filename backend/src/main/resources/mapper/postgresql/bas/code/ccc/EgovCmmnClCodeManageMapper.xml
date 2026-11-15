@@ -7,7 +7,7 @@
         SELECT
         CL_CODE, CL_CODE_NM, USE_AT, TO_CHAR(LAST_UPDT_PNTTM, 'YYYY-MM-DD HH24:MI') AS LAST_UPDT_PNTTM,
         LAST_UPDUSR_ID, CL_CODE_DC
-        FROM   COMTCCMMNCLCODE a
+        FROM   comtccmmncode a
         WHERE  1=1
         <if test="!@org.apache.commons.lang3.StringUtils@isEmpty(params.searchKeyword)">
             <choose>
@@ -29,19 +29,19 @@
 
     <select id="selectCmmnClCodeList" resultType="lmap">
         SELECT CL_CODE, CL_CODE_NM, USE_AT
-        FROM COMTCCMMNCLCODE
+        FROM comtccmmncode
         WHERE USE_AT = 'Y'
     </select>
 
     <select id="selectCmmnClCodeDetail" resultType="CmmnClCode">
         SELECT CL_CODE as clCode, CL_CODE_NM clCodeNm, USE_AT useAt, CL_CODE_DC clCodeDc, FRST_REGISTER_ID frstRegisterId
-        FROM COMTCCMMNCLCODE
+        FROM comtccmmncode
         WHERE CL_CODE = #{clCode}
     </select>
 
     <insert id="insertCmmnClCode">
        <![CDATA[
-        INSERT INTO COMTCCMMNCLCODE
+        INSERT INTO comtccmmncode
         ( CL_CODE , CL_CODE_NM , CL_CODE_DC , USE_AT , FRST_REGIST_PNTTM , FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID)
         VALUES
             (
@@ -52,7 +52,7 @@
 
     <update id="updateCmmnClCode">
        <![CDATA[
-        UPDATE COMTCCMMNCLCODE SET CL_CODE_NM = #{clCodeNm},
+        UPDATE comtccmmncode SET CL_CODE_NM = #{clCodeNm},
                                    CL_CODE_DC = #{clCodeDc},
                                    USE_AT = #{useAt},
                                    LAST_UPDUSR_ID = #{userId,jdbcType=VARCHAR},
@@ -68,7 +68,7 @@
         DELETE FROM COMTCCMMNCODE
         WHERE CL_CODE = #{clCode};
 
-        DELETE FROM COMTCCMMNCLCODE
+        DELETE FROM comtccmmncode
         WHERE CL_CODE = #{clCode};
     </delete>
 </mapper>

@@ -30,7 +30,9 @@ public class BasicFileGroupInfoVO extends BasicFileGroupInfo implements Serializ
     private int lastIndex = 1;    
     private int recordCountPerPage = 10;
     private int rnum = 0;
-    
+	/** 페이징 전 전체 건수 (selectBasicGroupInfoLst 의 COUNT(*) OVER()) */
+	private int totalRecordCount = 0;
+
     private String filePls = "";
     private String fileMin = "";
     

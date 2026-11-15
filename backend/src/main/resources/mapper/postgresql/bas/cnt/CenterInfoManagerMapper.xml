@@ -30,8 +30,8 @@
                     A.CENTER_GUBUN AS "centerGubun",
                     B.CODE_NM AS "codeNm",
                     A.CENTER_REGDATE AS "centerRegdate"
-                FROM TB_CENTERINFO A
-                INNER JOIN COMTCCMMNDETAILCODE B ON A.CENTER_GUBUN = B.CODE
+                FROM tb_centerinfo A
+                INNER JOIN comtccmmndetailcode B ON A.CENTER_GUBUN = B.CODE
                 WHERE 1=1
                 <if test="searchKeyword != ''">
                     <choose>
@@ -60,7 +60,7 @@
         SELECT
         CENTER_ID AS centerId,
         CENTER_NM AS centerNm
-        FROM TB_CENTERINFO
+        FROM tb_centerinfo
         WHERE CENTER_USEYN = 'Y'
         <if test="authorCode != 'ROLE_ADMIN' and authorCode != 'ROLE_ANONYMOUS'">
             <choose>
@@ -131,13 +131,13 @@
             CENTER_ENDTIME AS centerEndTime,
             CENTER_GUBUN AS centerGubun,
             BROD_CODE AS brodCode
-        FROM TB_CENTERINFO
+        FROM tb_centerinfo
         WHERE CENTER_ID = #{centerId}
     </select>
 
     <select id="selectCenterInfoBrod" resultType="java.lang.String">
         SELECT BROD_CODE
-        FROM TB_CENTERINFO
+        FROM tb_centerinfo
         WHERE CENTER_ID = #{centerId}
     </select>
 
@@ -152,14 +152,14 @@
     <select id="selectCenterBrodCombo" resultType="CenterInfo">
         SELECT
             CENTER_ID, CENTER_NM, BROD_CODE
-        FROM TB_CENTERINFO
+        FROM tb_centerinfo
         WHERE CENTER_GUBUN = 'BRANCH01'
           AND BROD_CODE IS NOT NULL
     </select>
 
     <select id="selectCenterInfoManageListTotCnt_S" resultType="java.lang.Integer">
         SELECT COALESCE(COUNT(*), 0)
-        FROM TB_CENTERINFO
+        FROM tb_centerinfo
         WHERE 1=1
         <if test="searchKeyword != ''">
             <choose>
@@ -176,14 +176,14 @@
     <select id="selectGroupInCenterInfo" resultType="CenterInfoVO">
         SELECT
             CENTER_ID, CENTER_NM
-        FROM TB_CENTERINFO
+        FROM tb_centerinfo
         WHERE ROLE_CODE = #{roleCode}
         ORDER BY CENTER_ID ASC
     </select>
 
     <insert id="insertCenterInfoManage">
        <![CDATA[
-        INSERT INTO TB_CENTERINFO
+        INSERT INTO tb_centerinfo
         (
             CENTER_ID, CENTER_NM, CENTER_ZIPCODE, CENTER_ADDR1, CENTER_ADDR2,
             CENTER_TEL, CENTER_FAX, CENTER_USERID, CENTER_REGDATE, CENTER_IMG,
@@ -203,7 +203,7 @@
     </insert>
 
     <update id="updateCenterInfoManage">
-        UPDATE TB_CENTERINFO SET
+        UPDATE tb_centerinfo SET
         CENTER_NM = #{centerNm},
         CENTER_ZIPCODE = #{centerZipcode},
         CENTER_ADDR1 = #{centerAddr1},
@@ -232,7 +232,7 @@
     </update>
 
     <delete id="deleteCenterInfoManage">
-        DELETE FROM TB_CENTERINFO
+        DELETE FROM tb_centerinfo
         WHERE CENTER_ID = #{centerId}
     </delete>
 </mapper>

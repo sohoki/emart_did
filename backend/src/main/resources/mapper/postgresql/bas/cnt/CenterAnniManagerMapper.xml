@@ -18,7 +18,7 @@
                             A.TIME_OVER AS "timeOver",
                             A.BROD_CODE AS "brodCode",
                             B.BROD_NAME AS "brodName"
-                        FROM TB_CENTERANNIVERSARY A
+                        FROM tb_centeranniversary A
                         LEFT OUTER JOIN TB_BRODSCHEDULE B  ON A.BROD_CODE = B.BROD_CODE
                         WHERE 1=1
                           AND A.CENTER_ID = #{centerId}
@@ -31,13 +31,13 @@
         SELECT
             CENTER_ID, CENTER_ANNISTARTDAY, CENTER_ANNIENDDAY, START_TIME, END_TIME,
             TIME_OVER, BROD_CODE
-        FROM TB_CENTERANNIVERSARY
+        FROM tb_centeranniversary
         WHERE CENTER_ANNIDAY = #{centerAnniday}
     </select>
 
     <select id="selectCenterAnniRetgCheck" resultType="java.lang.Integer">
         SELECT COALESCE(COUNT(*), 0)
-        FROM TB_CENTERANNIVERSARY
+        FROM tb_centeranniversary
         WHERE CENTER_ID = #{centerId}
         <!-- 표준 구간 겹침 조건(existing.start <= new.end AND existing.end >= new.start).
              기존엔 기존 행의 시작/종료일이 새 구간 "안에" 들어오는 경우만 잡아서, 새 구간이 기존
@@ -52,14 +52,14 @@
 
     <select id="selectCenterAnniManageListTotCnt_S" resultType="java.lang.Integer">
         SELECT COALESCE(COUNT(*), 0)
-        FROM TB_CENTERANNIVERSARY
+        FROM tb_centeranniversary
         WHERE 1=1
           AND CENTER_ID = #{centerId}
     </select>
 
     <insert id="insertCenterAnniManage">
        <![CDATA[
-        INSERT INTO TB_CENTERANNIVERSARY
+        INSERT INTO tb_centeranniversary
         (
             CENTER_ANNIDAY, CENTER_ID, CENTER_ANNISTARTDAY, CENTER_ANNIENDDAY, START_TIME,
             END_TIME, TIME_OVER, FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM,
@@ -75,7 +75,7 @@
     </insert>
 
     <update id="updateCenterAnniManage">
-        UPDATE TB_CENTERANNIVERSARY SET
+        UPDATE tb_centeranniversary SET
                                         CENTER_ID = #{centerId},
                                         CENTER_ANNISTARTDAY = #{centerAnniStartDay},
                                         CENTER_ANNIENDDAY = #{centerAnniEndDay},
@@ -89,12 +89,12 @@
     </update>
 
     <delete id="deleteCenterAnniManage">
-        DELETE FROM TB_CENTERANNIVERSARY
+        DELETE FROM tb_centeranniversary
         WHERE CENTER_ANNIDAY = #{centerAnniday}
     </delete>
 
     <delete id="deleteCenterID">
-        DELETE FROM TB_CENTERANNIVERSARY
+        DELETE FROM tb_centeranniversary
         WHERE CENTER_ID = #{centerId}
     </delete>
 </mapper>

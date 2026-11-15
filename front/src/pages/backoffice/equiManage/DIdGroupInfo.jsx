@@ -15,6 +15,9 @@ const INITIAL_SEARCH_FORM = {
     searchKeyword: '',
 };
 
+// 목록은 전체를 한 번에 받는다 (그리드 페이지 크기는 pageUnit)
+const FETCH_ALL_UNIT = '9999';
+
 const INITIAL_DID_GROUP_FORM = {
     mode: 'Ins',
     groupCode: '',
@@ -41,14 +44,16 @@ export default function DIdGroupInfo() {
         };
     }, []);
 
-    const onSearch = useCallback(async (pageIndex) => {
-        const req = { ...tempParams, pageIndex: String(pageIndex), pageUnit: String(pageUnit) };
+    // MasterDetailGrid 는 받은 목록 안에서 페이지를 나누므로(클라이언트 페이징) 서버에서는 전체를 한 번에 받는다
+    // (pageUnit 만큼만 받으면 21번째 그룹부터 보이지 않음 — Basic/CodeInfo.jsx 와 같은 방식)
+    const onSearch = useCallback(async () => {
+        const req = { ...tempParams, pageIndex: '1', pageUnit: FETCH_ALL_UNIT };
         const { rows } = await fetchDidGroupList(req);
         setRowData(rows);
-    }, [tempParams, pageUnit, fetchDidGroupList]);
+    }, [tempParams, fetchDidGroupList]);
 
     useEffect(() => {
-        fetchDidGroupList({ searchCondition: '', searchKeyword: '', pageIndex: '1', pageUnit: String(pageUnit) })
+        fetchDidGroupList({ searchCondition: '', searchKeyword: '', pageIndex: '1', pageUnit: FETCH_ALL_UNIT })
             .then(({ rows }) => setRowData(rows))
             .catch(() => {});
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
