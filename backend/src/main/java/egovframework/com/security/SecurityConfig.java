@@ -51,7 +51,8 @@ public class SecurityConfig {
 			"/schedule/week", //주간 일정 조회
 			"/schedule/{schdulId}", //일정 상세조회
 			"/image", //갤러리 이미지보기
-             "/upload/**",
+            "/upload/**",
+            "/js/**",
 			"/upload/**", //업로드 파일(이미지 등) 정적 서빙
 			"/api/backoffice/infra/vendor/product/images/**", //판매사몰 공개 페이지 - 상품 추가 이미지(갤러리) 조회(GET만, 업로드/삭제는 POST/DELETE라 별도 인증 필요)
 			"/api/backoffice/infra/vendor/banner/cus/**", //판매사몰 공개 페이지 - 시즌 기획전 배너 조회(GET만)
