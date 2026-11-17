@@ -158,19 +158,30 @@
     </select>
 
     <select id="selectCenterInfoManageListTotCnt_S" resultType="java.lang.Integer">
+        <!-- 목록 쿼리(selectCenterInfoManageListByPagination)와 FROM/JOIN/WHERE를 동일하게 유지해야 한다.
+             건수가 목록보다 많으면 그리드 마지막 페이지에 빈 행이 생긴다. -->
         SELECT COALESCE(COUNT(*), 0)
-        FROM tb_centerinfo
+        FROM tb_centerinfo A
+        INNER JOIN comtccmmndetailcode B ON A.CENTER_GUBUN = B.CODE
         WHERE 1=1
         <if test="searchKeyword != ''">
             <choose>
                 <when test="searchCondition == 'centerId'">
-                    AND CENTER_ID LIKE CONCAT('%', #{searchKeyword}, '%')
+                    AND A.CENTER_ID LIKE CONCAT('%', #{searchKeyword}, '%')
                 </when>
                 <otherwise>
-                    AND CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
+                    AND A.CENTER_NM LIKE CONCAT('%', #{searchKeyword}, '%')
                 </otherwise>
             </choose>
         </if>
+        <choose>
+            <when test="author_Code == 'ROLE_ADMIN' and groupId == 'EMART_00000000000009'">
+                AND A.CENTER_GUBUN = 'BRANCH01'
+            </when>
+            <when test="author_Code == 'ROLE_ANONYMOUS' and groupId == 'EMART_00000000000017'">
+                AND A.CENTER_GUBUN = 'BRANCH01'
+            </when>
+        </choose>
     </select>
 
     <select id="selectGroupInCenterInfo" resultType="CenterInfoVO">
