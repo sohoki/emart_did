@@ -1,0 +1,38 @@
+/*layout*/
+@charset "utf-8";
+/*webfont*/
+@font-face {
+    font-family:NotoSansKR;
+    src: url('/font/NotoSansKR-Regular-Hestia.eot');
+    src: local(※), url('../font/NotoSansKR-Regular-Hestia.woff') format('woff');
+    font-weight: 300;
+    }
+@font-face {
+    font-family:NotoSansKR;
+    src: url('/font/NotoSansKR-Medium-Hestia.eot');
+    src: local(※), url('../font/NotoSansKR-Medium-Hestia.woff') format('woff');
+    font-weight: 500;
+    }
+@font-face {
+    font-family:NotoSansKR;
+    src: url('/font/NotoSansKR-Bold-Hestia.eot');
+    src: local(※), url('../font/NotoSansKR-Bold-Hestia.woff') format('woff');
+    font-weight: 700;
+    }
+/* All */
+
+header,footer,section,article,aside,nav,menu,hgroup,figure,figcaption{ display:block; margin:0; padding:0}
+html,
+body {
+    margin:0;
+    padding:0;
+    height:100%;
+}
+body,table,input,textarea,select,button{ font-family:'NotoSansKR',sans-serif; font-size:1rem; color:#333; font-weight: 200; color: #222222;  line-height: 1em}
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,del,dfn,em,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td
+{margin:0; padding:0; border:0; border-collapse:separate; border-spacing:0; font-style:inherit; text-decoration:none; list-style:none; letter-spacing:-0.05em}
+img,object{ border:0}
+img{ height:auto}
+article, aside, hgroup, header, footer, figure, figcaption, nav, section,time, mark, canvas, video, audio, details, summary {
+     display:block;
+}
