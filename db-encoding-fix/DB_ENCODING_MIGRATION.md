@@ -103,6 +103,10 @@ PK 대신 PostgreSQL의 물리적 행 식별자 `ctid`를 사용했고, 안전�
 
 ## 6. 산출물
 
+> **2026-11-17 추가:** 다른 DB(서버 RDS `db_didinfo`, 재이관 DB 등)에서 다시 복구해야 할 때는
+> `02_recover_update.sql`(EMTINDB의 ctid 고정본) 대신 **[KOREAN_RECOVERY_RUNBOOK.md](KOREAN_RECOVERY_RUNBOOK.md)**
+> 의 범용 스캔·복구 SQL을 사용한다.
+
 이 폴더(`db-encoding-fix/`)에 아래 3개 파일 생성:
 
 1. **`01_backup_tables.sql`** — 영향받는 24개 테이블을 `{table}_bak_20260726` 이름으로 통째로 백업.
