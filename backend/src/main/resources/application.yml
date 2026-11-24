@@ -249,7 +249,7 @@ Globals:
   LocalIp : 1.255.226.51
   DbType : postgresql
   postgresql:
-    Url: jdbc:postgresql://internal-emart-nsap-prd-did-pri-alb-146285345.ap-northeast-2.elb.amazonaws.com:5432/db_didinfo
+    Url: jdbc:postgresql://emart-nsap-prd-did-rds.chwhmho0dgns.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
     UserName: didadmin
     Password: didEmart123!
   addedOptions:
