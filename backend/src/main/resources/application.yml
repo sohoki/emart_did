@@ -251,7 +251,7 @@ Globals:
   postgresql:
     Url: jdbc:postgresql://internal-emart-nsap-prd-did-pri-alb-146285345.ap-northeast-2.elb.amazonaws.com:5432/db_didinfo
     UserName: didadmin
-    Password: AprkDB202^Q2
+    Password: didEmart123!
   addedOptions:
     pageUnit: 10
     pageSize: 10
