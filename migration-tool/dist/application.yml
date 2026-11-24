@@ -1,0 +1,14 @@
+# ==================================================================
+#  이관 도구 추가 설정 — 이 파일을 고친 뒤 run.bat 을 다시 실행하면 적용됨 (다시 빌드 불필요)
+#  - jar 안의 기본 설정(접속 정보 등)보다 이 파일이 우선함
+# ==================================================================
+migration:
+  # Oracle 에 PK/UNIQUE 가 없는 테이블의 비교 키 (Oracle 테이블명: [컬럼명, ...] — 대문자)
+  key-columns:
+    LETTNFILEDETAIL: [ATCH_FILE_ID]
+
+  # 옮기지 않을 테이블 (목록 전체가 이 값으로 바뀜)
+  exclude-tables:
+    - TB_BRODANNIVERSARY
+    - TB_BASICFILEGROUP_PLAYINFO
+    - TB_MESSAGEHISTORY

@@ -6,3 +6,8 @@
 CLAUDE.md
 GEMINI.md
 .claude/**/*.md
+
+# 컴파일된 class 파일 (빌드 산출물)
+*.class
+*.class.uniqueId*
+migration-tool/bin/

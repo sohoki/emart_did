@@ -1,0 +1,8 @@
+18시11분34초:CONINFO:[{"CON_TYPE":"DIDTYPE01","HIS_SEQ":"54201","CON_USEYN":"Y","CON_SEQ":"4742","CON_FILE":"20261119_4742.html","CON_HEIGHT":"1080","CON_MID":"0","SCH_CODE":"S261119001","CON_NM":"testtest","CON_SCREEN":"W11","SCH_EMERGUBUN":"N","CON_LOCALFILE":"20261119_4742_local.html","CON_WIDTH":"1920","CON_TIME":"0","CON_NEXTSEQ":"0"}]
+18시11분34초:CONINFO:[]
+18시11분34초:jsonResult error:Newtonsoft.Json.JsonReaderException: Error parsing NaN value. Path '', line 1, position 1.
+   at Newtonsoft.Json.JsonTextReader.ParseNumberNaN(ReadType readType, Boolean matched)
+   at Newtonsoft.Json.JsonTextReader.ParseValue()
+   at Newtonsoft.Json.Linq.JObject.Load(JsonReader reader, JsonLoadSettings settings)
+   at Newtonsoft.Json.Linq.JObject.Parse(String json, JsonLoadSettings settings)
+   at sohoUniLib.ServerComm_json.jsonResult(String _jsonTxt)

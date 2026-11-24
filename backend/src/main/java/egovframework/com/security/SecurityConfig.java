@@ -89,6 +89,8 @@ public class SecurityConfig {
 			"/backoffice/sub/equiManage/Capture.do", //기존 DID 에이전트 레거시 주소(DidAgentController) - 캡처 업로드
 			"/backoffice/sub/operManage/xmlAuth.do", //기존 DID 에이전트 레거시 주소 - 장비 통신(XML)
 			"/backoffice/sub/operManage/jsonAuth.do", //기존 DID 에이전트 레거시 주소 - 장비 통신(JSON)
+			"/backoffice/sub/operManage/serverDate.do", //기존 DID 에이전트 레거시 주소 - 서버 시간 동기화(DidAgentServerDateController)
+			"/backoffice/operManage/serverDate.do", //현재 배포 에이전트가 호출하는 주소(sub 없음) - 서버 시간 동기화
 			"/api/login.do", //일반 로그인
 			"/api/backoffice/order/**", //주문
 			"/api/backoffice/res/**", //주문
