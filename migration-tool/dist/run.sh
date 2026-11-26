@@ -19,7 +19,7 @@ echo "실행 jar : $JAR"
 # 접속 정보를 바꿔야 하면 주석을 풀고 수정
 # export MIGRATION_ORACLE_URL='jdbc:oracle:thin:@10.253.32.23:1521:EMTINDB'
 # export ORACLE_PASSWORD='...'
-# export MIGRATION_POSTGRES_URL='jdbc:postgresql://did-stg-app-rds.ckealtzyno16.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo'
+# export MIGRATION_POSTGRES_URL='jdbc:postgresql://emart-nsap-prd-did-rds.chwhmho0dgns.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo'
 # export PG_PASSWORD='...'
 
 # -Djava.security.egd : Linux 에서 Oracle JDBC 접속 시 /dev/random 대기로 "Connection reset" 이 나는 문제 방지

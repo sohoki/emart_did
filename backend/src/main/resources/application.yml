@@ -243,6 +243,8 @@ server:
       timeout : 3600
 Common :
   filePath : /data/EMART_DID/did/upload
+  ffmpegPath : /usr/local/bin/ffmpeg
+  ffprobePath : /usr/local/bin/ffprobe
 ########### 추후 인코딩 변경
 Globals:
   OsType : WINDOWS

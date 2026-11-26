@@ -16,11 +16,12 @@ migration:
     password: ${ORACLE_PASSWORD:EMARTCMS}   # 레거시 Globals.Password (환경변수 ORACLE_PASSWORD 로 바꿀 수 있음)
     schema: EMARTCMS
 
-  # ── 대상 PostgreSQL (서버 RDS db_didinfo, backend server 프로파일과 같은 DB) ──
+  # ── 대상 PostgreSQL (운영 RDS db_didinfo, backend server 프로파일과 같은 DB) ──
+  # 2026-11-25 : 스테이징(did-stg-app-rds) → 운영(emart-nsap-prd-did-rds) 으로 변경
   postgres:
-    url: jdbc:postgresql://did-stg-app-rds.ckealtzyno16.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
+    url: jdbc:postgresql://emart-nsap-prd-did-rds.chwhmho0dgns.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
     username: didadmin
-    password: '${PG_PASSWORD:AprkDB202^Q2}'   # backend application.yml server 프로파일과 동일 (환경변수 PG_PASSWORD 로 바꿀 수 있음)
+    password: '${PG_PASSWORD:didEmart123!}'   # backend application.yml server 프로파일과 동일 (환경변수 PG_PASSWORD 로 바꿀 수 있음)
     schema: public
 
   # Oracle 에 저장된 한글 바이트의 문자셋
@@ -41,6 +42,9 @@ migration:
   # jar 와 같은 폴더의 application.yml 에 적으면 다시 빌드하지 않고 바꿀 수 있음
   key-columns:
     LETTNFILEDETAIL: [ATCH_FILE_ID]   # 이 프로젝트는 FILE_SN 없이 파일 1개 = ATCH_FILE_ID 1행
+    TB_CENTERINFO: [CENTER_ID]        # 2026-11-25 : 지점(매장) 정보 — backend 도 CENTER_ID 로 조회/수정/삭제
+    TB_MHSMONITORINFO: [MHS_MONITORCD] # 2026-11-25 : 문화센터 모니터 — backend 도 MHS_MONITORCD 로 수정/삭제
+    TB_MHSCLASSINFO: [MHS_CLASSCD]     # 2026-11-25 : 문화센터 강의 — backend 도 MHS_CLASSCD 로 수정/삭제
 
   # 이관하지 않을 테이블 (Oracle 테이블명)
   # 2026-11-22 : 옮기지 않을 테이블 (사용자 지시 — 대용량 이력성 테이블)

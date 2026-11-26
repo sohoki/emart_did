@@ -23,7 +23,7 @@ echo 실행 jar : %JAR%
 rem 접속 정보를 바꿔야 하면 주석을 풀고 수정
 rem set MIGRATION_ORACLE_URL=jdbc:oracle:thin:@10.253.32.23:1521:EMTINDB
 rem set ORACLE_PASSWORD=...
-rem set MIGRATION_POSTGRES_URL=jdbc:postgresql://did-stg-app-rds.ckealtzyno16.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
+rem set MIGRATION_POSTGRES_URL=jdbc:postgresql://emart-nsap-prd-did-rds.chwhmho0dgns.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
 rem set PG_PASSWORD=...
 
 rem Java : 같이 넣은 jre 폴더가 있으면 그것을 사용 (PC 에 Java 설치 불필요), 없으면 PC 의 java

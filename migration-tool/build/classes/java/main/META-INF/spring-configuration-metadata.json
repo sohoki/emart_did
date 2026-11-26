@@ -22,21 +22,25 @@
     {
       "name": "migration.batch-size",
       "type": "java.lang.Integer",
-      "sourceType": "com.common.migration.config.MigrationProperties"
+      "sourceType": "com.common.migration.config.MigrationProperties",
+      "defaultValue": 1000
     },
     {
       "name": "migration.exclude-tables",
       "type": "java.util.List<java.lang.String>",
+      "description": "이관하지 않을 Oracle 테이블",
       "sourceType": "com.common.migration.config.MigrationProperties"
     },
     {
       "name": "migration.fetch-size",
       "type": "java.lang.Integer",
-      "sourceType": "com.common.migration.config.MigrationProperties"
+      "sourceType": "com.common.migration.config.MigrationProperties",
+      "defaultValue": 1000
     },
     {
       "name": "migration.key-columns",
       "type": "java.util.Map<java.lang.String,java.util.List<java.lang.String>>",
+      "description": "Oracle 에 PK 가 없는 테이블의 비교 키 (Oracle 테이블명 → Oracle 컬럼명 목록)",
       "sourceType": "com.common.migration.config.MigrationProperties"
     },
     {
@@ -82,11 +86,14 @@
     {
       "name": "migration.source-charset",
       "type": "java.lang.String",
-      "sourceType": "com.common.migration.config.MigrationProperties"
+      "description": "Oracle 에 저장된 한글 바이트 문자셋",
+      "sourceType": "com.common.migration.config.MigrationProperties",
+      "defaultValue": "MS949"
     },
     {
       "name": "migration.table-map",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Oracle 테이블명(대문자) → PostgreSQL 테이블명",
       "sourceType": "com.common.migration.config.MigrationProperties"
     }
   ],
