@@ -64,6 +64,7 @@ public class SecurityConfig {
             "/api/user/cus/**",
 			"/api/backoffice/uat/uia/manager/hello.do",
 			"/api/backoffice/sub/roomManage/mhs/device/preview.do", //MHS 문화센터 룸 단말(안드로이드 키오스크)이 로그인 없이 폴링하는 공개 API
+			"/backoffice/sub/roomManage/preView.do",
 			"/uat/uia/actionRefreshToken.do",//refreshToken 로그인
 			"Alpensia/roomStateInfo.do",
 			"/api/interface/Alpensia/roomStateInfo.do", //알펜시아 요금표
@@ -107,6 +108,7 @@ public class SecurityConfig {
             "/upload/**",
 			"/js/**", //webapp/js 정적 스크립트(jquery 등) — DID 화면 HTML이 로그인 없이 참조
 			"/backoffice/sub/roomManage/preView.do", //문화센터 룸 단말 화면 레거시 주소(MhsPreviewPageController)
+			"/api/backoffice/sub/roomManage/mhs/device/preview.do", //MHS 문화센터 룸 단말(안드로이드 키오스크)이 로그인 없이 폴링하는 공개 API
 			"/css/**", //단말 화면 정적 css(webapp/css)
 			"/img/**", //단말 화면 로고(webapp/img)
 			"/images/**", //단말 화면 배경 이미지(webapp/images, paragraph_M.css 에서 참조)

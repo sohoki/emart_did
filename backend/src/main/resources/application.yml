@@ -252,7 +252,7 @@ Globals:
   DbType : postgresql
   postgresql:
     Url: jdbc:postgresql://emart-nsap-prd-did-rds.chwhmho0dgns.ap-northeast-2.rds.amazonaws.com:5432/db_didinfo
-    UserName: didadmin
+    UserName: diduser
     Password: didEmart123!
   addedOptions:
     pageUnit: 10
