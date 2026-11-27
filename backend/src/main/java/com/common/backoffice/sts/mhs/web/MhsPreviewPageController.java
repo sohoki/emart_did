@@ -13,10 +13,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 문화센터(MHS) 룸 단말 화면 — 레거시 주소(/backoffice/sub/roomManage/preView.do) 호환.
- * 기존 키오스크/관리자 팝업이 이 주소를 그대로 쓰므로 레거시 preView.jsp 를 정적 HTML
- * (classpath:/preview/mhsPreView.html)로 이관해 내려준다. 데이터는 페이지 JS 가
- * 로그인 없이 호출 가능한 device/preview.do 로 조회한다(mhsMonitorcd, searchDay 쿼리 파라미터 사용).
+ * 문화센터(MHS) 룸 단말의 레거시 화면 주소에 mhsPreView.html을 제공한다.
+ * 화면은 주소에 따라 device/preview.do 또는 device/previewJson.do에서 데이터를 조회한다.
  */
 @Slf4j
 @RestController
@@ -26,7 +24,8 @@ public class MhsPreviewPageController {
 	private static final String PAGE_PATH = "/preview/mhsPreView.html";
 
 	@Operation(summary = "문화센터 룸 단말 화면(레거시 주소)", description = "mhsMonitorcd(필수), searchDay(선택, YYYYMMDD) 쿼리 파라미터로 화면 표시. 인증 불필요.")
-	@RequestMapping(value = "/backoffice/sub/roomManage/preView.do", produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
+	@RequestMapping(value = {"/backoffice/sub/roomManage/preView.do", "/backoffice/sub/roomManage/preViewJson.do"},
+			produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
 	public ResponseEntity<String> preView() {
 		try (InputStream in = getClass().getResourceAsStream(PAGE_PATH)) {
 			if (in == null) {

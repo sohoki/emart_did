@@ -1,6 +1,7 @@
 package com.common.backoffice.sts.mhs.web;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.egovframe.rte.fdl.property.EgovPropertyService;
 import org.egovframe.rte.ptl.mvc.tags.ui.pagination.PaginationInfo;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -484,7 +486,26 @@ public class CultureDisInfoManageController {
 		return resultVO;
 	}
 
-	// preViewJson.do(관리자 미리보기)/device/preview.do(단말 공개 API)가 공유하는 조회 로직.
+	@Operation(summary = "MHS 모니터 단말 데이터 조회(레거시 JSON 형식)",
+			description = "인증 없이 모니터 정보와 강의 편성을 status, moniterInfo, resultList, pageInfo로 반환합니다.")
+	@GetMapping(value = "/device/previewJson.do", produces = MediaType.APPLICATION_JSON_VALUE)
+	public Map<String, Object> devicePreviewJson(@RequestParam("mhsMonitorcd") String mhsMonitorcd,
+												 @RequestParam(value = "searchDay", required = false) String searchDay) {
+		try {
+			Map<String, Object> preview = buildPreviewResult(mhsMonitorcd, searchDay);
+			Map<String, Object> response = new LinkedHashMap<>();
+			response.put("status", "SUCCESS");
+			response.put("moniterInfo", preview.get("monitorInfo"));
+			response.put(Globals.JSON_RETURN_RESULT_LIST, preview.get(Globals.JSON_RETURN_RESULT_LIST));
+			response.put("pageInfo", preview.get("pageInfo"));
+			return response;
+		} catch (Exception e) {
+			log.error("devicePreviewJson error", e);
+			return Map.of("status", "FAIL");
+		}
+	}
+
+	// 관리자 미리보기와 단말 조회 API가 공유하는 조회 로직.
 	private Map<String, Object> buildPreviewResult(String mhsMonitorcd, String searchDay) throws Exception {
 		if (searchDay == null || searchDay.isBlank()) {
 			searchDay = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));

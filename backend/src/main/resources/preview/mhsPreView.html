@@ -20,7 +20,7 @@
 </head>
 <body>
 <!-- 레거시 emart_cms3.2.1 roomManage/preView.jsp 이관 — 문화센터(MHS) 룸 단말(키오스크) 화면.
-     데이터는 로그인 없이 호출 가능한 /api/backoffice/sub/roomManage/mhs/device/preview.do 로 조회한다.
+     preViewJson.do 화면은 device/previewJson.do, preView.do 화면은 device/preview.do 에서 데이터를 조회한다.
      레거시는 슬라이드 4장(리스트/강의카드 x2)을 순환했지만, 단말에서 스크롤이 생겨
      오늘 남은 강의가 있으면 리스트 화면, 없으면 "현재 진행중인 강의가 없습니다" 화면 하나만 보여준다. -->
 <input type="hidden" id="mhsMonitorcd" value="">
@@ -138,7 +138,9 @@
     }
 
     function classInfo() {
-        var url = '/api/backoffice/sub/roomManage/mhs/device/preview.do?mhsMonitorcd=' + encodeURIComponent($('#mhsMonitorcd').val());
+        var useLegacyJson = location.pathname === '/backoffice/sub/roomManage/preViewJson.do';
+        var endpoint = useLegacyJson ? 'previewJson.do' : 'preview.do';
+        var url = '/api/backoffice/sub/roomManage/mhs/device/' + endpoint + '?mhsMonitorcd=' + encodeURIComponent($('#mhsMonitorcd').val());
         if ($('#searchDay').val()) {
             url += '&searchDay=' + encodeURIComponent($('#searchDay').val());
         }
@@ -147,11 +149,14 @@
             type: 'GET',
             dataType: 'json',
             success: function (res) {
-                var result = res && res.result;
+                if (!res || (useLegacyJson && res.status !== 'SUCCESS')) {
+                    return;
+                }
+                var result = useLegacyJson ? res : res.result;
                 if (!result) {
                     return;
                 }
-                var info = result.monitorInfo || {};
+                var info = (useLegacyJson ? result.moniterInfo : result.monitorInfo) || {};
                 $('#room_name').html(esc(info.mhsMonitornm));
                 $('#floor').html(esc(info.mhsCenternm));
 
