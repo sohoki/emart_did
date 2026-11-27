@@ -38,6 +38,7 @@ const CENTER_MAPPING = { id: 'centerId', text: 'centerNm' };
 const GROUP_MAPPING = { id: 'groupId', text: 'groupNm' };
 
 export default function ManagerListPage() {
+    const isAdmin = getCookie('roleId') === 'ROLE_ADMIN';
 
     //상태
     // 관리자 상태 공통코드는 COM003(STATE_01=입사/STATE_02=휴직/STATE_03=퇴사)
@@ -161,11 +162,12 @@ export default function ManagerListPage() {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
                 <button className="btn btn-outline-danger btn-outline__gray btn-sm"
+                    disabled={!isAdmin}
                     onClick={() => handleDelete({ code: p.data?.managerId, name: p.data?.managerName })}
                 >삭제</button>
             ),
         },
-    ]), [handleOpenManagerModal, handleDelete]);
+    ]), [handleOpenManagerModal, handleDelete, isAdmin]);
 
     return (
         <div className="row g-0 main-contents">

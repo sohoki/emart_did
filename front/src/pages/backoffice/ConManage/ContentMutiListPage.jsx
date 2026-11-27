@@ -6,6 +6,7 @@ import { useGridInfinite } from '@/hooks/grid/use-grid-infinite.js';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
 import { useResetForm } from '@/hooks/use-form.jsx';
 import { useCommonDelete } from '@/hooks/use-common-delete.js';
+import { getCookie } from '@/lib/cookie.jsx';
 import Swal from '@/lib/swal.js';
 import URL from '@/constants/URL.jsx';
 
@@ -32,6 +33,7 @@ const EMPTY_MUTI_FORM = {
 
 // 화면 구성(멀티페이지 콘텐츠) 관리 — 레거시 conMutiList.jsp 참고.
 export default function ContentMutiListPage() {
+    const isAdmin = getCookie('roleId') === 'ROLE_ADMIN';
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const gridApiRef = useRef(null);
@@ -200,11 +202,12 @@ export default function ContentMutiListPage() {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
                 <button className="btn btn-outline-danger btn-outline__gray btn-sm"
+                    disabled={!isAdmin}
                     onClick={() => handleDelete({ code: p.data?.conSeq, name: p.data?.conNm })}
                 >삭제</button>
             ),
         },
-    ]), [navigate, handleOpenMutiModal, handleDelete]);
+    ]), [navigate, handleOpenMutiModal, handleDelete, isAdmin]);
 
     return (
         <div className="row g-0 main-contents">

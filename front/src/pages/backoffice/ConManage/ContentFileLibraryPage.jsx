@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, Suspense, lazy } from 'react';
 import { fnAjaxFetch } from '@/service/api/fn-ajax-fetch.jsx';
+import { getCookie } from '@/lib/cookie.jsx';
 import Swal from '@/lib/swal.js';
 import config from '@/config/index.jsx';
 import URL from '@/constants/URL.jsx';
@@ -44,6 +45,7 @@ function PageIconButton({ icon, title, disabled, onClick }) {
 // AppAgGrid 대신 카드형 그리드를 그대로 쓴다(DidPicListPage와 동일한 골격 예외 케이스).
 // embedded=true면 다른 화면의 탭 안에 넣어 쓰도록 제목/breadcrumb 영역을 생략한다(문화센터 룸 관리 > 콘텐츠 등록 탭).
 export default function ContentFileLibraryPage({ embedded = false }) {
+    const isAdmin = getCookie('roleId') === 'ROLE_ADMIN';
     const [list, setList] = useState([]);
     const [totalCnt, setTotalCnt] = useState(0);
     const [pageIndex, setPageIndex] = useState(1);
@@ -173,9 +175,11 @@ export default function ContentFileLibraryPage({ embedded = false }) {
                             onClick={onSearch}>검색</button>
                         <button type="button" className="btn btn-outline-dark btn-outline__gray"
                             onClick={handleReset}>검색 초기화</button>
-                        <button type="button" className="btn btn-outline-dark btn-outline__gray"
-                            onClick={() => Swal.fire({ icon: 'info', title: '미디어 파일정리', text: '준비 중인 기능입니다.' })}
-                        >미디어 파일정리</button>
+                        {isAdmin && (
+                            <button type="button" className="btn btn-outline-dark btn-outline__gray"
+                                onClick={() => Swal.fire({ icon: 'info', title: '미디어 파일정리', text: '준비 중인 기능입니다.' })}
+                            >미디어 파일정리</button>
+                        )}
                         <button type="button" className="btn btn-primary btn-default__blue"
                             onClick={() => setUploadModalOpen(true)}>미디어 파일 등록</button>
                     </div>

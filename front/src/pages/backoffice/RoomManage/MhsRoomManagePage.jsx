@@ -91,6 +91,7 @@ export default function MhsRoomManagePage() {
     const [loginCenterId] = useState(() => (isMhsRole(getCookie('roleId')) ? (getCookie('centerId') || '') : ''));
 
     // 모니터 관리
+    const isAdmin = getCookie('roleId') === 'ROLE_ADMIN';
     const [monitorModalOpen, setMonitorModalOpen] = useState(false);
     const [monitorForm, setMonitorForm] = useState(EMPTY_MONITOR_FORM);
     const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -318,11 +319,12 @@ export default function MhsRoomManagePage() {
             headerName: '삭제', width: 90, sortable: false, filter: false,
             cellRenderer: (p) => (
                 <button className="btn btn-outline-danger btn-outline__gray btn-sm"
+                    disabled={!isAdmin}
                     onClick={() => handleMonitorDelete({ code: p.data?.mhsMonitorcd, name: p.data?.mhsMonitornm })}
                 >삭제</button>
             ),
         },
-    ]), [handleOpenMonitorModal, handleMonitorPreview, handleMonitorDelete, navigate]);
+    ]), [handleOpenMonitorModal, handleMonitorPreview, handleMonitorDelete, navigate, isAdmin]);
 
     // ===== 강의 관리 =====
     // 서버 페이징(useGridInfinite) — 예전엔 1페이지(20건)만 받아와 클라이언트 페이징을 해서
